@@ -6,7 +6,8 @@ import {
   insertAttendanceRecordSchema, 
   insertAdminUserSchema,
   insertReportConfigSchema,
-  insertReportRunSchema
+  insertReportRunSchema,
+  insertVisitorSchema
 } from "@shared/schema";
 import { z } from "zod";
 
@@ -471,6 +472,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(runs);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch report runs" });
+    }
+  });
+
+  // Visitor routes
+  app.post("/api/visitors", async (req, res) => {
+    try {
+      const visitorData = insertVisitorSchema.parse(req.body);
+      const visitor = await storage.createVisitor(visitorData);
+      res.json(visitor);
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : "Invalid visitor data" });
+    }
+  });
+
+  app.get("/api/visitors", async (req, res) => {
+    try {
+      const { status } = req.query;
+      let visitors;
+      
+      if (status) {
+        visitors = await storage.getVisitorsByStatus(status as string);
+      } else {
+        visitors = await storage.getAllVisitors();
+      }
+      
+      res.json(visitors);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch visitors" });
+    }
+  });
+
+  app.get("/api/visitors/:id", async (req, res) => {
+    try {
+      const visitor = await storage.getVisitor(req.params.id);
+      if (!visitor) {
+        return res.status(404).json({ error: "Visitor not found" });
+      }
+      res.json(visitor);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch visitor" });
+    }
+  });
+
+  app.patch("/api/visitors/:id", async (req, res) => {
+    try {
+      const visitorUpdate = insertVisitorSchema.partial().parse(req.body);
+      const visitor = await storage.updateVisitor(req.params.id, visitorUpdate);
+      res.json(visitor);
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : "Invalid visitor data" });
     }
   });
 

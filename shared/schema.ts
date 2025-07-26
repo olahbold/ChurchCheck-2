@@ -64,6 +64,34 @@ export const followUpRecordsRelations = relations(followUpRecords, ({ one }) => 
   }),
 }));
 
+// First-time visitors table for detailed visitor information
+export const visitors = pgTable("visitors", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  memberId: varchar("member_id").references(() => members.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  address: text("address"),
+  email: varchar("email", { length: 255 }),
+  phone: varchar("phone", { length: 50 }),
+  whatsappNumber: varchar("whatsapp_number", { length: 50 }),
+  weddingAnniversary: date("wedding_anniversary"),
+  birthday: date("birthday"),
+  prayerPoints: text("prayer_points"),
+  howDidYouHearAboutUs: text("how_did_you_hear_about_us"),
+  comments: text("comments"),
+  visitDate: timestamp("visit_date").defaultNow(),
+  followUpStatus: varchar("follow_up_status", { length: 50 }).default("pending"), // pending, contacted, member
+  assignedTo: varchar("assigned_to", { length: 255 }), // Pastor/volunteer assigned for follow-up
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const visitorsRelations = relations(visitors, ({ one }) => ({
+  member: one(members, {
+    fields: [visitors.memberId],
+    references: [members.id],
+  }),
+}));
+
 // Insert schemas
 export const insertMemberSchema = createInsertSchema(members, {
   phone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone number format"),
@@ -87,6 +115,20 @@ export const insertFollowUpRecordSchema = createInsertSchema(followUpRecords).om
   id: true,
 });
 
+export const insertVisitorSchema = createInsertSchema(visitors, {
+  email: z.string().email("Invalid email format").optional().or(z.literal("")),
+  phone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone number format").optional().or(z.literal("")),
+  whatsappNumber: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid WhatsApp number format").optional().or(z.literal("")),
+  weddingAnniversary: z.string().optional().or(z.literal("")),
+  birthday: z.string().optional().or(z.literal("")),
+  followUpStatus: z.enum(["pending", "contacted", "member"]).optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  visitDate: true,
+});
+
 // Types
 export type Member = typeof members.$inferSelect;
 export type InsertMember = z.infer<typeof insertMemberSchema>;
@@ -94,6 +136,8 @@ export type AttendanceRecord = typeof attendanceRecords.$inferSelect;
 export type InsertAttendanceRecord = z.infer<typeof insertAttendanceRecordSchema>;
 export type FollowUpRecord = typeof followUpRecords.$inferSelect;
 export type InsertFollowUpRecord = z.infer<typeof insertFollowUpRecordSchema>;
+export type Visitor = typeof visitors.$inferSelect;
+export type InsertVisitor = z.infer<typeof insertVisitorSchema>;
 
 // Admin users schema for access management
 export const adminUsers = pgTable("admin_users", {

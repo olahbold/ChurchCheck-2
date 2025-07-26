@@ -5,6 +5,7 @@ import {
   adminUsers,
   reportConfigs,
   reportRuns,
+  visitors,
   type Member, 
   type InsertMember, 
   type AttendanceRecord, 
@@ -17,6 +18,8 @@ import {
   type InsertReportConfig,
   type ReportRun,
   type InsertReportRun,
+  type Visitor,
+  type InsertVisitor,
   type User, 
   type InsertUser 
 } from "@shared/schema";
@@ -53,6 +56,13 @@ export interface IStorage {
   // Follow-up methods
   updateFollowUpRecord(record: InsertFollowUpRecord): Promise<FollowUpRecord>;
   getMembersNeedingFollowUp(): Promise<(Member & { followUpRecord: FollowUpRecord })[]>;
+
+  // Visitor methods
+  createVisitor(visitor: InsertVisitor): Promise<Visitor>;
+  getVisitor(id: string): Promise<Visitor | undefined>;
+  getAllVisitors(): Promise<Visitor[]>;
+  getVisitorsByStatus(status: string): Promise<Visitor[]>;
+  updateVisitor(id: string, visitor: Partial<InsertVisitor>): Promise<Visitor>;
   updateConsecutiveAbsences(): Promise<void>;
 
   // Admin user methods
@@ -536,6 +546,33 @@ export class DatabaseStorage implements IStorage {
       .from(followUpRecords)
       .innerJoin(members, eq(followUpRecords.memberId, members.id))
       .orderBy(desc(followUpRecords.lastContactDate));
+  }
+  // Visitor methods
+  async createVisitor(visitor: InsertVisitor): Promise<Visitor> {
+    const [newVisitor] = await db.insert(visitors).values(visitor).returning();
+    return newVisitor;
+  }
+
+  async getVisitor(id: string): Promise<Visitor | undefined> {
+    const [visitor] = await db.select().from(visitors).where(eq(visitors.id, id));
+    return visitor;
+  }
+
+  async getAllVisitors(): Promise<Visitor[]> {
+    return await db.select().from(visitors).orderBy(desc(visitors.visitDate));
+  }
+
+  async getVisitorsByStatus(status: string): Promise<Visitor[]> {
+    return await db.select().from(visitors).where(eq(visitors.followUpStatus, status));
+  }
+
+  async updateVisitor(id: string, visitor: Partial<InsertVisitor>): Promise<Visitor> {
+    const [updatedVisitor] = await db
+      .update(visitors)
+      .set({ ...visitor, updatedAt: new Date() })
+      .where(eq(visitors.id, id))
+      .returning();
+    return updatedVisitor;
   }
 }
 
