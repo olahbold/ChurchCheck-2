@@ -142,6 +142,24 @@ Key features:
 
 ## Recent Changes
 
+### July 26, 2025 - External Fingerprint Scanner Integration
+- **Real WebAuthn Biometric Authentication**: Integrated device biometric sensors (fingerprint, face, PIN) using WebAuthn API for authentic enrollment and check-in
+- **External Scanner Support**: Added comprehensive support for USB and Bluetooth fingerprint scanners with:
+  - USB scanner detection and connection (SecuGen, Futronic, AuthenTec, Goodix, etc.)
+  - Bluetooth scanner integration for wireless operation
+  - Automatic device capability detection and graceful fallbacks
+  - Multi-scanner management interface with connection status
+- **Smart Scanning Options**: Users can choose between:
+  - Device biometrics (phone's built-in sensors)
+  - External USB/Bluetooth scanners
+  - Simulation mode for testing
+- **Enhanced Scanner Interface**: 
+  - Real-time scanner status indicators
+  - Setup wizard for external scanner configuration
+  - Quality-based fingerprint template generation
+  - Cross-browser compatibility with WebUSB/WebBluetooth APIs
+- **Professional Integration**: Supports pocket-friendly scanners from $20 to professional-grade $500+ systems
+
 ### July 26, 2025 - Admin Section Implementation
 - **Admin User Management**: Complete user access control system with three roles:
   - Admin: Full system access including user management and settings
