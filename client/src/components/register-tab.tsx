@@ -274,7 +274,16 @@ export default function RegisterTab() {
                 {showFingerprintEnroll && (
                   <FingerprintScanner
                     mode="enroll"
+                    userId={`temp_${Date.now()}`}
+                    userName={`${form.getValues('firstName')} ${form.getValues('surname')}`.trim() || 'New Member'}
                     onScanComplete={handleFingerprintEnroll}
+                    onError={(error) => {
+                      toast({
+                        title: "Biometric Enrollment Error",
+                        description: error,
+                        variant: "destructive",
+                      });
+                    }}
                   />
                 )}
 

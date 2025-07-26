@@ -33,11 +33,13 @@ export default function CheckInTab() {
     enabled: searchQuery.length > 0,
   });
 
-  // Fingerprint scan mutation
-  const fingerprintScanMutation = useMutation({
-    mutationFn: async () => {
-      const deviceId = navigator.userAgent + navigator.language + screen.width;
-      const response = await apiRequest('POST', '/api/fingerprint/scan', { deviceId });
+  // Biometric scan mutation for check-in
+  const biometricScanMutation = useMutation({
+    mutationFn: async (fingerprintId: string) => {
+      const response = await apiRequest('POST', '/api/fingerprint/scan', { 
+        fingerprintId,
+        deviceId: navigator.userAgent + navigator.language + screen.width 
+      });
       return response.json() as Promise<CheckInResult>;
     },
     onSuccess: (result) => {
@@ -50,8 +52,8 @@ export default function CheckInTab() {
         queryClient.invalidateQueries({ queryKey: ['/api/attendance'] });
       } else {
         toast({
-          title: "Fingerprint Not Recognized",
-          description: "Please use manual check-in or register your fingerprint",
+          title: "Biometric Not Recognized",
+          description: "Please use manual check-in or register your biometric",
           variant: "destructive",
         });
       }
@@ -119,9 +121,18 @@ export default function CheckInTab() {
     },
   });
 
-  const handleFingerprintScan = () => {
+  const handleBiometricScan = (fingerprintId: string) => {
     setIsScanning(true);
-    fingerprintScanMutation.mutate();
+    biometricScanMutation.mutate(fingerprintId);
+  };
+
+  const handleBiometricError = (error: string) => {
+    setIsScanning(false);
+    toast({
+      title: "Biometric Scan Error",
+      description: error,
+      variant: "destructive",
+    });
   };
 
   const handleManualCheckIn = (memberId: string) => {
@@ -150,8 +161,11 @@ export default function CheckInTab() {
           </CardHeader>
           <CardContent className="p-8">
             <FingerprintScanner
-              onScanStart={handleFingerprintScan}
-              isScanning={isScanning || fingerprintScanMutation.isPending}
+              mode="scan"
+              onScanComplete={handleBiometricScan}
+              onScanStart={() => setIsScanning(true)}
+              onError={handleBiometricError}
+              isScanning={isScanning || biometricScanMutation.isPending}
             />
 
             {/* Manual Override */}
