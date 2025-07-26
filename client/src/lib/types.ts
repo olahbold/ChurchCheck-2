@@ -33,4 +33,31 @@ export interface FamilyCheckInResult {
   success: boolean;
 }
 
-export type TabType = 'register' | 'checkin' | 'dashboard' | 'settings';
+export type TabType = 'register' | 'checkin' | 'dashboard' | 'settings' | 'admin';
+
+export interface AdminUser {
+  id: string;
+  username: string;
+  fullName: string;
+  email: string;
+  role: 'admin' | 'volunteer' | 'data_viewer';
+  region?: string;
+  isActive: boolean;
+  lastLogin?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReportConfig {
+  id: string;
+  reportType: string;
+  title: string;
+  description?: string;
+  frequency: 'weekly' | 'monthly' | 'on-demand';
+  isActive: boolean;
+  createdAt: string;
+}
+
+export interface ReportData {
+  [key: string]: any;
+}

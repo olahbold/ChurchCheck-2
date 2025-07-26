@@ -1,7 +1,13 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertMemberSchema, insertAttendanceRecordSchema } from "@shared/schema";
+import { 
+  insertMemberSchema, 
+  insertAttendanceRecordSchema, 
+  insertAdminUserSchema,
+  insertReportConfigSchema,
+  insertReportRunSchema
+} from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -269,6 +275,202 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.send(csvHeader + csvData);
     } catch (error) {
       res.status(500).json({ error: "Export failed" });
+    }
+  });
+
+  // Admin user routes
+  app.post("/api/admin/users", async (req, res) => {
+    try {
+      const userData = insertAdminUserSchema.parse(req.body);
+      const user = await storage.createAdminUser(userData);
+      // Don't send password back
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : "Invalid user data" });
+    }
+  });
+
+  app.get("/api/admin/users", async (req, res) => {
+    try {
+      const users = await storage.getAllAdminUsers();
+      // Don't send passwords back
+      const usersWithoutPasswords = users.map(({ password, ...user }) => user);
+      res.json(usersWithoutPasswords);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch admin users" });
+    }
+  });
+
+  app.get("/api/admin/users/:id", async (req, res) => {
+    try {
+      const user = await storage.getAdminUser(req.params.id);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch user" });
+    }
+  });
+
+  app.put("/api/admin/users/:id", async (req, res) => {
+    try {
+      const userData = insertAdminUserSchema.partial().parse(req.body);
+      const user = await storage.updateAdminUser(req.params.id, userData);
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : "Invalid user data" });
+    }
+  });
+
+  app.delete("/api/admin/users/:id", async (req, res) => {
+    try {
+      await storage.deleteAdminUser(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
+  // Analytics and reports routes
+  app.get("/api/reports/weekly-attendance", async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const report = await storage.getWeeklyAttendanceSummary(
+        startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        endDate as string || new Date().toISOString().split('T')[0]
+      );
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to generate weekly attendance report" });
+    }
+  });
+
+  app.get("/api/reports/member-attendance-log", async (req, res) => {
+    try {
+      const { memberId, startDate, endDate } = req.query;
+      const report = await storage.getMemberAttendanceLog(
+        memberId as string,
+        startDate as string,
+        endDate as string
+      );
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to generate member attendance log" });
+    }
+  });
+
+  app.get("/api/reports/missed-services", async (req, res) => {
+    try {
+      const { weeks } = req.query;
+      const report = await storage.getMissedServicesReport(
+        weeks ? parseInt(weeks as string) : 3
+      );
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to generate missed services report" });
+    }
+  });
+
+  app.get("/api/reports/new-members", async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const report = await storage.getNewMembersReport(
+        startDate as string || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        endDate as string || new Date().toISOString().split('T')[0]
+      );
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to generate new members report" });
+    }
+  });
+
+  app.get("/api/reports/inactive-members", async (req, res) => {
+    try {
+      const { weeks } = req.query;
+      const report = await storage.getInactiveMembersReport(
+        weeks ? parseInt(weeks as string) : 4
+      );
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to generate inactive members report" });
+    }
+  });
+
+  app.get("/api/reports/group-attendance-trend", async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      const report = await storage.getGroupAttendanceTrend(
+        startDate as string || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        endDate as string || new Date().toISOString().split('T')[0]
+      );
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to generate group attendance trend report" });
+    }
+  });
+
+  app.get("/api/reports/family-checkin-summary", async (req, res) => {
+    try {
+      const { date } = req.query;
+      const report = await storage.getFamilyCheckInSummary(
+        date as string || new Date().toISOString().split('T')[0]
+      );
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to generate family check-in summary" });
+    }
+  });
+
+  app.get("/api/reports/followup-action-tracker", async (req, res) => {
+    try {
+      const report = await storage.getFollowUpActionTracker();
+      res.json(report);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to generate follow-up action tracker" });
+    }
+  });
+
+  // Report configuration routes
+  app.post("/api/admin/report-configs", async (req, res) => {
+    try {
+      const configData = insertReportConfigSchema.parse(req.body);
+      const config = await storage.createReportConfig(configData);
+      res.json(config);
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : "Invalid report config" });
+    }
+  });
+
+  app.get("/api/admin/report-configs", async (req, res) => {
+    try {
+      const configs = await storage.getAllReportConfigs();
+      res.json(configs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch report configs" });
+    }
+  });
+
+  app.post("/api/admin/report-runs", async (req, res) => {
+    try {
+      const runData = insertReportRunSchema.parse(req.body);
+      const run = await storage.createReportRun(runData);
+      res.json(run);
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : "Invalid report run data" });
+    }
+  });
+
+  app.get("/api/admin/report-runs", async (req, res) => {
+    try {
+      const { configId } = req.query;
+      const runs = await storage.getReportRuns(configId as string);
+      res.json(runs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch report runs" });
     }
   });
 

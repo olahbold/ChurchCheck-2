@@ -41,16 +41,22 @@ The system follows a monorepo structure with clear separation between client and
 - **Logging**: Custom request/response logging
 
 ### Database Schema
-The system uses three main entities:
+The system uses six main entities:
 - **Members**: Core member information including biometric data
 - **Attendance Records**: Daily check-in records with timestamps
 - **Follow-up Records**: Tracking member engagement and absences
+- **Admin Users**: User access management with role-based permissions
+- **Report Configs**: Predefined report templates and configurations
+- **Report Runs**: Historical log of generated reports
 
 Key features:
 - Family linking through parent-child relationships
 - Biometric fingerprint simulation
 - Comprehensive attendance tracking
 - Automated follow-up management
+- Role-based admin access control (Admin, Volunteer, Data Viewer)
+- Multi-location church support with region assignment
+- Comprehensive analytics and reporting system
 
 ## Data Flow
 
@@ -133,3 +139,27 @@ Key features:
 - **Problem**: Shared types and schemas between client/server
 - **Solution**: Monorepo with shared directory
 - **Rationale**: Code reuse, type safety across boundaries, simplified deployment
+
+## Recent Changes
+
+### July 26, 2025 - Admin Section Implementation
+- **Admin User Management**: Complete user access control system with three roles:
+  - Admin: Full system access including user management and settings
+  - Volunteer: Check-in only access for service helpers
+  - Data Viewer: Read-only access to reports and analytics
+- **Comprehensive Analytics Dashboard**: 10 specialized reports including:
+  - Weekly Attendance Summary by demographic groups
+  - Member Attendance Log with individual tracking
+  - Missed 3+ Services Report for follow-up identification
+  - New Members Report for onboarding tracking
+  - Inactive Members Report for engagement monitoring
+  - Group-wise Attendance Trends for ministry insights
+  - Family Check-in Summary for family ministry
+  - Follow-up Action Tracker for pastoral care
+  - Service-specific Attendance for special events
+  - Exportable Raw Data Log for auditing
+- **Multi-location Support**: Region assignment for users in multi-campus churches
+- **Report Export System**: CSV export functionality for all reports
+- **Database Schema Extensions**: Added admin_users, report_configs, and report_runs tables
+- **API Endpoints**: Comprehensive REST API for admin operations and analytics
+- **User Interface**: Tabbed admin interface with user management and reports sections

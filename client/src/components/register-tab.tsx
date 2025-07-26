@@ -231,7 +231,7 @@ export default function RegisterTab() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Link to Parent</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
                         <FormControl>
                           <SelectTrigger className="church-form-input">
                             <SelectValue placeholder="Select parent (optional)" />

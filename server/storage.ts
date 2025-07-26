@@ -2,12 +2,21 @@ import {
   members, 
   attendanceRecords, 
   followUpRecords,
+  adminUsers,
+  reportConfigs,
+  reportRuns,
   type Member, 
   type InsertMember, 
   type AttendanceRecord, 
   type InsertAttendanceRecord,
   type FollowUpRecord,
   type InsertFollowUpRecord,
+  type AdminUser,
+  type InsertAdminUser,
+  type ReportConfig,
+  type InsertReportConfig,
+  type ReportRun,
+  type InsertReportRun,
   type User, 
   type InsertUser 
 } from "@shared/schema";
@@ -45,6 +54,30 @@ export interface IStorage {
   updateFollowUpRecord(record: InsertFollowUpRecord): Promise<FollowUpRecord>;
   getMembersNeedingFollowUp(): Promise<(Member & { followUpRecord: FollowUpRecord })[]>;
   updateConsecutiveAbsences(): Promise<void>;
+
+  // Admin user methods
+  createAdminUser(user: InsertAdminUser): Promise<AdminUser>;
+  getAdminUser(id: string): Promise<AdminUser | undefined>;
+  getAdminUserByUsername(username: string): Promise<AdminUser | undefined>;
+  updateAdminUser(id: string, user: Partial<InsertAdminUser>): Promise<AdminUser>;
+  getAllAdminUsers(): Promise<AdminUser[]>;
+  deleteAdminUser(id: string): Promise<void>;
+
+  // Report methods
+  createReportConfig(config: InsertReportConfig): Promise<ReportConfig>;
+  getAllReportConfigs(): Promise<ReportConfig[]>;
+  createReportRun(run: InsertReportRun): Promise<ReportRun>;
+  getReportRuns(configId?: string): Promise<ReportRun[]>;
+  
+  // Analytics methods
+  getWeeklyAttendanceSummary(startDate: string, endDate: string): Promise<any>;
+  getMemberAttendanceLog(memberId?: string, startDate?: string, endDate?: string): Promise<any>;
+  getMissedServicesReport(weeks: number): Promise<any>;
+  getNewMembersReport(startDate: string, endDate: string): Promise<any>;
+  getInactiveMembersReport(weeks: number): Promise<any>;
+  getGroupAttendanceTrend(startDate: string, endDate: string): Promise<any>;
+  getFamilyCheckInSummary(date: string): Promise<any>;
+  getFollowUpActionTracker(): Promise<any>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -117,16 +150,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async searchMembers(query: string, group?: string): Promise<Member[]> {
-    let queryBuilder = db.select().from(members);
+    let conditions = [];
     
     if (query) {
-      queryBuilder = queryBuilder.where(
+      conditions.push(
         sql`${members.firstName} ILIKE ${`%${query}%`} OR ${members.surname} ILIKE ${`%${query}%`}`
       );
     }
     
     if (group && group !== 'all') {
-      queryBuilder = queryBuilder.where(eq(members.group, group));
+      conditions.push(eq(members.group, group));
+    }
+    
+    const queryBuilder = db.select().from(members);
+    
+    if (conditions.length > 0) {
+      return await queryBuilder
+        .where(conditions.length === 1 ? conditions[0] : and(...conditions))
+        .orderBy(members.firstName, members.surname);
     }
     
     return await queryBuilder.orderBy(members.firstName, members.surname);
@@ -255,6 +296,246 @@ export class DatabaseStorage implements IStorage {
         needsFollowUp: true,
       });
     }
+  }
+
+  // Admin user methods
+  async createAdminUser(user: InsertAdminUser): Promise<AdminUser> {
+    const [newUser] = await db
+      .insert(adminUsers)
+      .values({
+        ...user,
+        updatedAt: new Date(),
+      })
+      .returning();
+    return newUser;
+  }
+
+  async getAdminUser(id: string): Promise<AdminUser | undefined> {
+    const [user] = await db.select().from(adminUsers).where(eq(adminUsers.id, id));
+    return user || undefined;
+  }
+
+  async getAdminUserByUsername(username: string): Promise<AdminUser | undefined> {
+    const [user] = await db.select().from(adminUsers).where(eq(adminUsers.username, username));
+    return user || undefined;
+  }
+
+  async updateAdminUser(id: string, userUpdate: Partial<InsertAdminUser>): Promise<AdminUser> {
+    const [updatedUser] = await db
+      .update(adminUsers)
+      .set({
+        ...userUpdate,
+        updatedAt: new Date(),
+      })
+      .where(eq(adminUsers.id, id))
+      .returning();
+    return updatedUser;
+  }
+
+  async getAllAdminUsers(): Promise<AdminUser[]> {
+    return await db.select().from(adminUsers).orderBy(adminUsers.fullName);
+  }
+
+  async deleteAdminUser(id: string): Promise<void> {
+    await db.delete(adminUsers).where(eq(adminUsers.id, id));
+  }
+
+  // Report methods
+  async createReportConfig(config: InsertReportConfig): Promise<ReportConfig> {
+    const [newConfig] = await db
+      .insert(reportConfigs)
+      .values(config)
+      .returning();
+    return newConfig;
+  }
+
+  async getAllReportConfigs(): Promise<ReportConfig[]> {
+    return await db.select().from(reportConfigs).orderBy(reportConfigs.title);
+  }
+
+  async createReportRun(run: InsertReportRun): Promise<ReportRun> {
+    const [newRun] = await db
+      .insert(reportRuns)
+      .values(run)
+      .returning();
+    return newRun;
+  }
+
+  async getReportRuns(configId?: string): Promise<ReportRun[]> {
+    if (configId) {
+      return await db
+        .select()
+        .from(reportRuns)
+        .where(eq(reportRuns.reportConfigId, configId))
+        .orderBy(desc(reportRuns.generatedAt));
+    }
+    return await db
+      .select()
+      .from(reportRuns)
+      .orderBy(desc(reportRuns.generatedAt));
+  }
+
+  // Analytics methods
+  async getWeeklyAttendanceSummary(startDate: string, endDate: string): Promise<any> {
+    const summary = await db
+      .select({
+        date: attendanceRecords.attendanceDate,
+        group: members.group,
+        count: count(),
+      })
+      .from(attendanceRecords)
+      .innerJoin(members, eq(attendanceRecords.memberId, members.id))
+      .where(
+        and(
+          gte(attendanceRecords.attendanceDate, startDate),
+          lte(attendanceRecords.attendanceDate, endDate)
+        )
+      )
+      .groupBy(attendanceRecords.attendanceDate, members.group)
+      .orderBy(attendanceRecords.attendanceDate);
+
+    return summary;
+  }
+
+  async getMemberAttendanceLog(memberId?: string, startDate?: string, endDate?: string): Promise<any> {
+    let query = db
+      .select({
+        memberId: attendanceRecords.memberId,
+        memberName: sql`${members.firstName} || ' ' || ${members.surname}`,
+        group: members.group,
+        attendanceDate: attendanceRecords.attendanceDate,
+        checkInTime: attendanceRecords.checkInTime,
+        checkInMethod: attendanceRecords.checkInMethod,
+      })
+      .from(attendanceRecords)
+      .innerJoin(members, eq(attendanceRecords.memberId, members.id));
+
+    let conditions = [];
+    if (memberId) conditions.push(eq(attendanceRecords.memberId, memberId));
+    if (startDate) conditions.push(gte(attendanceRecords.attendanceDate, startDate));
+    if (endDate) conditions.push(lte(attendanceRecords.attendanceDate, endDate));
+
+    if (conditions.length > 0) {
+      query = query.where(and(...conditions));
+    }
+
+    return await query.orderBy(desc(attendanceRecords.attendanceDate));
+  }
+
+  async getMissedServicesReport(weeks: number): Promise<any> {
+    const weeksAgo = new Date();
+    weeksAgo.setDate(weeksAgo.getDate() - (weeks * 7));
+
+    const membersWithoutRecentAttendance = await db
+      .select({
+        id: members.id,
+        firstName: members.firstName,
+        surname: members.surname,
+        group: members.group,
+        phone: members.phone,
+        lastAttendance: sql`MAX(${attendanceRecords.attendanceDate})`,
+      })
+      .from(members)
+      .leftJoin(
+        attendanceRecords,
+        and(
+          eq(members.id, attendanceRecords.memberId),
+          gte(attendanceRecords.attendanceDate, weeksAgo.toISOString().split('T')[0])
+        )
+      )
+      .where(sql`${attendanceRecords.id} IS NULL`)
+      .groupBy(members.id, members.firstName, members.surname, members.group, members.phone);
+
+    return membersWithoutRecentAttendance;
+  }
+
+  async getNewMembersReport(startDate: string, endDate: string): Promise<any> {
+    return await db
+      .select()
+      .from(members)
+      .where(
+        and(
+          gte(members.createdAt, new Date(startDate)),
+          lte(members.createdAt, new Date(endDate))
+        )
+      )
+      .orderBy(desc(members.createdAt));
+  }
+
+  async getInactiveMembersReport(weeks: number): Promise<any> {
+    const weeksAgo = new Date();
+    weeksAgo.setDate(weeksAgo.getDate() - (weeks * 7));
+
+    return await db
+      .select({
+        id: members.id,
+        firstName: members.firstName,
+        surname: members.surname,
+        group: members.group,
+        phone: members.phone,
+        lastAttendance: sql`MAX(${attendanceRecords.attendanceDate})`,
+      })
+      .from(members)
+      .leftJoin(attendanceRecords, eq(members.id, attendanceRecords.memberId))
+      .groupBy(members.id, members.firstName, members.surname, members.group, members.phone)
+      .having(
+        sql`MAX(${attendanceRecords.attendanceDate}) < ${weeksAgo.toISOString().split('T')[0]} OR MAX(${attendanceRecords.attendanceDate}) IS NULL`
+      );
+  }
+
+  async getGroupAttendanceTrend(startDate: string, endDate: string): Promise<any> {
+    return await db
+      .select({
+        group: members.group,
+        attendanceDate: attendanceRecords.attendanceDate,
+        count: count(),
+      })
+      .from(attendanceRecords)
+      .innerJoin(members, eq(attendanceRecords.memberId, members.id))
+      .where(
+        and(
+          gte(attendanceRecords.attendanceDate, startDate),
+          lte(attendanceRecords.attendanceDate, endDate)
+        )
+      )
+      .groupBy(members.group, attendanceRecords.attendanceDate)
+      .orderBy(attendanceRecords.attendanceDate, members.group);
+  }
+
+  async getFamilyCheckInSummary(date: string): Promise<any> {
+    return await db
+      .select({
+        parentId: members.parentId,
+        parentName: sql`parent.first_name || ' ' || parent.surname`,
+        childName: sql`${members.firstName} || ' ' || ${members.surname}`,
+        childGroup: members.group,
+        checkInTime: attendanceRecords.checkInTime,
+      })
+      .from(attendanceRecords)
+      .innerJoin(members, eq(attendanceRecords.memberId, members.id))
+      .leftJoin(sql`members as parent`, eq(members.parentId, sql`parent.id`))
+      .where(
+        and(
+          eq(attendanceRecords.attendanceDate, date),
+          eq(attendanceRecords.checkInMethod, "family")
+        )
+      )
+      .orderBy(attendanceRecords.checkInTime);
+  }
+
+  async getFollowUpActionTracker(): Promise<any> {
+    return await db
+      .select({
+        memberId: followUpRecords.memberId,
+        memberName: sql`${members.firstName} || ' ' || ${members.surname}`,
+        consecutiveAbsences: followUpRecords.consecutiveAbsences,
+        lastContactDate: followUpRecords.lastContactDate,
+        contactMethod: followUpRecords.contactMethod,
+        needsFollowUp: followUpRecords.needsFollowUp,
+      })
+      .from(followUpRecords)
+      .innerJoin(members, eq(followUpRecords.memberId, members.id))
+      .orderBy(desc(followUpRecords.lastContactDate));
   }
 }
 

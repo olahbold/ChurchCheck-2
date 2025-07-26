@@ -22,7 +22,7 @@ export default function CheckInTab() {
   });
 
   // Get today's attendance records with member details
-  const { data: todayAttendance = [] } = useQuery({
+  const { data: todayAttendance = [] } = useQuery<any[]>({
     queryKey: ['/api/attendance/today'],
     refetchInterval: 10000, // Refresh every 10 seconds
   });

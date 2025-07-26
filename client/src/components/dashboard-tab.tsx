@@ -27,7 +27,7 @@ export default function DashboardTab() {
   });
 
   // Get members needing follow-up
-  const { data: followUpMembers = [] } = useQuery({
+  const { data: followUpMembers = [] } = useQuery<any[]>({
     queryKey: ['/api/follow-up'],
   });
 

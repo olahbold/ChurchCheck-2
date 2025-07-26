@@ -5,6 +5,7 @@ import RegisterTab from "@/components/register-tab";
 import CheckInTab from "@/components/checkin-tab";
 import DashboardTab from "@/components/dashboard-tab";
 import SettingsTab from "@/components/settings-tab";
+import AdminTab from "@/components/admin-tab";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('register');
@@ -21,6 +22,7 @@ export default function Home() {
     { id: 'checkin', label: 'Check-In', icon: 'fa-fingerprint' },
     { id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-bar' },
     { id: 'settings', label: 'Settings', icon: 'fa-cog' },
+    { id: 'admin', label: 'Admin', icon: 'fa-shield-alt' },
   ];
 
   return (
@@ -75,6 +77,7 @@ export default function Home() {
         {activeTab === 'checkin' && <CheckInTab />}
         {activeTab === 'dashboard' && <DashboardTab />}
         {activeTab === 'settings' && <SettingsTab />}
+        {activeTab === 'admin' && <AdminTab />}
       </main>
     </div>
   );

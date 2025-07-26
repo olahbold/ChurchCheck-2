@@ -95,6 +95,89 @@ export type InsertAttendanceRecord = z.infer<typeof insertAttendanceRecordSchema
 export type FollowUpRecord = typeof followUpRecords.$inferSelect;
 export type InsertFollowUpRecord = z.infer<typeof insertFollowUpRecordSchema>;
 
+// Admin users schema for access management
+export const adminUsers = pgTable("admin_users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  fullName: text("full_name").notNull(),
+  email: text("email").notNull(),
+  role: text("role").notNull(), // "admin", "volunteer", "data_viewer"
+  region: text("region"), // for multi-location churches
+  isActive: boolean("is_active").notNull().default(true),
+  lastLogin: timestamp("last_login"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const reportConfigs = pgTable("report_configs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reportType: text("report_type").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  frequency: text("frequency").notNull(), // "weekly", "monthly", "on-demand"
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const reportRuns = pgTable("report_runs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  reportConfigId: varchar("report_config_id").notNull().references(() => reportConfigs.id),
+  runById: varchar("run_by_id").notNull().references(() => adminUsers.id),
+  generatedAt: timestamp("generated_at").defaultNow().notNull(),
+  parameters: text("parameters"), // JSON string
+  filePath: text("file_path"), // for exported files
+});
+
+// Relations
+export const adminUsersRelations = relations(adminUsers, ({ many }) => ({
+  reportRuns: many(reportRuns),
+}));
+
+export const reportConfigsRelations = relations(reportConfigs, ({ many }) => ({
+  reportRuns: many(reportRuns),
+}));
+
+export const reportRunsRelations = relations(reportRuns, ({ one }) => ({
+  reportConfig: one(reportConfigs, {
+    fields: [reportRuns.reportConfigId],
+    references: [reportConfigs.id],
+  }),
+  runBy: one(adminUsers, {
+    fields: [reportRuns.runById],
+    references: [adminUsers.id],
+  }),
+}));
+
+// Insert schemas
+export const insertAdminUserSchema = createInsertSchema(adminUsers, {
+  email: z.string().email("Invalid email format"),
+  role: z.enum(["admin", "volunteer", "data_viewer"]),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastLogin: true,
+});
+
+export const insertReportConfigSchema = createInsertSchema(reportConfigs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertReportRunSchema = createInsertSchema(reportRuns).omit({
+  id: true,
+  generatedAt: true,
+});
+
+// Types
+export type AdminUser = typeof adminUsers.$inferSelect;
+export type InsertAdminUser = z.infer<typeof insertAdminUserSchema>;
+export type ReportConfig = typeof reportConfigs.$inferSelect;
+export type InsertReportConfig = z.infer<typeof insertReportConfigSchema>;
+export type ReportRun = typeof reportRuns.$inferSelect;
+export type InsertReportRun = z.infer<typeof insertReportRunSchema>;
+
 // Legacy user schema for compatibility
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
