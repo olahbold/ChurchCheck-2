@@ -33,7 +33,13 @@ export interface FamilyCheckInResult {
   success: boolean;
 }
 
-export type TabType = 'register' | 'checkin' | 'dashboard' | 'settings' | 'admin';
+export type TabType = 'register' | 'checkin' | 'dashboard' | 'admin';
+
+export interface AuthState {
+  isAuthenticated: boolean;
+  user: AdminUser | null;
+  isLoading: boolean;
+}
 
 export interface AdminUser {
   id: string;

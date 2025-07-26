@@ -1,14 +1,20 @@
 import { useState } from "react";
-import { TabType } from "@/lib/types";
-import { Church, User } from "lucide-react";
+import { TabType, AuthState, AdminUser } from "@/lib/types";
+import { Church, User, LogIn } from "lucide-react";
 import RegisterTab from "@/components/register-tab";
 import CheckInTab from "@/components/checkin-tab";
 import DashboardTab from "@/components/dashboard-tab";
-import SettingsTab from "@/components/settings-tab";
 import AdminTab from "@/components/admin-tab";
+import LoginModal from "@/components/login-modal";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('register');
+  const [authState, setAuthState] = useState<AuthState>({
+    isAuthenticated: false,
+    user: null,
+    isLoading: false
+  });
+  const [showLogin, setShowLogin] = useState(false);
   
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -21,9 +27,35 @@ export default function Home() {
     { id: 'register', label: 'Register', icon: 'fa-user-plus' },
     { id: 'checkin', label: 'Check-In', icon: 'fa-fingerprint' },
     { id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-bar' },
-    { id: 'settings', label: 'Settings', icon: 'fa-cog' },
     { id: 'admin', label: 'Admin', icon: 'fa-shield-alt' },
   ];
+
+  const handleAdminTabClick = () => {
+    if (!authState.isAuthenticated) {
+      setShowLogin(true);
+    } else {
+      setActiveTab('admin');
+    }
+  };
+
+  const handleLogin = (user: AdminUser) => {
+    setAuthState({
+      isAuthenticated: true,
+      user,
+      isLoading: false
+    });
+    setShowLogin(false);
+    setActiveTab('admin');
+  };
+
+  const handleLogout = () => {
+    setAuthState({
+      isAuthenticated: false,
+      user: null,
+      isLoading: false
+    });
+    setActiveTab('register');
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
@@ -42,12 +74,30 @@ export default function Home() {
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-right">
-                <p className="text-sm font-medium text-slate-900">Admin User</p>
+                <p className="text-sm font-medium text-slate-900">
+                  {authState.user ? authState.user.fullName : 'ChurchConnect User'}
+                </p>
                 <p className="text-xs text-slate-500">{currentDate}</p>
               </div>
-              <div className="w-8 h-8 bg-[hsl(258,90%,66%)] rounded-full flex items-center justify-center">
-                <User className="text-white text-sm" />
-              </div>
+              {authState.user ? (
+                <div className="flex items-center space-x-2">
+                  <div className="w-8 h-8 bg-[hsl(258,90%,66%)] rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs font-medium">
+                      {authState.user.fullName.split(' ').map(n => n[0]).join('')}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="text-xs text-slate-500 hover:text-slate-700"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <div className="w-8 h-8 bg-slate-400 rounded-full flex items-center justify-center">
+                  <User className="text-white text-sm" />
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -60,11 +110,18 @@ export default function Home() {
             {tabConfig.map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => setActiveTab(tab.id as TabType)}
-                className={`church-tab-button ${activeTab === tab.id ? 'active' : ''}`}
+                onClick={() => tab.id === 'admin' ? handleAdminTabClick() : setActiveTab(tab.id as TabType)}
+                className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-medium text-sm transition-colors ${
+                  activeTab === tab.id
+                    ? 'border-[hsl(258,90%,66%)] text-[hsl(258,90%,66%)]'
+                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                }`}
               >
-                <i className={`fas ${tab.icon} mr-2`}></i>
-                {tab.label}
+                <i className={`fas ${tab.icon}`}></i>
+                <span>{tab.label}</span>
+                {tab.id === 'admin' && !authState.isAuthenticated && (
+                  <LogIn className="h-3 w-3 ml-1" />
+                )}
               </button>
             ))}
           </div>
@@ -76,9 +133,15 @@ export default function Home() {
         {activeTab === 'register' && <RegisterTab />}
         {activeTab === 'checkin' && <CheckInTab />}
         {activeTab === 'dashboard' && <DashboardTab />}
-        {activeTab === 'settings' && <SettingsTab />}
-        {activeTab === 'admin' && <AdminTab />}
+        {activeTab === 'admin' && <AdminTab authState={authState} />}
       </main>
+
+      {/* Login Modal */}
+      <LoginModal 
+        isOpen={showLogin} 
+        onClose={() => setShowLogin(false)} 
+        onLogin={handleLogin} 
+      />
     </div>
   );
 }
