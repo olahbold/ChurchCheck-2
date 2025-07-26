@@ -10,9 +10,10 @@ import { Shield, Users, BarChart3, Settings, LogOut } from "lucide-react";
 
 interface AdminTabProps {
   authState: AuthState;
+  onLogout?: () => void;
 }
 
-export default function AdminTab({ authState }: AdminTabProps) {
+export default function AdminTab({ authState, onLogout }: AdminTabProps) {
   const getRoleBadge = (role: string) => {
     const roleConfig = {
       admin: { color: "bg-[hsl(0,84%,60%)]/10 text-[hsl(0,84%,60%)]", label: "Administrator" },
