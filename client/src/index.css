@@ -1,0 +1,104 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(240, 10%, 3.9%);
+  --muted: hsl(240, 4.8%, 95.9%);
+  --muted-foreground: hsl(240, 3.8%, 46.1%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(240, 10%, 3.9%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(240, 10%, 3.9%);
+  --border: hsl(240, 5.9%, 90%);
+  --input: hsl(240, 5.9%, 90%);
+  --primary: hsl(258, 90%, 66%);
+  --primary-foreground: hsl(0, 0%, 98%);
+  --secondary: hsl(240, 4.8%, 95.9%);
+  --secondary-foreground: hsl(240, 5.9%, 10%);
+  --accent: hsl(240, 4.8%, 95.9%);
+  --accent-foreground: hsl(240, 5.9%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(258, 90%, 66%);
+  --radius: 0.75rem;
+  
+  /* Church app specific colors */
+  --church-primary: hsl(258, 90%, 66%);
+  --church-secondary: hsl(271, 91%, 65%);
+  --church-success: hsl(142, 76%, 36%);
+  --church-warning: hsl(45, 93%, 47%);
+  --church-error: hsl(0, 84%, 60%);
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(258, 90%, 66%);
+  --primary-foreground: hsl(0, 0%, 98%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(258, 90%, 66%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-gradient-to-br from-slate-50 to-slate-100 text-foreground;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer components {
+  .church-button-primary {
+    @apply bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center;
+  }
+  
+  .church-button-secondary {
+    @apply bg-slate-600 hover:bg-slate-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center;
+  }
+  
+  .church-button-outline {
+    @apply border-2 border-[hsl(258,90%,66%)] text-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,66%)] hover:text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center;
+  }
+  
+  .church-button-error {
+    @apply bg-[hsl(0,84%,60%)] hover:bg-[hsl(0,84%,54%)] text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center;
+  }
+  
+  .church-form-input {
+    @apply w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[hsl(258,90%,66%)] focus:border-transparent transition-colors;
+  }
+  
+  .church-tab-button {
+    @apply flex items-center py-4 px-6 text-slate-600 hover:text-slate-900 border-b-2 border-transparent font-medium transition-colors;
+  }
+  
+  .church-tab-button.active {
+    @apply text-[hsl(258,90%,66%)] border-[hsl(258,90%,66%)];
+  }
+  
+  .church-card {
+    @apply bg-white rounded-xl shadow-sm border border-slate-200;
+  }
+  
+  .church-stat-card {
+    @apply bg-white rounded-xl shadow-sm border border-slate-200 p-6;
+  }
+}
