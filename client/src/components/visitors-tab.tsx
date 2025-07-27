@@ -1,31 +1,80 @@
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { insertVisitorSchema, type InsertVisitor, type Visitor } from "@shared/schema";
+import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { User, Phone, Mail, Calendar, Heart, MessageSquare, Filter, Users, UserCheck, Clock, Search, Edit } from "lucide-react";
-import type { Visitor } from "@shared/schema";
+import { User, Phone, Mail, Calendar, Heart, MessageSquare, Filter, Users, UserCheck, Clock, Search, Edit, Plus, UserPlus, Save, X } from "lucide-react";
 
 export default function VisitorsTab() {
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "contacted" | "member">("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedVisitor, setSelectedVisitor] = useState<Visitor | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editNotes, setEditNotes] = useState("");
   const [editStatus, setEditStatus] = useState<"pending" | "contacted" | "member">("pending");
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Form for adding new visitors
+  const form = useForm<InsertVisitor>({
+    resolver: zodResolver(insertVisitorSchema),
+    defaultValues: {
+      name: "",
+      address: "",
+      email: "",
+      phone: "",
+      whatsappNumber: "",
+      weddingAnniversary: "",
+      birthday: "",
+      prayerPoints: "",
+      howDidYouHearAboutUs: "",
+      comments: "",
+      followUpStatus: "pending",
+      assignedTo: "",
+    },
+  });
+
   // Fetch visitors data
   const { data: visitors = [], isLoading } = useQuery<Visitor[]>({
     queryKey: ["/api/visitors"],
+  });
+
+  // Create visitor mutation
+  const createVisitorMutation = useMutation({
+    mutationFn: async (data: InsertVisitor) => {
+      const response = await apiRequest('POST', '/api/visitors', data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/visitors'] });
+      toast({
+        title: "Success",
+        description: "Visitor information saved successfully!",
+      });
+      form.reset();
+      setIsAddDialogOpen(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save visitor information",
+        variant: "destructive",
+      });
+    },
   });
 
   // Update visitor mutation
@@ -79,6 +128,10 @@ export default function VisitorsTab() {
     setEditNotes(visitor.comments || "");
     setEditStatus(visitor.followUpStatus as "pending" | "contacted" | "member");
     setIsEditDialogOpen(true);
+  };
+
+  const onSubmit = (data: InsertVisitor) => {
+    createVisitorMutation.mutate(data);
   };
 
   const handleSaveEdit = () => {
@@ -176,32 +229,42 @@ export default function VisitorsTab() {
         </Card>
       </div>
 
-      {/* Filters and Search */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex items-center space-x-2">
-          <Search className="h-4 w-4 text-slate-500" />
-          <Input
-            placeholder="Search visitors..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full sm:w-64"
-          />
+      {/* Actions Bar */}
+      <div className="flex flex-col sm:flex-row justify-between gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex items-center space-x-2">
+            <Search className="h-4 w-4 text-slate-500" />
+            <Input
+              placeholder="Search visitors..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full sm:w-64"
+            />
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Filter className="h-4 w-4 text-slate-500" />
+            <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Visitors</SelectItem>
+                <SelectItem value="pending">Pending Follow-up</SelectItem>
+                <SelectItem value="contacted">Contacted</SelectItem>
+                <SelectItem value="member">Became Members</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <Filter className="h-4 w-4 text-slate-500" />
-          <Select value={filterStatus} onValueChange={(value: any) => setFilterStatus(value)}>
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Filter by status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Visitors</SelectItem>
-              <SelectItem value="pending">Pending Follow-up</SelectItem>
-              <SelectItem value="contacted">Contacted</SelectItem>
-              <SelectItem value="member">Became Members</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <Button 
+          onClick={() => setIsAddDialogOpen(true)} 
+          className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white"
+        >
+          <UserPlus className="h-4 w-4 mr-2" />
+          Add Visitor
+        </Button>
       </div>
 
       {/* Visitors Table */}
@@ -362,6 +425,258 @@ export default function VisitorsTab() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Visitor Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Heart className="h-5 w-5 text-[hsl(258,90%,66%)]" />
+              <span>First-Timer Information Form</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="text-sm text-slate-600 mb-4">
+            <p>We sincerely want to thank you for attending today's service. We hope you enjoyed the service with us. We certainly look forward to seeing you again and share with you the benefit of fellowship.</p>
+            <p className="mt-2">We would love to pray with you on your prayer points as well. Please complete the form below to enable us know you better and pray along with you. God bless you richly in Jesus' name.</p>
+          </div>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Name Field */}
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Name *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter full name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Address Field */}
+                <FormField
+                  control={form.control}
+                  name="address"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Address</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Enter home address" 
+                          rows={2}
+                          {...field}
+                          value={field.value || ""} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Email Field */}
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="Enter email address" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Phone Field */}
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone (Mobile)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter phone number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Wedding Anniversary */}
+                <FormField
+                  control={form.control}
+                  name="weddingAnniversary"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Wedding Anniversary</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Birthday */}
+                <FormField
+                  control={form.control}
+                  name="birthday"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Birthday</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* WhatsApp Number */}
+                <FormField
+                  control={form.control}
+                  name="whatsappNumber"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>WhatsApp Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter WhatsApp number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Prayer Points */}
+                <FormField
+                  control={form.control}
+                  name="prayerPoints"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Your Prayer Points</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Please share your prayer requests..." 
+                          rows={3}
+                          {...field}
+                          value={field.value || ""} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* How did you hear about us */}
+                <FormField
+                  control={form.control}
+                  name="howDidYouHearAboutUs"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>How did you hear about us?</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Please tell us how you found out about our church..." 
+                          rows={2}
+                          {...field}
+                          value={field.value || ""} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Comments */}
+                <FormField
+                  control={form.control}
+                  name="comments"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Your Comments (if any)</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Any additional comments or feedback..." 
+                          rows={3}
+                          {...field}
+                          value={field.value || ""} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Assigned To */}
+                <FormField
+                  control={form.control}
+                  name="assignedTo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Assigned Pastor/Volunteer</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Who will follow up?" {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Follow-up Status */}
+                <FormField
+                  control={form.control}
+                  name="followUpStatus"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Follow-up Status</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending Follow-up</SelectItem>
+                          <SelectItem value="contacted">Contacted</SelectItem>
+                          <SelectItem value="member">Became Member</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <div className="flex space-x-2 pt-4">
+                <Button
+                  type="submit"
+                  disabled={createVisitorMutation.isPending}
+                  className="flex-1 bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white"
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  {createVisitorMutation.isPending ? "Saving..." : "Save Visitor Information"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsAddDialogOpen(false)}
+                  disabled={createVisitorMutation.isPending}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
     </div>
