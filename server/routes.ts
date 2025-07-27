@@ -194,7 +194,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Family check-in route
+  // Get children for a specific parent
+  app.get("/api/members/children/:parentId", async (req, res) => {
+    try {
+      const children = await storage.getMembersByParent(req.params.parentId);
+      res.json(children);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch children" });
+    }
+  });
+
+  // Selective family check-in route
+  app.post("/api/attendance/selective-family-checkin", async (req, res) => {
+    try {
+      const { parentId, childrenIds } = req.body;
+      const today = new Date().toISOString().split('T')[0];
+      
+      // Get parent
+      const parent = await storage.getMember(parentId);
+      if (!parent) {
+        return res.status(404).json({ error: "Parent not found" });
+      }
+
+      // Check in parent
+      await storage.createAttendanceRecord({
+        memberId: parentId,
+        attendanceDate: today,
+        checkInMethod: "family",
+        isGuest: false,
+      });
+
+      // Check in selected children
+      const childRecords = [];
+      const checkedInChildren = [];
+      
+      for (const childId of childrenIds) {
+        const child = await storage.getMember(childId);
+        if (child) {
+          const childRecord = await storage.createAttendanceRecord({
+            memberId: childId,
+            attendanceDate: today,
+            checkInMethod: "family",
+            isGuest: false,
+          });
+          childRecords.push(childRecord);
+          checkedInChildren.push(child);
+        }
+      }
+
+      res.json({ 
+        parent,
+        children: checkedInChildren,
+        attendanceRecords: childRecords.length + 1,
+        success: true 
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Family check-in failed" });
+    }
+  });
+
+  // Original family check-in route (for backward compatibility)
   app.post("/api/attendance/family-checkin", async (req, res) => {
     try {
       const { parentId } = req.body;

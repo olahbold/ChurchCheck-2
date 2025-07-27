@@ -4,14 +4,20 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { FingerprintScanner } from "@/components/ui/fingerprint-scanner";
 import { useToast } from "@/hooks/use-toast";
 import { AttendanceStats, CheckInResult, MemberWithChildren } from "@/lib/types";
-import { Search, Users, Check, UserPlus } from "lucide-react";
+import { Search, Users, Check, UserPlus, Baby, UserCheck, X } from "lucide-react";
 
 export default function CheckInTab() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isScanning, setIsScanning] = useState(false);
+  const [selectedParent, setSelectedParent] = useState<MemberWithChildren | null>(null);
+  const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
+  const [isFamilyDialogOpen, setIsFamilyDialogOpen] = useState(false);
+  const [parentChildren, setParentChildren] = useState<MemberWithChildren[]>([]);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -98,10 +104,17 @@ export default function CheckInTab() {
     },
   });
 
+  // Get children for a parent
+  const { data: childrenData } = useQuery<MemberWithChildren[]>({
+    queryKey: ['/api/members/children', selectedParent?.id],
+    enabled: !!selectedParent?.id,
+    staleTime: 0,
+  });
+
   // Family check-in mutation
   const familyCheckInMutation = useMutation({
-    mutationFn: async (parentId: string) => {
-      const response = await apiRequest('POST', '/api/attendance/family-checkin', { parentId });
+    mutationFn: async (data: { parentId: string; childrenIds: string[] }) => {
+      const response = await apiRequest('POST', '/api/attendance/selective-family-checkin', data);
       return response.json();
     },
     onSuccess: (result) => {
@@ -111,6 +124,9 @@ export default function CheckInTab() {
       });
       queryClient.invalidateQueries({ queryKey: ['/api/attendance'] });
       setSearchQuery("");
+      setIsFamilyDialogOpen(false);
+      setSelectedParent(null);
+      setSelectedChildren([]);
     },
     onError: () => {
       toast({
@@ -139,8 +155,53 @@ export default function CheckInTab() {
     manualCheckInMutation.mutate(memberId);
   };
 
-  const handleFamilyCheckIn = (parentId: string) => {
-    familyCheckInMutation.mutate(parentId);
+  const handleFamilyCheckIn = async (parentId: string) => {
+    // Find the parent member
+    const parent = searchResults.find(m => m.id === parentId);
+    if (!parent) return;
+
+    // Fetch children for this parent
+    try {
+      const response = await apiRequest('GET', `/api/members/children/${parentId}`);
+      const children = await response.json();
+      
+      if (children.length === 0) {
+        toast({
+          title: "No Children Found",
+          description: `${parent.firstName} ${parent.surname} has no linked children`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setSelectedParent(parent);
+      setParentChildren(children);
+      setSelectedChildren(children.map((child: MemberWithChildren) => child.id)); // Pre-select all children
+      setIsFamilyDialogOpen(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to load children",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleConfirmFamilyCheckIn = () => {
+    if (!selectedParent) return;
+    
+    familyCheckInMutation.mutate({
+      parentId: selectedParent.id,
+      childrenIds: selectedChildren,
+    });
+  };
+
+  const toggleChildSelection = (childId: string) => {
+    setSelectedChildren(prev => 
+      prev.includes(childId) 
+        ? prev.filter(id => id !== childId)
+        : [...prev, childId]
+    );
   };
 
   const formatTime = (timestamp: string) => {
@@ -315,6 +376,98 @@ export default function CheckInTab() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Family Check-in Selection Dialog */}
+      <Dialog open={isFamilyDialogOpen} onOpenChange={setIsFamilyDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Users className="h-5 w-5 text-[hsl(258,90%,66%)]" />
+              <span>Family Check-in</span>
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedParent && (
+            <div className="space-y-4">
+              <div className="p-4 bg-slate-50 rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-[hsl(258,90%,66%)] rounded-full flex items-center justify-center">
+                    <UserCheck className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-900">
+                      {selectedParent.firstName} {selectedParent.surname}
+                    </p>
+                    <p className="text-sm text-slate-500">Parent - Will be checked in</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-slate-900">Select children who are present today:</p>
+                
+                {parentChildren.map((child) => (
+                  <div key={child.id} className="flex items-center space-x-3 p-3 border border-slate-200 rounded-lg hover:bg-slate-50">
+                    <Checkbox
+                      id={`child-${child.id}`}
+                      checked={selectedChildren.includes(child.id)}
+                      onCheckedChange={() => toggleChildSelection(child.id)}
+                    />
+                    <div className="flex items-center space-x-3 flex-1">
+                      <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                        <Baby className="h-4 w-4 text-yellow-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-slate-900">
+                          {child.firstName} {child.surname}
+                        </p>
+                        <p className="text-xs text-slate-500 capitalize">
+                          {child.group} • Born {child.dateOfBirth}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {parentChildren.length === 0 && (
+                  <div className="text-center py-6">
+                    <Baby className="h-12 w-12 text-slate-300 mx-auto mb-2" />
+                    <p className="text-slate-500">No children linked to this parent</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex space-x-2 pt-4">
+                <Button
+                  onClick={handleConfirmFamilyCheckIn}
+                  disabled={familyCheckInMutation.isPending}
+                  className="flex-1 bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white"
+                >
+                  <UserCheck className="h-4 w-4 mr-2" />
+                  {familyCheckInMutation.isPending 
+                    ? "Checking in..." 
+                    : `Check In Family (${selectedChildren.length + 1})`
+                  }
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setIsFamilyDialogOpen(false)}
+                  disabled={familyCheckInMutation.isPending}
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Cancel
+                </Button>
+              </div>
+
+              {selectedChildren.length === 0 && (
+                <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded">
+                  Note: Only the parent will be checked in since no children are selected.
+                </p>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
