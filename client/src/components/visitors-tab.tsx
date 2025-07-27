@@ -445,24 +445,46 @@ export default function VisitorsTab() {
                     )}
                   />
 
-                  {/* Group Field */}
+                  {/* Gender Field */}
                   <FormField
                     control={editForm.control}
-                    name="group"
+                    name="gender"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Group/Gender</FormLabel>
+                        <FormLabel>Gender</FormLabel>
                         <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select group" />
+                              <SelectValue placeholder="Select gender" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="male">Male</SelectItem>
                             <SelectItem value="female">Female</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Age Group Field */}
+                  <FormField
+                    control={editForm.control}
+                    name="ageGroup"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Age Group</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select age group" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
                             <SelectItem value="child">Child</SelectItem>
                             <SelectItem value="adolescent">Adolescent</SelectItem>
+                            <SelectItem value="adult">Adult</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -723,24 +745,46 @@ export default function VisitorsTab() {
                   )}
                 />
 
-                {/* Group Field */}
+                {/* Gender Field */}
                 <FormField
                   control={form.control}
-                  name="group"
+                  name="gender"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Group/Gender</FormLabel>
+                      <FormLabel>Gender</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select group" />
+                            <SelectValue placeholder="Select gender" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
                           <SelectItem value="male">Male</SelectItem>
                           <SelectItem value="female">Female</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Age Group Field */}
+                <FormField
+                  control={form.control}
+                  name="ageGroup"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Age Group</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select age group" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
                           <SelectItem value="child">Child</SelectItem>
                           <SelectItem value="adolescent">Adolescent</SelectItem>
+                          <SelectItem value="adult">Adult</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
