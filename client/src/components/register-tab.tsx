@@ -26,7 +26,8 @@ export default function RegisterTab() {
     defaultValues: {
       firstName: "",
       surname: "",
-      group: "male",
+      gender: "male",
+      ageGroup: "adult",
       phone: "",
       dateOfBirth: "",
       isCurrentMember: true,
@@ -42,7 +43,7 @@ export default function RegisterTab() {
 
   // Get potential parents (adults without parentId)
   const potentialParents = members.filter(m => 
-    (m.group === 'male' || m.group === 'female') && !m.parentId
+    m.ageGroup === 'adult' && !m.parentId
   );
 
   // Create member mutation
