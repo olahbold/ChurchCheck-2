@@ -192,10 +192,25 @@ export class DatabaseStorage implements IStorage {
     return newRecord;
   }
 
-  async getAttendanceForDate(date: string): Promise<AttendanceRecord[]> {
+  async getAttendanceForDate(date: string): Promise<any[]> {
     return await db
-      .select()
+      .select({
+        id: attendanceRecords.id,
+        memberId: attendanceRecords.memberId,
+        attendanceDate: attendanceRecords.attendanceDate,
+        checkInTime: attendanceRecords.checkInTime,
+        checkInMethod: attendanceRecords.checkInMethod,
+        isGuest: attendanceRecords.isGuest,
+        member: {
+          id: members.id,
+          firstName: members.firstName,
+          surname: members.surname,
+          group: members.group,
+          phone: members.phone,
+        }
+      })
       .from(attendanceRecords)
+      .innerJoin(members, eq(attendanceRecords.memberId, members.id))
       .where(eq(attendanceRecords.attendanceDate, date))
       .orderBy(desc(attendanceRecords.checkInTime));
   }
