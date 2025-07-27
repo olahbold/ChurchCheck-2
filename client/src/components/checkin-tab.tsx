@@ -35,8 +35,9 @@ export default function CheckInTab() {
 
   // Search members
   const { data: searchResults = [] } = useQuery<MemberWithChildren[]>({
-    queryKey: ['/api/members', { search: searchQuery }],
+    queryKey: ['/api/members', searchQuery],
     enabled: searchQuery.length > 0,
+    queryFn: () => apiRequest('GET', `/api/members?search=${encodeURIComponent(searchQuery)}`).then(res => res.json()),
   });
 
   // Biometric scan mutation for check-in
