@@ -13,7 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { FingerprintScanner } from "@/components/ui/fingerprint-scanner";
 import { useToast } from "@/hooks/use-toast";
-import { Save, X, Link, Unlink } from "lucide-react";
+import { Save, X, Link, Unlink, Fingerprint } from "lucide-react";
 
 export default function RegisterTab() {
   const [showFingerprintEnroll, setShowFingerprintEnroll] = useState(false);
@@ -289,9 +289,7 @@ export default function RegisterTab() {
                     {/* Biometric Scanner Circle */}
                     <div className="flex justify-center mb-8">
                       <div className="w-40 h-40 bg-white rounded-full shadow-lg flex items-center justify-center">
-                        <div className="text-[hsl(258,90%,66%)] text-5xl">
-                          🗇
-                        </div>
+                        <Fingerprint className="h-16 w-16 text-[hsl(258,90%,66%)]" />
                       </div>
                     </div>
 
@@ -309,7 +307,8 @@ export default function RegisterTab() {
                           onClick={() => setShowFingerprintEnroll(true)}
                           className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white py-3 px-6"
                         >
-                          🗇 Device
+                          <Fingerprint className="h-4 w-4 mr-2" />
+                          Device
                         </Button>
                         <Button 
                           type="button" 
@@ -326,7 +325,8 @@ export default function RegisterTab() {
                           variant="outline"
                           className="py-3 px-6 border-slate-300"
                         >
-                          📱 Simulate
+                          <Fingerprint className="h-4 w-4 mr-2" />
+                          Simulate
                         </Button>
                       </div>
                       
