@@ -69,6 +69,7 @@ export const visitors = pgTable("visitors", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   memberId: varchar("member_id").references(() => members.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
+  group: varchar("group", { length: 20 }), // male, female, child, adolescent
   address: text("address"),
   email: varchar("email", { length: 255 }),
   phone: varchar("phone", { length: 50 }),
@@ -116,6 +117,7 @@ export const insertFollowUpRecordSchema = createInsertSchema(followUpRecords).om
 });
 
 export const insertVisitorSchema = createInsertSchema(visitors, {
+  group: z.enum(["male", "female", "child", "adolescent"]).optional(),
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
   phone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone number format").optional().or(z.literal("")),
   whatsappNumber: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid WhatsApp number format").optional().or(z.literal("")),

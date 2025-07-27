@@ -34,6 +34,27 @@ export default function VisitorsTab() {
     resolver: zodResolver(insertVisitorSchema),
     defaultValues: {
       name: "",
+      group: undefined,
+      address: "",
+      email: "",
+      phone: "",
+      whatsappNumber: "",
+      weddingAnniversary: "",
+      birthday: "",
+      prayerPoints: "",
+      howDidYouHearAboutUs: "",
+      comments: "",
+      followUpStatus: "pending",
+      assignedTo: "",
+    },
+  });
+
+  // Form for editing visitors
+  const editForm = useForm<InsertVisitor>({
+    resolver: zodResolver(insertVisitorSchema),
+    defaultValues: {
+      name: "",
+      group: undefined,
       address: "",
       email: "",
       phone: "",
@@ -102,6 +123,7 @@ export default function VisitorsTab() {
       queryClient.invalidateQueries({ queryKey: ["/api/visitors"] });
       setIsEditDialogOpen(false);
       setSelectedVisitor(null);
+      editForm.reset();
     },
     onError: (error: any) => {
       toast({
@@ -125,8 +147,22 @@ export default function VisitorsTab() {
 
   const handleEditVisitor = (visitor: Visitor) => {
     setSelectedVisitor(visitor);
-    setEditNotes(visitor.comments || "");
-    setEditStatus(visitor.followUpStatus as "pending" | "contacted" | "member");
+    // Pre-populate the edit form with visitor data
+    editForm.reset({
+      name: visitor.name || "",
+      group: visitor.group as "male" | "female" | "child" | "adolescent" | undefined,
+      address: visitor.address || "",
+      email: visitor.email || "",
+      phone: visitor.phone || "",
+      whatsappNumber: visitor.whatsappNumber || "",
+      weddingAnniversary: visitor.weddingAnniversary || "",
+      birthday: visitor.birthday || "",
+      prayerPoints: visitor.prayerPoints || "",
+      howDidYouHearAboutUs: visitor.howDidYouHearAboutUs || "",
+      comments: visitor.comments || "",
+      followUpStatus: visitor.followUpStatus as "pending" | "contacted" | "member" || "pending",
+      assignedTo: visitor.assignedTo || "",
+    });
     setIsEditDialogOpen(true);
   };
 
@@ -134,15 +170,12 @@ export default function VisitorsTab() {
     createVisitorMutation.mutate(data);
   };
 
-  const handleSaveEdit = () => {
+  const onEditSubmit = (data: InsertVisitor) => {
     if (!selectedVisitor) return;
 
     updateVisitorMutation.mutate({
       id: selectedVisitor.id,
-      updates: {
-        comments: editNotes,
-        followUpStatus: editStatus,
-      },
+      updates: data,
     });
   };
 
@@ -287,6 +320,7 @@ export default function VisitorsTab() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
+                    <TableHead>Group</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>Visit Date</TableHead>
                     <TableHead>Status</TableHead>
@@ -306,6 +340,13 @@ export default function VisitorsTab() {
                             </p>
                           )}
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        {visitor.group && (
+                          <Badge variant="outline" className="capitalize">
+                            {visitor.group}
+                          </Badge>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">
@@ -369,61 +410,274 @@ export default function VisitorsTab() {
 
       {/* Edit Visitor Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Update Visitor Status</DialogTitle>
+            <DialogTitle className="flex items-center space-x-2">
+              <Edit className="h-5 w-5 text-[hsl(258,90%,66%)]" />
+              <span>Edit Visitor Information</span>
+            </DialogTitle>
           </DialogHeader>
           
           {selectedVisitor && (
-            <div className="space-y-4">
-              <div>
-                <p className="font-medium">{selectedVisitor.name}</p>
-                <p className="text-sm text-slate-600">
-                  Visited on {new Date(selectedVisitor.visitDate!).toLocaleDateString()}
-                </p>
-              </div>
+            <Form {...editForm}>
+              <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Name Field */}
+                  <FormField
+                    control={editForm.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name *</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter full name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Follow-up Status</label>
-                <Select value={editStatus} onValueChange={(value: any) => setEditStatus(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pending Follow-up</SelectItem>
-                    <SelectItem value="contacted">Contacted</SelectItem>
-                    <SelectItem value="member">Became Member</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  {/* Group Field */}
+                  <FormField
+                    control={editForm.control}
+                    name="group"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Group/Gender</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select group" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="male">Male</SelectItem>
+                            <SelectItem value="female">Female</SelectItem>
+                            <SelectItem value="child">Child</SelectItem>
+                            <SelectItem value="adolescent">Adolescent</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Follow-up Notes</label>
-                <Textarea
-                  value={editNotes}
-                  onChange={(e) => setEditNotes(e.target.value)}
-                  placeholder="Add follow-up notes or comments..."
-                  rows={3}
-                />
-              </div>
+                  {/* Address Field */}
+                  <FormField
+                    control={editForm.control}
+                    name="address"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Address</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Enter home address" 
+                            rows={2}
+                            {...field}
+                            value={field.value || ""} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-              <div className="flex space-x-2">
-                <Button
-                  onClick={handleSaveEdit}
-                  disabled={updateVisitorMutation.isPending}
-                  className="flex-1"
-                >
-                  {updateVisitorMutation.isPending ? "Saving..." : "Save Changes"}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditDialogOpen(false)}
-                  disabled={updateVisitorMutation.isPending}
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
+                  {/* Email Field */}
+                  <FormField
+                    control={editForm.control}
+                    name="email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" placeholder="Enter email address" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Phone Field */}
+                  <FormField
+                    control={editForm.control}
+                    name="phone"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Phone (Mobile)</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter phone number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Wedding Anniversary */}
+                  <FormField
+                    control={editForm.control}
+                    name="weddingAnniversary"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Wedding Anniversary</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Birthday */}
+                  <FormField
+                    control={editForm.control}
+                    name="birthday"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Birthday</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* WhatsApp Number */}
+                  <FormField
+                    control={editForm.control}
+                    name="whatsappNumber"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>WhatsApp Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter WhatsApp number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Prayer Points */}
+                  <FormField
+                    control={editForm.control}
+                    name="prayerPoints"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Prayer Points</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Please share prayer requests..." 
+                            rows={3}
+                            {...field}
+                            value={field.value || ""} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* How did you hear about us */}
+                  <FormField
+                    control={editForm.control}
+                    name="howDidYouHearAboutUs"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>How did you hear about us?</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Please tell us how you found out about our church..." 
+                            rows={2}
+                            {...field}
+                            value={field.value || ""} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Comments */}
+                  <FormField
+                    control={editForm.control}
+                    name="comments"
+                    render={({ field }) => (
+                      <FormItem className="md:col-span-2">
+                        <FormLabel>Comments</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Any additional comments or feedback..." 
+                            rows={3}
+                            {...field}
+                            value={field.value || ""} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Assigned To */}
+                  <FormField
+                    control={editForm.control}
+                    name="assignedTo"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Assigned Pastor/Volunteer</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Who will follow up?" {...field} value={field.value || ""} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Follow-up Status */}
+                  <FormField
+                    control={editForm.control}
+                    name="followUpStatus"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Follow-up Status</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending Follow-up</SelectItem>
+                            <SelectItem value="contacted">Contacted</SelectItem>
+                            <SelectItem value="member">Became Member</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex space-x-2 pt-4">
+                  <Button
+                    type="submit"
+                    disabled={updateVisitorMutation.isPending}
+                    className="flex-1 bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {updateVisitorMutation.isPending ? "Updating..." : "Update Visitor Information"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsEditDialogOpen(false)}
+                    disabled={updateVisitorMutation.isPending}
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </Form>
           )}
         </DialogContent>
       </Dialog>
@@ -451,11 +705,36 @@ export default function VisitorsTab() {
                   control={form.control}
                   name="name"
                   render={({ field }) => (
-                    <FormItem className="md:col-span-2">
+                    <FormItem>
                       <FormLabel>Name *</FormLabel>
                       <FormControl>
                         <Input placeholder="Enter full name" {...field} />
                       </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Group Field */}
+                <FormField
+                  control={form.control}
+                  name="group"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Group/Gender</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select group" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="male">Male</SelectItem>
+                          <SelectItem value="female">Female</SelectItem>
+                          <SelectItem value="child">Child</SelectItem>
+                          <SelectItem value="adolescent">Adolescent</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
