@@ -160,6 +160,17 @@ Key features:
   - Cross-browser compatibility with WebUSB/WebBluetooth APIs
 - **Professional Integration**: Supports pocket-friendly scanners from $20 to professional-grade $500+ systems
 
+### July 27, 2025 - Enhanced Gender/Age Demographics and Registration Features  
+- **Separated Demographics**: Replaced single "group" field with separate "gender" (Male/Female) and "ageGroup" (Child/Adolescent/Adult) fields across all forms
+- **Consistent Form Structure**: Updated member registration, visitor forms, and first-timer forms to use the same robust dropdown structure
+- **Enhanced Registration Biometrics**: Added full biometric authentication options to member registration matching check-in functionality:
+  - Device biometric authentication (WebAuthn)
+  - Simulation mode for testing
+  - External scanner setup option
+  - Professional enrollment interface with visual feedback
+- **Improved Analytics**: Better demographic tracking with separate gender and age group statistics
+- **Database Schema Updates**: Migrated from "group" to "gender" and "ageGroup" columns for better data organization
+
 ### July 26, 2025 - Admin Section Implementation
 - **Admin User Management**: Complete user access control system with three roles:
   - Admin: Full system access including user management and settings

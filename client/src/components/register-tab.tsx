@@ -247,7 +247,7 @@ export default function RegisterTab() {
               />
 
               {/* Parent Selection for Children */}
-              {(form.watch("group") === "child" || form.watch("group") === "adolescent") && (
+              {(form.watch("ageGroup") === "child" || form.watch("ageGroup") === "adolescent") && (
                 <FormField
                   control={form.control}
                   name="parentId"
@@ -275,22 +275,79 @@ export default function RegisterTab() {
                 />
               )}
 
-              {/* Fingerprint Enrollment */}
+              {/* Biometric Enrollment Section */}
               <div className="border-t border-slate-200 pt-6">
-                <h3 className="text-lg font-medium text-slate-900 mb-4">Fingerprint Enrollment</h3>
+                <h3 className="text-lg font-medium text-slate-900 mb-4">Biometric Authentication</h3>
+                <p className="text-sm text-slate-600 mb-6">
+                  Use your device biometric authentication to register fingerprint for quick check-in
+                </p>
+
                 {!showFingerprintEnroll && !enrolledFingerprintId && (
-                  <div className="bg-slate-50 rounded-lg p-6 text-center">
-                    <div className="w-24 h-24 bg-[hsl(258,90%,66%)]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <i className="fas fa-fingerprint text-[hsl(258,90%,66%)] text-3xl"></i>
+                  <div className="space-y-4">
+                    {/* Biometric Status Indicator */}
+                    <div className="flex items-center justify-center py-4">
+                      <div className="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                        ⭕ Device Biometrics
+                      </div>
                     </div>
-                    <p className="text-slate-600 mb-4">Place finger on scanner to enroll</p>
-                    <Button 
-                      type="button" 
-                      onClick={() => setShowFingerprintEnroll(true)}
-                      className="church-button-primary"
-                    >
-                      Start Enrollment
-                    </Button>
+
+                    {/* Biometric Scanner Circle */}
+                    <div className="flex justify-center mb-6">
+                      <div className="w-32 h-32 bg-white rounded-full shadow-lg flex items-center justify-center border-4 border-slate-100">
+                        <div className="text-[hsl(258,90%,66%)] text-4xl">
+                          🗇
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-center mb-6">
+                      <h4 className="text-xl font-semibold text-slate-900 mb-2">Biometric Authentication</h4>
+                      <p className="text-slate-600">Use your device biometric authentication to enroll fingerprint</p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <Button 
+                          type="button" 
+                          onClick={() => setShowFingerprintEnroll(true)}
+                          className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white py-3"
+                        >
+                          🗇 Device
+                        </Button>
+                        <Button 
+                          type="button" 
+                          onClick={() => {
+                            // Simulate enrollment for testing
+                            const simulatedId = `sim_${Date.now()}`;
+                            setEnrolledFingerprintId(simulatedId);
+                            form.setValue('fingerprintId', simulatedId);
+                            toast({
+                              title: "Simulation Complete",
+                              description: "Fingerprint simulation enrolled successfully",
+                            });
+                          }}
+                          variant="outline"
+                          className="py-3 border-slate-300"
+                        >
+                          📱 Simulate
+                        </Button>
+                      </div>
+                      
+                      <Button 
+                        type="button" 
+                        variant="outline"
+                        className="w-full py-3 border-slate-300"
+                        onClick={() => {
+                          toast({
+                            title: "External Scanner Setup",
+                            description: "External scanner configuration not yet implemented",
+                          });
+                        }}
+                      >
+                        ⚙️ Setup External Scanner
+                      </Button>
+                    </div>
                   </div>
                 )}
 
@@ -306,17 +363,28 @@ export default function RegisterTab() {
                         description: error,
                         variant: "destructive",
                       });
+                      setShowFingerprintEnroll(false);
                     }}
                   />
                 )}
 
                 {enrolledFingerprintId && (
                   <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                    <div className="text-green-600 mb-2">
-                      <i className="fas fa-check-circle text-2xl"></i>
-                    </div>
+                    <div className="text-green-600 mb-2 text-2xl">✅</div>
                     <p className="text-green-800 font-medium">Fingerprint Successfully Enrolled!</p>
-                    <p className="text-sm text-green-600">ID: {enrolledFingerprintId}</p>
+                    <p className="text-sm text-green-600 mt-1">ID: {enrolledFingerprintId}</p>
+                    <Button 
+                      type="button" 
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEnrolledFingerprintId(null);
+                        form.setValue('fingerprintId', '');
+                      }}
+                      className="mt-3"
+                    >
+                      Re-enroll
+                    </Button>
                   </div>
                 )}
               </div>
