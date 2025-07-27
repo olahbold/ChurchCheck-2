@@ -277,41 +277,37 @@ export default function RegisterTab() {
 
               {/* Biometric Enrollment Section */}
               <div className="border-t border-slate-200 pt-6">
-                <h3 className="text-lg font-medium text-slate-900 mb-4">Biometric Authentication</h3>
-                <p className="text-sm text-slate-600 mb-6">
-                  Use your device biometric authentication to register fingerprint for quick check-in
-                </p>
-
                 {!showFingerprintEnroll && !enrolledFingerprintId && (
-                  <div className="space-y-4">
-                    {/* Biometric Status Indicator */}
-                    <div className="flex items-center justify-center py-4">
+                  <div className="bg-slate-50 rounded-lg p-8 text-center">
+                    {/* Device Biometrics Status */}
+                    <div className="flex justify-center mb-6">
                       <div className="px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-medium">
-                        ⭕ Device Biometrics
+                        🟢 Device Biometrics
                       </div>
                     </div>
 
                     {/* Biometric Scanner Circle */}
-                    <div className="flex justify-center mb-6">
-                      <div className="w-32 h-32 bg-white rounded-full shadow-lg flex items-center justify-center border-4 border-slate-100">
-                        <div className="text-[hsl(258,90%,66%)] text-4xl">
+                    <div className="flex justify-center mb-8">
+                      <div className="w-40 h-40 bg-white rounded-full shadow-lg flex items-center justify-center">
+                        <div className="text-[hsl(258,90%,66%)] text-5xl">
                           🗇
                         </div>
                       </div>
                     </div>
 
-                    <div className="text-center mb-6">
-                      <h4 className="text-xl font-semibold text-slate-900 mb-2">Biometric Authentication</h4>
+                    {/* Title and Description */}
+                    <div className="mb-8">
+                      <h3 className="text-2xl font-semibold text-slate-900 mb-3">Biometric Authentication</h3>
                       <p className="text-slate-600">Use your device biometric authentication to enroll fingerprint</p>
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="space-y-3">
+                    <div className="space-y-4 max-w-sm mx-auto">
                       <div className="grid grid-cols-2 gap-3">
                         <Button 
                           type="button" 
                           onClick={() => setShowFingerprintEnroll(true)}
-                          className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white py-3"
+                          className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white py-3 px-6"
                         >
                           🗇 Device
                         </Button>
@@ -328,7 +324,7 @@ export default function RegisterTab() {
                             });
                           }}
                           variant="outline"
-                          className="py-3 border-slate-300"
+                          className="py-3 px-6 border-slate-300"
                         >
                           📱 Simulate
                         </Button>
@@ -347,7 +343,20 @@ export default function RegisterTab() {
                       >
                         ⚙️ Setup External Scanner
                       </Button>
+
+                      <Button 
+                        type="button" 
+                        onClick={() => setShowFingerprintEnroll(true)}
+                        className="w-full bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white py-4 text-lg font-medium"
+                      >
+                        Start Biometric Scan
+                      </Button>
                     </div>
+
+                    {/* Supported Methods */}
+                    <p className="text-sm text-slate-500 mt-6">
+                      Supported: Fingerprint, Face Recognition, PIN, or Pattern
+                    </p>
                   </div>
                 )}
 
