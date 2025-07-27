@@ -450,7 +450,7 @@ export default function RegisterTab() {
                       <div>
                         <p className="font-medium text-slate-900">{child.firstName} {child.surname}</p>
                         <p className="text-sm text-slate-500">
-                          {child.group === 'child' ? 'Child' : 'Adolescent'} - {child.dateOfBirth}
+                          {child.ageGroup === 'child' ? 'Child' : 'Adolescent'} - {child.dateOfBirth}
                         </p>
                       </div>
                       <Unlink className="h-4 w-4 text-red-500 cursor-pointer hover:text-red-600" />

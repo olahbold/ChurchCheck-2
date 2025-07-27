@@ -108,7 +108,8 @@ export class DatabaseStorage implements IStorage {
       .values({
         firstName: insertUser.username,
         surname: 'Admin',
-        group: 'male',
+        gender: 'male',
+        ageGroup: 'adult',
         phone: '000-000-0000',
         dateOfBirth: '1990-01-01',
         isCurrentMember: true,
@@ -169,7 +170,7 @@ export class DatabaseStorage implements IStorage {
     }
     
     if (group && group !== 'all') {
-      conditions.push(eq(members.group, group));
+      conditions.push(eq(members.gender, group));
     }
     
     const queryBuilder = db.select().from(members);
@@ -433,7 +434,7 @@ export class DatabaseStorage implements IStorage {
     const summary = await db
       .select({
         date: attendanceRecords.attendanceDate,
-        group: members.group,
+        group: members.gender,
         count: count(),
       })
       .from(attendanceRecords)
@@ -444,18 +445,23 @@ export class DatabaseStorage implements IStorage {
           lte(attendanceRecords.attendanceDate, endDate)
         )
       )
-      .groupBy(attendanceRecords.attendanceDate, members.group)
+      .groupBy(attendanceRecords.attendanceDate, members.gender)
       .orderBy(attendanceRecords.attendanceDate);
 
     return summary;
   }
 
   async getMemberAttendanceLog(memberId?: string, startDate?: string, endDate?: string): Promise<any> {
-    let query = db
+    let conditions = [];
+    if (memberId) conditions.push(eq(attendanceRecords.memberId, memberId));
+    if (startDate) conditions.push(gte(attendanceRecords.attendanceDate, startDate));
+    if (endDate) conditions.push(lte(attendanceRecords.attendanceDate, endDate));
+
+    const queryBuilder = db
       .select({
         memberId: attendanceRecords.memberId,
         memberName: sql`${members.firstName} || ' ' || ${members.surname}`,
-        group: members.group,
+        group: members.gender,
         attendanceDate: attendanceRecords.attendanceDate,
         checkInTime: attendanceRecords.checkInTime,
         checkInMethod: attendanceRecords.checkInMethod,
@@ -463,16 +469,13 @@ export class DatabaseStorage implements IStorage {
       .from(attendanceRecords)
       .innerJoin(members, eq(attendanceRecords.memberId, members.id));
 
-    let conditions = [];
-    if (memberId) conditions.push(eq(attendanceRecords.memberId, memberId));
-    if (startDate) conditions.push(gte(attendanceRecords.attendanceDate, startDate));
-    if (endDate) conditions.push(lte(attendanceRecords.attendanceDate, endDate));
-
     if (conditions.length > 0) {
-      query = query.where(and(...conditions));
+      return await queryBuilder
+        .where(and(...conditions))
+        .orderBy(desc(attendanceRecords.attendanceDate));
     }
 
-    return await query.orderBy(desc(attendanceRecords.attendanceDate));
+    return await queryBuilder.orderBy(desc(attendanceRecords.attendanceDate));
   }
 
   async getMissedServicesReport(weeks: number): Promise<any> {
@@ -484,7 +487,7 @@ export class DatabaseStorage implements IStorage {
         id: members.id,
         firstName: members.firstName,
         surname: members.surname,
-        group: members.group,
+        group: members.gender,
         phone: members.phone,
         lastAttendance: sql`MAX(${attendanceRecords.attendanceDate})`,
       })
@@ -497,7 +500,7 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .where(sql`${attendanceRecords.id} IS NULL`)
-      .groupBy(members.id, members.firstName, members.surname, members.group, members.phone);
+      .groupBy(members.id, members.firstName, members.surname, members.gender, members.phone);
 
     return membersWithoutRecentAttendance;
   }
@@ -524,13 +527,13 @@ export class DatabaseStorage implements IStorage {
         id: members.id,
         firstName: members.firstName,
         surname: members.surname,
-        group: members.group,
+        group: members.gender,
         phone: members.phone,
         lastAttendance: sql`MAX(${attendanceRecords.attendanceDate})`,
       })
       .from(members)
       .leftJoin(attendanceRecords, eq(members.id, attendanceRecords.memberId))
-      .groupBy(members.id, members.firstName, members.surname, members.group, members.phone)
+      .groupBy(members.id, members.firstName, members.surname, members.gender, members.phone)
       .having(
         sql`MAX(${attendanceRecords.attendanceDate}) < ${weeksAgo.toISOString().split('T')[0]} OR MAX(${attendanceRecords.attendanceDate}) IS NULL`
       );
@@ -539,7 +542,7 @@ export class DatabaseStorage implements IStorage {
   async getGroupAttendanceTrend(startDate: string, endDate: string): Promise<any> {
     return await db
       .select({
-        group: members.group,
+        group: members.gender,
         attendanceDate: attendanceRecords.attendanceDate,
         count: count(),
       })
@@ -551,8 +554,8 @@ export class DatabaseStorage implements IStorage {
           lte(attendanceRecords.attendanceDate, endDate)
         )
       )
-      .groupBy(members.group, attendanceRecords.attendanceDate)
-      .orderBy(attendanceRecords.attendanceDate, members.group);
+      .groupBy(members.gender, attendanceRecords.attendanceDate)
+      .orderBy(attendanceRecords.attendanceDate, members.gender);
   }
 
   async getFamilyCheckInSummary(date: string): Promise<any> {
@@ -561,7 +564,7 @@ export class DatabaseStorage implements IStorage {
         parentId: members.parentId,
         parentName: sql`parent.first_name || ' ' || parent.surname`,
         childName: sql`${members.firstName} || ' ' || ${members.surname}`,
-        childGroup: members.group,
+        childGroup: members.ageGroup,
         checkInTime: attendanceRecords.checkInTime,
       })
       .from(attendanceRecords)

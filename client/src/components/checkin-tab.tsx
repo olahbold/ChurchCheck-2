@@ -255,7 +255,7 @@ export default function CheckInTab() {
                                 {member.firstName} {member.surname}
                               </p>
                               <p className="text-sm text-slate-500">
-                                {member.group} • {member.phone}
+                                {member.ageGroup} • {member.phone}
                               </p>
                             </div>
                             <div className="flex space-x-2">
@@ -267,7 +267,7 @@ export default function CheckInTab() {
                               >
                                 Check In
                               </Button>
-                              {(member.group === 'male' || member.group === 'female') && (
+                              {(member.gender === 'male' || member.gender === 'female') && (
                                 <Button
                                   size="sm"
                                   onClick={() => handleFamilyCheckIn(member.id)}
@@ -423,7 +423,7 @@ export default function CheckInTab() {
                           {child.firstName} {child.surname}
                         </p>
                         <p className="text-xs text-slate-500 capitalize">
-                          {child.group} • Born {child.dateOfBirth}
+                          {child.ageGroup} • Born {child.dateOfBirth}
                         </p>
                       </div>
                     </div>
