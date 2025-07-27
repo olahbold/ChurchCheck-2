@@ -4,13 +4,15 @@ export interface AttendanceStats {
   female: number;
   children: number;
   adolescent: number;
+  adult: number;
 }
 
 export interface MemberWithChildren {
   id: string;
   firstName: string;
   surname: string;
-  group: string;
+  gender: string;
+  ageGroup: string;
   phone: string;
   dateOfBirth: string;
   isCurrentMember: boolean;

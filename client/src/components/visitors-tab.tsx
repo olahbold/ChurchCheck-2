@@ -150,7 +150,8 @@ export default function VisitorsTab() {
     // Pre-populate the edit form with visitor data
     editForm.reset({
       name: visitor.name || "",
-      group: visitor.group as "male" | "female" | "child" | "adolescent" | undefined,
+      gender: visitor.gender as "male" | "female" | undefined,
+      ageGroup: visitor.ageGroup as "child" | "adolescent" | "adult" | undefined,
       address: visitor.address || "",
       email: visitor.email || "",
       phone: visitor.phone || "",
@@ -320,7 +321,7 @@ export default function VisitorsTab() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Group</TableHead>
+                    <TableHead>Demographics</TableHead>
                     <TableHead>Contact</TableHead>
                     <TableHead>Visit Date</TableHead>
                     <TableHead>Status</TableHead>
@@ -342,11 +343,18 @@ export default function VisitorsTab() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {visitor.group && (
-                          <Badge variant="outline" className="capitalize">
-                            {visitor.group}
-                          </Badge>
-                        )}
+                        <div className="flex flex-col space-y-1">
+                          {visitor.gender && (
+                            <Badge variant="outline" className="capitalize">
+                              {visitor.gender}
+                            </Badge>
+                          )}
+                          {visitor.ageGroup && (
+                            <Badge variant="secondary" className="capitalize">
+                              {visitor.ageGroup}
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <div className="space-y-1">

@@ -7,7 +7,8 @@ export const members = pgTable("members", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   firstName: text("first_name").notNull(),
   surname: text("surname").notNull(),
-  group: text("group").notNull(), // "male", "female", "child", "adolescent"
+  gender: text("gender").notNull(), // "male", "female"
+  ageGroup: text("age_group").notNull(), // "child", "adolescent", "adult"
   phone: text("phone").notNull(),
   dateOfBirth: date("date_of_birth").notNull(),
   isCurrentMember: boolean("is_current_member").notNull().default(true),
@@ -69,7 +70,8 @@ export const visitors = pgTable("visitors", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   memberId: varchar("member_id").references(() => members.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
-  group: varchar("group", { length: 20 }), // male, female, child, adolescent
+  gender: varchar("gender", { length: 10 }), // male, female
+  ageGroup: varchar("age_group", { length: 15 }), // child, adolescent, adult
   address: text("address"),
   email: varchar("email", { length: 255 }),
   phone: varchar("phone", { length: 50 }),
@@ -97,7 +99,8 @@ export const visitorsRelations = relations(visitors, ({ one }) => ({
 export const insertMemberSchema = createInsertSchema(members, {
   phone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone number format"),
   dateOfBirth: z.string().refine((date) => new Date(date) < new Date(), "Date of birth must be in the past"),
-  group: z.enum(["male", "female", "child", "adolescent"]),
+  gender: z.enum(["male", "female"]),
+  ageGroup: z.enum(["child", "adolescent", "adult"]),
 }).omit({
   id: true,
   createdAt: true,
@@ -117,7 +120,8 @@ export const insertFollowUpRecordSchema = createInsertSchema(followUpRecords).om
 });
 
 export const insertVisitorSchema = createInsertSchema(visitors, {
-  group: z.enum(["male", "female", "child", "adolescent"]).optional(),
+  gender: z.enum(["male", "female"]).optional(),
+  ageGroup: z.enum(["child", "adolescent", "adult"]).optional(),
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
   phone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone number format").optional().or(z.literal("")),
   whatsappNumber: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid WhatsApp number format").optional().or(z.literal("")),

@@ -205,7 +205,8 @@ export class DatabaseStorage implements IStorage {
           id: members.id,
           firstName: members.firstName,
           surname: members.surname,
-          group: members.group,
+          gender: members.gender,
+          ageGroup: members.ageGroup,
           phone: members.phone,
         }
       })
@@ -230,16 +231,27 @@ export class DatabaseStorage implements IStorage {
     female: number;
     children: number;
     adolescent: number;
+    adult: number;
   }> {
-    const stats = await db
+    const genderStats = await db
       .select({
-        group: members.group,
+        gender: members.gender,
         count: count(),
       })
       .from(attendanceRecords)
       .innerJoin(members, eq(attendanceRecords.memberId, members.id))
       .where(eq(attendanceRecords.attendanceDate, date))
-      .groupBy(members.group);
+      .groupBy(members.gender);
+
+    const ageGroupStats = await db
+      .select({
+        ageGroup: members.ageGroup,
+        count: count(),
+      })
+      .from(attendanceRecords)
+      .innerJoin(members, eq(attendanceRecords.memberId, members.id))
+      .where(eq(attendanceRecords.attendanceDate, date))
+      .groupBy(members.ageGroup);
 
     const result = {
       total: 0,
@@ -247,14 +259,30 @@ export class DatabaseStorage implements IStorage {
       female: 0,
       children: 0,
       adolescent: 0,
+      adult: 0,
     };
 
-    stats.forEach(stat => {
-      result.total += stat.count;
-      if (stat.group === 'male') result.male = stat.count;
-      if (stat.group === 'female') result.female = stat.count;
-      if (stat.group === 'child') result.children = stat.count;
-      if (stat.group === 'adolescent') result.adolescent = stat.count;
+    // Count total first
+    const totalStats = await db
+      .select({
+        count: count(),
+      })
+      .from(attendanceRecords)
+      .where(eq(attendanceRecords.attendanceDate, date));
+    
+    result.total = totalStats[0]?.count || 0;
+
+    // Gender stats
+    genderStats.forEach(stat => {
+      if (stat.gender === 'male') result.male = stat.count;
+      if (stat.gender === 'female') result.female = stat.count;
+    });
+
+    // Age group stats  
+    ageGroupStats.forEach(stat => {
+      if (stat.ageGroup === 'child') result.children = stat.count;
+      if (stat.ageGroup === 'adolescent') result.adolescent = stat.count;
+      if (stat.ageGroup === 'adult') result.adult = stat.count;
     });
 
     return result;
