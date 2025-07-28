@@ -20,6 +20,8 @@ export default function CheckInTab() {
   const [parentChildren, setParentChildren] = useState<MemberWithChildren[]>([]);
   const [attendanceFilter, setAttendanceFilter] = useState<string | null>(null); // For filtering recent check-ins
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null); // Record ID to delete
+  const [selectedRecords, setSelectedRecords] = useState<string[]>([]); // For bulk operations
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -281,6 +283,65 @@ export default function CheckInTab() {
     },
   });
 
+  // Bulk delete mutation
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (recordIds: string[]) => {
+      const deletePromises = recordIds.map(id => 
+        apiRequest('DELETE', `/api/attendance/${id}`).then(r => r.json())
+      );
+      return Promise.all(deletePromises);
+    },
+    onSuccess: (results, recordIds) => {
+      toast({
+        title: "Records Deleted",
+        description: `${recordIds.length} check-in records have been removed`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/attendance'] });
+      setSelectedRecords([]);
+      setShowBulkDeleteConfirm(false);
+    },
+    onError: () => {
+      toast({
+        title: "Bulk Delete Failed",
+        description: "Could not delete all selected records. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Handle bulk selection
+  const toggleRecordSelection = (recordId: string) => {
+    setSelectedRecords(prev => 
+      prev.includes(recordId) 
+        ? prev.filter(id => id !== recordId)
+        : [...prev, recordId]
+    );
+  };
+
+  const selectAllRecords = () => {
+    const filteredRecords = attendanceFilter 
+      ? todayAttendance.filter((record: any) => {
+          const member = record.member;
+          if (!member) return false;
+          
+          if (attendanceFilter === 'male' || attendanceFilter === 'female') {
+            return member.gender === attendanceFilter;
+          }
+          if (attendanceFilter === 'child' || attendanceFilter === 'adolescent' || attendanceFilter === 'adult') {
+            return member.ageGroup === attendanceFilter;
+          }
+          return true;
+        })
+      : todayAttendance;
+    
+    const allIds = filteredRecords.map((record: any) => record.id);
+    setSelectedRecords(allIds);
+  };
+
+  const clearSelection = () => {
+    setSelectedRecords([]);
+  };
+
   // Export today's attendance as CSV
   const exportTodayAttendance = () => {
     const today = new Date().toISOString().split('T')[0];
@@ -537,19 +598,66 @@ export default function CheckInTab() {
                   {attendanceFilter} only
                 </span>
               )}
+              {selectedRecords.length > 0 && (
+                <span className="ml-2 px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">
+                  {selectedRecords.length} selected
+                </span>
+              )}
             </CardTitle>
-            {todayAttendance.length > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={exportTodayAttendance}
-                className="text-green-600 hover:text-green-700 hover:bg-green-50"
-              >
-                <Download className="h-4 w-4 mr-1" />
-                Export
-              </Button>
-            )}
+            <div className="flex items-center gap-2">
+              {selectedRecords.length > 0 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearSelection}
+                    className="text-slate-500 hover:text-slate-700"
+                  >
+                    <X className="h-4 w-4 mr-1" />
+                    Clear
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowBulkDeleteConfirm(true)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete ({selectedRecords.length})
+                  </Button>
+                </>
+              )}
+              {todayAttendance.length > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={exportTodayAttendance}
+                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Export
+                </Button>
+              )}
+            </div>
           </CardHeader>
+          
+          {/* Bulk Selection Controls */}
+          {todayAttendance.length > 0 && (
+            <div className="px-6 pb-4">
+              <div className="flex items-center gap-3 text-sm text-slate-600">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={selectAllRecords}
+                  className="text-xs px-2 py-1 h-auto"
+                >
+                  Select All {attendanceFilter ? `(${attendanceFilter})` : ''}
+                </Button>
+                <span>•</span>
+                <span>Click checkboxes to select records for bulk operations</span>
+              </div>
+            </div>
+          )}
           <CardContent>
             <div className="space-y-3 max-h-96 overflow-y-auto">
               {/* Filter attendance records based on selected filter */}
@@ -569,7 +677,16 @@ export default function CheckInTab() {
                 })
                 .slice(0, 10)
                 .map((record: any) => (
-                  <div key={record.id} className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border border-green-200 group hover:bg-green-100 transition-colors">
+                  <div key={record.id} className={`flex items-center space-x-3 p-3 rounded-lg border transition-colors group ${
+                    selectedRecords.includes(record.id) 
+                      ? 'bg-purple-50 border-purple-200' 
+                      : 'bg-green-50 border-green-200 hover:bg-green-100'
+                  }`}>
+                    <Checkbox
+                      checked={selectedRecords.includes(record.id)}
+                      onCheckedChange={() => toggleRecordSelection(record.id)}
+                      className="opacity-60 group-hover:opacity-100 transition-opacity"
+                    />
                     <div className="w-8 h-8 bg-[hsl(142,76%,36%)] rounded-full flex items-center justify-center">
                       <Check className="text-white text-sm" />
                     </div>
@@ -887,6 +1004,68 @@ export default function CheckInTab() {
             
             <p className="text-xs text-slate-500 text-center">
               Note: This will remove the check-in record but won't affect the member's profile.
+            </p>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog open={showBulkDeleteConfirm} onOpenChange={setShowBulkDeleteConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
+                <Trash2 className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            <DialogTitle className="text-center">Delete {selectedRecords.length} Check-in Records?</DialogTitle>
+            <p className="text-sm text-slate-600 text-center mt-2">
+              Are you sure you want to delete {selectedRecords.length} selected check-in records? 
+              This will remove the records for the following members:
+            </p>
+          </DialogHeader>
+          
+          <div className="max-h-32 overflow-y-auto bg-slate-50 rounded-lg p-3 space-y-1">
+            {selectedRecords.slice(0, 10).map(recordId => {
+              const record = todayAttendance.find((r: any) => r.id === recordId);
+              const memberName = record?.member ? 
+                `${record.member.firstName} ${record.member.surname}` : 
+                'Unknown Member';
+              return (
+                <div key={recordId} className="text-sm text-slate-700">
+                  • {memberName} ({formatTime(record?.checkInTime || '')})
+                </div>
+              );
+            })}
+            {selectedRecords.length > 10 && (
+              <div className="text-sm text-slate-500 italic">
+                ...and {selectedRecords.length - 10} more
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter className="flex-col space-y-2">
+            <div className="flex space-x-2 w-full">
+              <Button
+                variant="outline"
+                onClick={() => setShowBulkDeleteConfirm(false)}
+                disabled={bulkDeleteMutation.isPending}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              
+              <Button
+                onClick={() => bulkDeleteMutation.mutate(selectedRecords)}
+                disabled={bulkDeleteMutation.isPending}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              >
+                {bulkDeleteMutation.isPending ? "Deleting..." : `Delete ${selectedRecords.length} Records`}
+              </Button>
+            </div>
+            
+            <p className="text-xs text-slate-500 text-center">
+              Warning: This action cannot be undone and will permanently remove all selected records.
             </p>
           </DialogFooter>
         </DialogContent>
