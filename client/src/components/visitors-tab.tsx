@@ -553,7 +553,11 @@ export default function VisitorsTab() {
                       <FormItem>
                         <FormLabel>Wedding Anniversary</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <Input 
+                            type="date" 
+                            {...field} 
+                            value={field.value || ""} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -568,7 +572,11 @@ export default function VisitorsTab() {
                       <FormItem>
                         <FormLabel>Birthday</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} />
+                          <Input 
+                            type="date" 
+                            {...field} 
+                            value={field.value || ""} 
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -853,7 +861,11 @@ export default function VisitorsTab() {
                     <FormItem>
                       <FormLabel>Wedding Anniversary</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <Input 
+                          type="date" 
+                          {...field} 
+                          value={field.value || ""} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -868,7 +880,11 @@ export default function VisitorsTab() {
                     <FormItem>
                       <FormLabel>Birthday</FormLabel>
                       <FormControl>
-                        <Input type="date" {...field} />
+                        <Input 
+                          type="date" 
+                          {...field} 
+                          value={field.value || ""} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
