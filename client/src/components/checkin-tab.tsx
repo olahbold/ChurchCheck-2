@@ -695,7 +695,7 @@ export default function CheckInTab() {
                         {record.member?.firstName || 'Unknown'} {record.member?.surname || 'Member'}
                       </p>
                       <p className="text-sm text-slate-500">
-                        {formatTime(record.checkInTime)} • {record.checkInMethod}
+                        {formatTime(record.checkInTime)} • {record.isVisitor ? 'visitor' : 'member'}
                         {attendanceFilter && (
                           <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
                             {record.member?.gender} • {record.member?.ageGroup}
