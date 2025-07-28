@@ -5,12 +5,17 @@ import { z } from "zod";
 
 export const members = pgTable("members", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: text("title"), // Mr, Mrs, Dr, Pastor, etc.
   firstName: text("first_name").notNull(),
   surname: text("surname").notNull(),
   gender: text("gender").notNull(), // "male", "female"
   ageGroup: text("age_group").notNull(), // "child", "adolescent", "adult"
   phone: text("phone").notNull(),
+  email: text("email"),
+  whatsappNumber: text("whatsapp_number"),
+  address: text("address"),
   dateOfBirth: date("date_of_birth").notNull(),
+  weddingAnniversary: date("wedding_anniversary"),
   isCurrentMember: boolean("is_current_member").notNull().default(true),
   fingerprintId: text("fingerprint_id"), // Simulated fingerprint identifier
   parentId: varchar("parent_id"), // For family linking
@@ -97,8 +102,12 @@ export const visitorsRelations = relations(visitors, ({ one }) => ({
 
 // Insert schemas
 export const insertMemberSchema = createInsertSchema(members, {
+  title: z.string().optional(),
+  email: z.string().email("Invalid email format").optional().or(z.literal("")),
   phone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone number format"),
+  whatsappNumber: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid WhatsApp number format").optional().or(z.literal("")),
   dateOfBirth: z.string().refine((date) => new Date(date) < new Date(), "Date of birth must be in the past"),
+  weddingAnniversary: z.string().optional().or(z.literal("")),
   gender: z.enum(["male", "female"]),
   ageGroup: z.enum(["child", "adolescent", "adult"]),
 }).omit({

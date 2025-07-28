@@ -24,12 +24,17 @@ export default function RegisterTab() {
   const form = useForm<InsertMember>({
     resolver: zodResolver(insertMemberSchema),
     defaultValues: {
+      title: "",
       firstName: "",
       surname: "",
       gender: "male",
       ageGroup: "adult",
       phone: "",
+      email: "",
+      whatsappNumber: "",
+      address: "",
       dateOfBirth: "",
+      weddingAnniversary: "",
       isCurrentMember: true,
       fingerprintId: "",
       parentId: "",
@@ -116,7 +121,35 @@ export default function RegisterTab() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <FormControl>
+                          <SelectTrigger className="church-form-input">
+                            <SelectValue placeholder="Select title" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="none">No title</SelectItem>
+                          <SelectItem value="Mr">Mr</SelectItem>
+                          <SelectItem value="Mrs">Mrs</SelectItem>
+                          <SelectItem value="Ms">Ms</SelectItem>
+                          <SelectItem value="Dr">Dr</SelectItem>
+                          <SelectItem value="Pastor">Pastor</SelectItem>
+                          <SelectItem value="Rev">Rev</SelectItem>
+                          <SelectItem value="Elder">Elder</SelectItem>
+                          <SelectItem value="Deacon">Deacon</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="firstName"
@@ -191,14 +224,43 @@ export default function RegisterTab() {
                 />
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+1 (555) 123-4567" {...field} className="church-form-input" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="whatsappNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>WhatsApp Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+1 (555) 123-4567" {...field} value={field.value || ""} className="church-form-input" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <FormField
                 control={form.control}
-                name="phone"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Phone Number</FormLabel>
+                    <FormLabel>Email Address</FormLabel>
                     <FormControl>
-                      <Input placeholder="+1 (555) 123-4567" {...field} className="church-form-input" />
+                      <Input type="email" placeholder="john.doe@example.com" {...field} value={field.value || ""} className="church-form-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -207,17 +269,48 @@ export default function RegisterTab() {
 
               <FormField
                 control={form.control}
-                name="dateOfBirth"
+                name="address"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Date of Birth</FormLabel>
+                    <FormLabel>Address</FormLabel>
                     <FormControl>
-                      <Input type="date" {...field} className="church-form-input" />
+                      <Input placeholder="123 Main Street, City, State, ZIP" {...field} value={field.value || ""} className="church-form-input" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="dateOfBirth"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date of Birth</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} value={field.value || ""} className="church-form-input" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                {form.watch("ageGroup") === "adult" && (
+                  <FormField
+                    control={form.control}
+                    name="weddingAnniversary"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Wedding Anniversary</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} value={field.value || ""} className="church-form-input" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
 
               <FormField
                 control={form.control}
@@ -261,7 +354,7 @@ export default function RegisterTab() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">No parent link</SelectItem>
+                          <SelectItem value="none">No parent link</SelectItem>
                           {potentialParents.map((parent) => (
                             <SelectItem key={parent.id} value={parent.id}>
                               {parent.firstName} {parent.surname}
