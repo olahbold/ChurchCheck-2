@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FingerprintScanner } from "@/components/ui/fingerprint-scanner";
 import { useToast } from "@/hooks/use-toast";
 import { AttendanceStats, CheckInResult, MemberWithChildren } from "@/lib/types";
-import { Search, Users, Check, UserPlus, Baby, UserCheck, X, AlertCircle, Fingerprint, Download } from "lucide-react";
+import { Search, Users, Check, UserPlus, Baby, UserCheck, X, AlertCircle, Fingerprint, Download, Trash2 } from "lucide-react";
 
 export default function CheckInTab() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -19,6 +19,7 @@ export default function CheckInTab() {
   const [isFamilyDialogOpen, setIsFamilyDialogOpen] = useState(false);
   const [parentChildren, setParentChildren] = useState<MemberWithChildren[]>([]);
   const [attendanceFilter, setAttendanceFilter] = useState<string | null>(null); // For filtering recent check-ins
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null); // Record ID to delete
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -250,6 +251,35 @@ export default function CheckInTab() {
       hour12: true
     });
   };
+
+  // Delete attendance record mutation
+  const deleteAttendanceMutation = useMutation({
+    mutationFn: async (recordId: string) => {
+      const response = await apiRequest('DELETE', `/api/attendance/${recordId}`);
+      return response.json();
+    },
+    onSuccess: (result, recordId) => {
+      // Find the record to get member name for toast
+      const deletedRecord = todayAttendance.find(r => r.id === recordId);
+      const memberName = deletedRecord?.member ? 
+        `${deletedRecord.member.firstName} ${deletedRecord.member.surname}` : 
+        'Member';
+        
+      toast({
+        title: "Check-in Deleted",
+        description: `${memberName}'s check-in record has been removed`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/attendance'] });
+      setShowDeleteConfirm(null);
+    },
+    onError: () => {
+      toast({
+        title: "Delete Failed",
+        description: "Could not delete the check-in record. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Export today's attendance as CSV
   const exportTodayAttendance = () => {
@@ -539,7 +569,7 @@ export default function CheckInTab() {
                 })
                 .slice(0, 10)
                 .map((record: any) => (
-                  <div key={record.id} className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div key={record.id} className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border border-green-200 group hover:bg-green-100 transition-colors">
                     <div className="w-8 h-8 bg-[hsl(142,76%,36%)] rounded-full flex items-center justify-center">
                       <Check className="text-white text-sm" />
                     </div>
@@ -556,6 +586,14 @@ export default function CheckInTab() {
                         )}
                       </p>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowDeleteConfirm(record.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 ))}
               
@@ -802,6 +840,54 @@ export default function CheckInTab() {
                 Cancel
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!showDeleteConfirm} onOpenChange={() => setShowDeleteConfirm(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-red-500 to-red-600 rounded-full flex items-center justify-center">
+                <Trash2 className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            <DialogTitle className="text-center">Delete Check-in Record?</DialogTitle>
+            <p className="text-sm text-slate-600 text-center mt-2">
+              {showDeleteConfirm && (() => {
+                const record = todayAttendance.find(r => r.id === showDeleteConfirm);
+                const memberName = record?.member ? 
+                  `${record.member.firstName} ${record.member.surname}` : 
+                  'This member';
+                return `Are you sure you want to delete ${memberName}'s check-in record? This action cannot be undone.`;
+              })()}
+            </p>
+          </DialogHeader>
+          
+          <DialogFooter className="flex-col space-y-2">
+            <div className="flex space-x-2 w-full">
+              <Button
+                variant="outline"
+                onClick={() => setShowDeleteConfirm(null)}
+                disabled={deleteAttendanceMutation.isPending}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              
+              <Button
+                onClick={() => showDeleteConfirm && deleteAttendanceMutation.mutate(showDeleteConfirm)}
+                disabled={deleteAttendanceMutation.isPending}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              >
+                {deleteAttendanceMutation.isPending ? "Deleting..." : "Delete Record"}
+              </Button>
+            </div>
+            
+            <p className="text-xs text-slate-500 text-center">
+              Note: This will remove the check-in record but won't affect the member's profile.
+            </p>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -176,6 +176,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete attendance record
+  app.delete("/api/attendance/:recordId", async (req, res) => {
+    try {
+      const recordId = req.params.recordId;
+      const success = await storage.deleteAttendanceRecord(recordId);
+      if (success) {
+        res.json({ success: true, message: "Attendance record deleted successfully" });
+      } else {
+        res.status(404).json({ error: "Attendance record not found" });
+      }
+    } catch (error) {
+      console.error('Delete attendance record error:', error);
+      res.status(500).json({ error: "Failed to delete attendance record" });
+    }
+  });
+
   app.get("/api/attendance/today", async (req, res) => {
     try {
       const today = new Date().toISOString().split('T')[0];

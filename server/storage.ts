@@ -190,6 +190,14 @@ export class DatabaseStorage implements IStorage {
     return newRecord;
   }
 
+  async deleteAttendanceRecord(recordId: string): Promise<boolean> {
+    const result = await db
+      .delete(attendanceRecords)
+      .where(eq(attendanceRecords.id, recordId))
+      .returning();
+    return result.length > 0;
+  }
+
   async getAttendanceForDate(date: string): Promise<any[]> {
     return await db
       .select({
