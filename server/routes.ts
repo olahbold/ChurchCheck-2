@@ -77,11 +77,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Fingerprint simulation routes
   app.post("/api/fingerprint/enroll", async (req, res) => {
     try {
-      const { memberId } = req.body;
-      const fingerprintId = `fp_${memberId}_${Date.now()}`;
+      const { memberId, fingerprintId } = req.body;
+      // Use provided fingerprintId or generate new one
+      const enrollFingerprintId = fingerprintId || `fp_${memberId}_${Date.now()}`;
       
-      const member = await storage.updateMember(memberId, { fingerprintId });
-      res.json({ fingerprintId, success: true });
+      const member = await storage.updateMember(memberId, { fingerprintId: enrollFingerprintId });
+      res.json({ fingerprintId: enrollFingerprintId, success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to enroll fingerprint" });
     }
@@ -90,12 +91,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/fingerprint/scan", async (req, res) => {
     try {
       // Simulate fingerprint scanning - in real app this would interface with hardware
-      const { deviceId } = req.body;
+      const { fingerprintId, deviceId } = req.body;
       
-      // Mock fingerprint recognition based on device characteristics
-      const mockFingerprintId = `fp_mock_${deviceId || 'unknown'}`;
+      // Use provided fingerprintId or generate mock one based on device characteristics
+      const scanFingerprintId = fingerprintId || `fp_mock_${deviceId || 'unknown'}`;
       
-      const member = await storage.getMemberByFingerprint(mockFingerprintId);
+      const member = await storage.getMemberByFingerprint(scanFingerprintId);
       if (member) {
         // Auto check-in the member
         const today = new Date().toISOString().split('T')[0];
@@ -106,9 +107,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
           isGuest: false,
         });
         
-        res.json({ member, checkInSuccess: true });
+        res.json({ 
+          member, 
+          checkInSuccess: true,
+          message: "Check-in successful" 
+        });
       } else {
-        res.json({ member: null, checkInSuccess: false });
+        // Return the scanned fingerprint ID so it can be used for enrollment
+        res.json({ 
+          member: null, 
+          checkInSuccess: false,
+          scannedFingerprintId: scanFingerprintId,
+          message: "Fingerprint not recognized" 
+        });
       }
     } catch (error) {
       res.status(500).json({ error: "Fingerprint scan failed" });
@@ -304,9 +315,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const members = await storage.getAllMembers();
       
       // Convert to CSV format
-      const csvHeader = "First Name,Surname,Group,Phone,Date of Birth,Current Member,Created At\n";
+      const csvHeader = "First Name,Surname,Gender,Age Group,Phone,Date of Birth,Current Member,Created At\n";
       const csvData = members.map(member => 
-        `"${member.firstName}","${member.surname}","${member.group}","${member.phone}","${member.dateOfBirth}","${member.isCurrentMember}","${member.createdAt}"`
+        `"${member.firstName}","${member.surname}","${member.gender}","${member.ageGroup}","${member.phone}","${member.dateOfBirth}","${member.isCurrentMember}","${member.createdAt}"`
       ).join('\n');
       
       res.setHeader('Content-Type', 'text/csv');

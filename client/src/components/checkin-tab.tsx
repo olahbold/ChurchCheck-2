@@ -4,12 +4,12 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FingerprintScanner } from "@/components/ui/fingerprint-scanner";
 import { useToast } from "@/hooks/use-toast";
 import { AttendanceStats, CheckInResult, MemberWithChildren } from "@/lib/types";
-import { Search, Users, Check, UserPlus, Baby, UserCheck, X } from "lucide-react";
+import { Search, Users, Check, UserPlus, Baby, UserCheck, X, AlertCircle, Fingerprint } from "lucide-react";
 
 export default function CheckInTab() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -40,6 +40,11 @@ export default function CheckInTab() {
     queryFn: () => apiRequest('GET', `/api/members?search=${encodeURIComponent(searchQuery)}`).then(res => res.json()),
   });
 
+  // States for enrollment flow
+  const [showEnrollmentDialog, setShowEnrollmentDialog] = useState(false);
+  const [scannedFingerprintId, setScannedFingerprintId] = useState<string | null>(null);
+  const [memberToEnroll, setMemberToEnroll] = useState<MemberWithChildren | null>(null);
+
   // Biometric scan mutation for check-in
   const biometricScanMutation = useMutation({
     mutationFn: async (fingerprintId: string) => {
@@ -58,11 +63,9 @@ export default function CheckInTab() {
         });
         queryClient.invalidateQueries({ queryKey: ['/api/attendance'] });
       } else {
-        toast({
-          title: "Biometric Not Recognized",
-          description: "Please use manual check-in or register your biometric",
-          variant: "destructive",
-        });
+        // Fingerprint not recognized - offer enrollment opportunity
+        setScannedFingerprintId(result.scannedFingerprintId || null);
+        setShowEnrollmentDialog(true);
       }
     },
     onError: () => {
@@ -110,6 +113,40 @@ export default function CheckInTab() {
     queryKey: ['/api/members/children', selectedParent?.id],
     enabled: !!selectedParent?.id,
     staleTime: 0,
+  });
+
+  // Quick enrollment mutation for unrecognized fingerprints
+  const quickEnrollMutation = useMutation({
+    mutationFn: async (data: { memberId: string; fingerprintId: string }) => {
+      const response = await apiRequest('POST', '/api/fingerprint/enroll', data);
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      // After enrollment, automatically check in the member
+      const today = new Date().toISOString().split('T')[0];
+      return apiRequest('POST', '/api/attendance', {
+        memberId: variables.memberId,
+        attendanceDate: today,
+        checkInMethod: "fingerprint",
+        isGuest: false,
+      }).then(() => {
+        toast({
+          title: "Enrollment & Check-in Complete!",
+          description: `${memberToEnroll?.firstName} ${memberToEnroll?.surname} enrolled and checked in successfully`,
+        });
+        queryClient.invalidateQueries({ queryKey: ['/api/attendance'] });
+        setShowEnrollmentDialog(false);
+        setMemberToEnroll(null);
+        setScannedFingerprintId(null);
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Enrollment Failed",
+        description: "Please try again or use manual check-in",
+        variant: "destructive",
+      });
+    },
   });
 
   // Family check-in mutation
@@ -467,6 +504,130 @@ export default function CheckInTab() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Biometric Enrollment Dialog */}
+      <Dialog open={showEnrollmentDialog} onOpenChange={setShowEnrollmentDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-16 h-16 bg-gradient-to-br from-orange-500 to-red-600 rounded-full flex items-center justify-center">
+                <AlertCircle className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            <DialogTitle className="text-center">Fingerprint Not Found</DialogTitle>
+            <p className="text-sm text-slate-600 text-center mt-2">
+              Your fingerprint wasn't found in our system. Would you like to enroll it now for faster future check-ins?
+            </p>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {/* Search for existing member */}
+            <div>
+              <label className="text-sm font-medium text-slate-700 mb-2 block">
+                Search for your name to link this fingerprint:
+              </label>
+              <Input
+                placeholder="Type your name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full"
+              />
+            </div>
+
+            {searchResults.length > 0 && (
+              <div className="border rounded-lg max-h-32 overflow-y-auto">
+                {searchResults.slice(0, 5).map((member) => (
+                  <button
+                    key={member.id}
+                    onClick={() => {
+                      setMemberToEnroll(member);
+                      setSearchQuery("");
+                    }}
+                    className="w-full p-3 text-left hover:bg-slate-50 border-b last:border-b-0 flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        {member.firstName} {member.surname}
+                      </p>
+                      <p className="text-sm text-slate-500">
+                        {member.gender} • {member.ageGroup} • {member.phone}
+                      </p>
+                    </div>
+                    <Fingerprint className="h-5 w-5 text-slate-400" />
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {memberToEnroll && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium text-green-800">
+                      {memberToEnroll.firstName} {memberToEnroll.surname}
+                    </p>
+                    <p className="text-sm text-green-600">Ready to enroll fingerprint</p>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setMemberToEnroll(null)}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex-col space-y-2">
+            {memberToEnroll && scannedFingerprintId && (
+              <Button
+                onClick={() => quickEnrollMutation.mutate({
+                  memberId: memberToEnroll.id,
+                  fingerprintId: scannedFingerprintId
+                })}
+                disabled={quickEnrollMutation.isPending}
+                className="w-full bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white"
+              >
+                <Fingerprint className="h-4 w-4 mr-2" />
+                {quickEnrollMutation.isPending ? "Enrolling..." : "Enroll Fingerprint & Check In"}
+              </Button>
+            )}
+            
+            <div className="flex space-x-2 w-full">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  if (memberToEnroll) {
+                    manualCheckInMutation.mutate(memberToEnroll.id);
+                    setShowEnrollmentDialog(false);
+                    setMemberToEnroll(null);
+                    setScannedFingerprintId(null);
+                  }
+                }}
+                disabled={!memberToEnroll || manualCheckInMutation.isPending}
+                className="flex-1"
+              >
+                Skip & Manual Check-in
+              </Button>
+              
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setShowEnrollmentDialog(false);
+                  setMemberToEnroll(null);
+                  setScannedFingerprintId(null);
+                  setSearchQuery("");
+                }}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
