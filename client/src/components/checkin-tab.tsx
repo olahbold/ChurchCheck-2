@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { FingerprintScanner } from "@/components/ui/fingerprint-scanner";
 import { useToast } from "@/hooks/use-toast";
 import { AttendanceStats, CheckInResult, MemberWithChildren } from "@/lib/types";
-import { Search, Users, Check, UserPlus, Baby, UserCheck, X, AlertCircle, Fingerprint } from "lucide-react";
+import { Search, Users, Check, UserPlus, Baby, UserCheck, X, AlertCircle, Fingerprint, Download } from "lucide-react";
 
 export default function CheckInTab() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -251,6 +251,78 @@ export default function CheckInTab() {
     });
   };
 
+  // Export today's attendance as CSV
+  const exportTodayAttendance = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const formattedDate = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    // Filter data if a filter is active
+    const dataToExport = attendanceFilter 
+      ? todayAttendance.filter((record: any) => {
+          const member = record.member;
+          if (!member) return false;
+          
+          if (attendanceFilter === 'male' || attendanceFilter === 'female') {
+            return member.gender === attendanceFilter;
+          }
+          if (attendanceFilter === 'child' || attendanceFilter === 'adolescent' || attendanceFilter === 'adult') {
+            return member.ageGroup === attendanceFilter;
+          }
+          return true;
+        })
+      : todayAttendance;
+
+    // Prepare CSV data
+    const csvHeaders = ['Name', 'Gender', 'Age Group', 'Check-in Time', 'Method', 'Phone', 'Email'];
+    const csvData = dataToExport.map((record: any) => [
+      `${record.member?.firstName || ''} ${record.member?.surname || ''}`.trim(),
+      record.member?.gender || '',
+      record.member?.ageGroup || '',
+      new Date(record.checkInTime).toLocaleString('en-US'),
+      record.checkInMethod || '',
+      record.member?.phone || '',
+      record.member?.email || ''
+    ]);
+
+    // Create CSV content with filter info if applicable
+    const filterText = attendanceFilter ? ` (${attendanceFilter.charAt(0).toUpperCase() + attendanceFilter.slice(1)} Only)` : '';
+    const csvContent = [
+      [`Church Attendance Report - ${formattedDate}${filterText}`],
+      [`Total ${attendanceFilter ? `${attendanceFilter} ` : ''}Attendance: ${dataToExport.length}`],
+      ['Summary Statistics:'],
+      [`Male: ${attendanceStats?.male || 0}, Female: ${attendanceStats?.female || 0}`],
+      [`Adults: ${attendanceStats?.adult || 0}, Children: ${attendanceStats?.child || 0}, Adolescents: ${attendanceStats?.adolescent || 0}`],
+      [''], // Empty row
+      csvHeaders,
+      ...csvData
+    ].map(row => row.join(',')).join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      const filename = attendanceFilter 
+        ? `attendance-${today}-${attendanceFilter}.csv`
+        : `attendance-${today}.csv`;
+      link.setAttribute('download', filename);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    toast({
+      title: "Export Complete",
+      description: `${attendanceFilter ? `${attendanceFilter.charAt(0).toUpperCase() + attendanceFilter.slice(1)} ` : ''}attendance report downloaded with ${dataToExport.length} records`,
+    });
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       {/* Fingerprint Scanner */}
@@ -342,17 +414,29 @@ export default function CheckInTab() {
         <Card className="church-card">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-semibold text-slate-900">Today's Attendance</CardTitle>
-            {attendanceFilter && (
+            <div className="flex items-center gap-2">
+              {attendanceFilter && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setAttendanceFilter(null)}
+                  className="text-slate-500 hover:text-slate-700"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear Filter
+                </Button>
+              )}
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
-                onClick={() => setAttendanceFilter(null)}
-                className="text-slate-500 hover:text-slate-700"
+                onClick={exportTodayAttendance}
+                disabled={todayAttendance.length === 0}
+                className="text-green-600 hover:text-green-700 hover:bg-green-50 border-green-300"
               >
-                <X className="h-4 w-4 mr-1" />
-                Clear Filter
+                <Download className="h-4 w-4 mr-1" />
+                Export CSV
               </Button>
-            )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -415,8 +499,26 @@ export default function CheckInTab() {
 
         {/* Recent Check-ins */}
         <Card className="church-card">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-slate-900">Recent Check-ins</CardTitle>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-lg font-semibold text-slate-900">
+              Recent Check-ins
+              {attendanceFilter && (
+                <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full capitalize">
+                  {attendanceFilter} only
+                </span>
+              )}
+            </CardTitle>
+            {todayAttendance.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={exportTodayAttendance}
+                className="text-green-600 hover:text-green-700 hover:bg-green-50"
+              >
+                <Download className="h-4 w-4 mr-1" />
+                Export
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-96 overflow-y-auto">
