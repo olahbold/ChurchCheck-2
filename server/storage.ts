@@ -625,10 +625,42 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(visitors).where(eq(visitors.followUpStatus, status));
   }
 
-  async updateVisitor(id: string, visitor: Partial<InsertVisitor>): Promise<Visitor> {
+  async updateVisitor(id: string, visitorUpdate: Partial<InsertVisitor>): Promise<Visitor> {
+    // If visitor status is being changed to "member", convert them to a proper member
+    if (visitorUpdate.followUpStatus === "member") {
+      // Get the visitor data first
+      const [visitor] = await db.select().from(visitors).where(eq(visitors.id, id));
+      if (visitor) {
+        // Check if member record already exists for this visitor
+        const existingMember = await db.select().from(members)
+          .where(sql`LOWER(${members.firstName} || ' ' || ${members.surname}) = LOWER(${visitor.name})`);
+        
+        if (existingMember.length === 0) {
+          // Create member record from visitor data
+          const nameParts = visitor.name.trim().split(' ');
+          const firstName = nameParts[0] || visitor.name;
+          const surname = nameParts.slice(1).join(' ') || '';
+          
+          await db.insert(members).values({
+            firstName,
+            surname,
+            gender: visitor.gender || 'male',
+            ageGroup: visitor.ageGroup || 'adult',
+            phone: visitor.phone || '',
+            email: visitor.email || '',
+            whatsappNumber: visitor.whatsappNumber || '',
+            address: visitor.address || '',
+            dateOfBirth: visitor.birthday || '',
+            weddingAnniversary: visitor.weddingAnniversary || '',
+            isCurrentMember: true,
+          });
+        }
+      }
+    }
+    
     const [updatedVisitor] = await db
       .update(visitors)
-      .set({ ...visitor, updatedAt: new Date() })
+      .set({ ...visitorUpdate, updatedAt: new Date() })
       .where(eq(visitors.id, id))
       .returning();
     return updatedVisitor;
