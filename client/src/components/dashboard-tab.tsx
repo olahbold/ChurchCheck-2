@@ -28,7 +28,7 @@ export default function DashboardTab() {
 
   // Get all members with search and filter
   const { data: members = [] } = useQuery<MemberWithChildren[]>({
-    queryKey: ['/api/members', { search: searchQuery, group: groupFilter !== 'all' ? groupFilter : undefined }],
+    queryKey: ['/api/members'],
   });
 
   // Get members needing follow-up
