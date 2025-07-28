@@ -18,6 +18,7 @@ export default function CheckInTab() {
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
   const [isFamilyDialogOpen, setIsFamilyDialogOpen] = useState(false);
   const [parentChildren, setParentChildren] = useState<MemberWithChildren[]>([]);
+  const [attendanceFilter, setAttendanceFilter] = useState<string | null>(null); // For filtering recent check-ins
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -339,8 +340,19 @@ export default function CheckInTab() {
       {/* Today's Attendance */}
       <div className="space-y-6">
         <Card className="church-card">
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-semibold text-slate-900">Today's Attendance</CardTitle>
+            {attendanceFilter && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setAttendanceFilter(null)}
+                className="text-slate-500 hover:text-slate-700"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear Filter
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -352,30 +364,50 @@ export default function CheckInTab() {
               </div>
               
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="text-center p-3 bg-blue-50 rounded-lg">
+                <button
+                  onClick={() => setAttendanceFilter(attendanceFilter === 'male' ? null : 'male')}
+                  className={`text-center p-3 bg-blue-50 rounded-lg transition-all hover:bg-blue-100 hover:shadow-md ${
+                    attendanceFilter === 'male' ? 'ring-2 ring-blue-500 bg-blue-100' : ''
+                  }`}
+                >
                   <div className="text-lg font-semibold text-slate-900">
                     {attendanceStats?.male || 0}
                   </div>
                   <div className="text-slate-600">Male</div>
-                </div>
-                <div className="text-center p-3 bg-pink-50 rounded-lg">
+                </button>
+                <button
+                  onClick={() => setAttendanceFilter(attendanceFilter === 'female' ? null : 'female')}
+                  className={`text-center p-3 bg-pink-50 rounded-lg transition-all hover:bg-pink-100 hover:shadow-md ${
+                    attendanceFilter === 'female' ? 'ring-2 ring-pink-500 bg-pink-100' : ''
+                  }`}
+                >
                   <div className="text-lg font-semibold text-slate-900">
                     {attendanceStats?.female || 0}
                   </div>
                   <div className="text-slate-600">Female</div>
-                </div>
-                <div className="text-center p-3 bg-yellow-50 rounded-lg">
+                </button>
+                <button
+                  onClick={() => setAttendanceFilter(attendanceFilter === 'child' ? null : 'child')}
+                  className={`text-center p-3 bg-yellow-50 rounded-lg transition-all hover:bg-yellow-100 hover:shadow-md ${
+                    attendanceFilter === 'child' ? 'ring-2 ring-yellow-500 bg-yellow-100' : ''
+                  }`}
+                >
                   <div className="text-lg font-semibold text-slate-900">
-                    {attendanceStats?.children || 0}
+                    {attendanceStats?.child || 0}
                   </div>
                   <div className="text-slate-600">Children</div>
-                </div>
-                <div className="text-center p-3 bg-purple-50 rounded-lg">
+                </button>
+                <button
+                  onClick={() => setAttendanceFilter(attendanceFilter === 'adolescent' ? null : 'adolescent')}
+                  className={`text-center p-3 bg-purple-50 rounded-lg transition-all hover:bg-purple-100 hover:shadow-md ${
+                    attendanceFilter === 'adolescent' ? 'ring-2 ring-purple-500 bg-purple-100' : ''
+                  }`}
+                >
                   <div className="text-lg font-semibold text-slate-900">
                     {attendanceStats?.adolescent || 0}
                   </div>
                   <div className="text-slate-600">Adolescent</div>
-                </div>
+                </button>
               </div>
             </div>
           </CardContent>
@@ -388,23 +420,64 @@ export default function CheckInTab() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3 max-h-96 overflow-y-auto">
-              {todayAttendance.slice(0, 10).map((record: any) => (
-                <div key={record.id} className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border border-green-200">
-                  <div className="w-8 h-8 bg-[hsl(142,76%,36%)] rounded-full flex items-center justify-center">
-                    <Check className="text-white text-sm" />
+              {/* Filter attendance records based on selected filter */}
+              {todayAttendance
+                .filter((record: any) => {
+                  if (!attendanceFilter) return true;
+                  const member = record.member;
+                  if (!member) return false;
+                  
+                  if (attendanceFilter === 'male' || attendanceFilter === 'female') {
+                    return member.gender === attendanceFilter;
+                  }
+                  if (attendanceFilter === 'child' || attendanceFilter === 'adolescent' || attendanceFilter === 'adult') {
+                    return member.ageGroup === attendanceFilter;
+                  }
+                  return true;
+                })
+                .slice(0, 10)
+                .map((record: any) => (
+                  <div key={record.id} className="flex items-center space-x-3 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <div className="w-8 h-8 bg-[hsl(142,76%,36%)] rounded-full flex items-center justify-center">
+                      <Check className="text-white text-sm" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-900">
+                        {record.member?.firstName || 'Unknown'} {record.member?.surname || 'Member'}
+                      </p>
+                      <p className="text-sm text-slate-500">
+                        {formatTime(record.checkInTime)} • {record.checkInMethod}
+                        {attendanceFilter && (
+                          <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                            {record.member?.gender} • {record.member?.ageGroup}
+                          </span>
+                        )}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-900">
-                      {record.member?.firstName || 'Unknown'} {record.member?.surname || 'Member'}
-                    </p>
-                    <p className="text-sm text-slate-500">
-                      {formatTime(record.checkInTime)} • {record.checkInMethod}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))}
               
-              {todayAttendance.length === 0 && (
+              {/* Show filtered empty state */}
+              {attendanceFilter && todayAttendance.filter((record: any) => {
+                const member = record.member;
+                if (!member) return false;
+                
+                if (attendanceFilter === 'male' || attendanceFilter === 'female') {
+                  return member.gender === attendanceFilter;
+                }
+                if (attendanceFilter === 'child' || attendanceFilter === 'adolescent' || attendanceFilter === 'adult') {
+                  return member.ageGroup === attendanceFilter;
+                }
+                return true;
+              }).length === 0 && (
+                <div className="text-center py-8">
+                  <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                  <p className="text-slate-500">No {attendanceFilter} check-ins yet today</p>
+                </div>
+              )}
+              
+              {/* Show general empty state */}
+              {!attendanceFilter && todayAttendance.length === 0 && (
                 <div className="text-center py-8">
                   <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                   <p className="text-slate-500">No check-ins yet today</p>
