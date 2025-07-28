@@ -102,18 +102,28 @@ export const visitorsRelations = relations(visitors, ({ one }) => ({
 
 // Insert schemas
 export const insertMemberSchema = createInsertSchema(members, {
-  title: z.string().optional(),
+  title: z.string().optional().or(z.literal("")),
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
-  phone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone number format"),
+  phone: z.string().min(1, "Phone number is required").regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone number format"),
   whatsappNumber: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid WhatsApp number format").optional().or(z.literal("")),
   dateOfBirth: z.string().refine((date) => new Date(date) < new Date(), "Date of birth must be in the past"),
   weddingAnniversary: z.string().optional().or(z.literal("")),
   gender: z.enum(["male", "female"]),
   ageGroup: z.enum(["child", "adolescent", "adult"]),
+  address: z.string().optional().or(z.literal("")),
+  fingerprintId: z.string().optional().or(z.literal("")),
+  parentId: z.string().optional().or(z.literal("")),
 }).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+});
+
+// Update schema with more lenient validation for partial updates
+export const updateMemberSchema = insertMemberSchema.partial().extend({
+  phone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone number format").optional(),
+  whatsappNumber: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid WhatsApp number format").optional().or(z.literal("")),
+  dateOfBirth: z.string().refine((date) => !date || new Date(date) < new Date(), "Date of birth must be in the past").optional(),
 });
 
 export const insertAttendanceRecordSchema = createInsertSchema(attendanceRecords, {
@@ -147,6 +157,7 @@ export const insertVisitorSchema = createInsertSchema(visitors, {
 // Types
 export type Member = typeof members.$inferSelect;
 export type InsertMember = z.infer<typeof insertMemberSchema>;
+export type UpdateMember = z.infer<typeof updateMemberSchema>;
 export type AttendanceRecord = typeof attendanceRecords.$inferSelect;
 export type InsertAttendanceRecord = z.infer<typeof insertAttendanceRecordSchema>;
 export type FollowUpRecord = typeof followUpRecords.$inferSelect;

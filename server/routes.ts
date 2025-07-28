@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
   insertMemberSchema, 
+  updateMemberSchema,
   insertAttendanceRecordSchema, 
   insertAdminUserSchema,
   insertReportConfigSchema,
@@ -66,11 +67,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/members/:id", async (req, res) => {
     try {
-      const memberData = insertMemberSchema.partial().parse(req.body);
+      console.log('Update request body:', JSON.stringify(req.body, null, 2));
+      
+      // Clean up the data before validation
+      const cleanedData = { ...req.body };
+      
+      // Remove empty strings and convert them to undefined
+      Object.keys(cleanedData).forEach(key => {
+        if (cleanedData[key] === '') {
+          cleanedData[key] = undefined;
+        }
+      });
+      
+      const memberData = updateMemberSchema.parse(cleanedData);
+      console.log('Parsed member data:', JSON.stringify(memberData, null, 2));
+      
       const member = await storage.updateMember(req.params.id, memberData);
       res.json(member);
     } catch (error) {
-      res.status(400).json({ error: error instanceof Error ? error.message : "Invalid member data" });
+      console.error('Update member error:', error);
+      if (error instanceof Error) {
+        res.status(400).json({ error: error.message });
+      } else {
+        res.status(400).json({ error: "Invalid member data" });
+      }
     }
   });
 
