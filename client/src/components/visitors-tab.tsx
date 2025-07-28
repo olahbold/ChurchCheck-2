@@ -171,7 +171,21 @@ export default function VisitorsTab() {
   };
 
   const onSubmit = (data: InsertVisitor) => {
-    createVisitorMutation.mutate(data);
+    // Ensure optional fields are handled properly
+    const cleanedData = {
+      ...data,
+      address: data.address || "",
+      email: data.email || "",
+      phone: data.phone || "",
+      whatsappNumber: data.whatsappNumber || "",
+      prayerPoints: data.prayerPoints || "",
+      howDidYouHearAboutUs: data.howDidYouHearAboutUs || "",
+      comments: data.comments || "",
+      assignedTo: data.assignedTo || "",
+      weddingAnniversary: data.weddingAnniversary || "",
+      birthday: data.birthday || "",
+    };
+    createVisitorMutation.mutate(cleanedData);
   };
 
   const onEditSubmit = (data: InsertVisitor) => {
