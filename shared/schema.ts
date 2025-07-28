@@ -218,11 +218,17 @@ export const insertFollowUpRecordSchema = createInsertSchema(followUpRecords).om
 });
 
 export const insertVisitorSchema = createInsertSchema(visitors, {
-  gender: z.enum(["male", "female"]).optional(),
-  ageGroup: z.enum(["child", "adolescent", "adult"]).optional(),
+  name: z.string().min(1, "Name is required"),
+  gender: z.enum(["male", "female"], { required_error: "Gender is required" }),
+  ageGroup: z.enum(["child", "adolescent", "adult"], { required_error: "Age group is required" }),
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
   phone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone number format").optional().or(z.literal("")),
   whatsappNumber: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid WhatsApp number format").optional().or(z.literal("")),
+  address: z.string().optional().or(z.literal("")),
+  prayerPoints: z.string().optional().or(z.literal("")),
+  howDidYouHearAboutUs: z.string().optional().or(z.literal("")),
+  comments: z.string().optional().or(z.literal("")),
+  assignedTo: z.string().optional().or(z.literal("")),
   weddingAnniversary: z.string().optional().or(z.literal("")).transform(val => {
     // Convert empty strings and placeholder text to null for database
     if (!val || val.trim() === "" || val === "dd/mm/yyyy") return null;
@@ -233,7 +239,7 @@ export const insertVisitorSchema = createInsertSchema(visitors, {
     if (!val || val.trim() === "" || val === "dd/mm/yyyy") return null;
     return val;
   }),
-  followUpStatus: z.enum(["pending", "contacted", "member"]).optional(),
+  followUpStatus: z.enum(["pending", "contacted", "member"]).default("pending"),
 }).omit({
   id: true,
   createdAt: true,
