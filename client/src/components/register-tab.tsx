@@ -11,13 +11,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FingerprintScanner } from "@/components/ui/fingerprint-scanner";
 import { useToast } from "@/hooks/use-toast";
-import { Save, X, Link, Unlink, Fingerprint } from "lucide-react";
+import { Save, X, Link, Unlink, Fingerprint, Search, RotateCcw, AlertTriangle, CheckCircle, UserPlus, ChevronRight } from "lucide-react";
 
 export default function RegisterTab() {
   const [showFingerprintEnroll, setShowFingerprintEnroll] = useState(false);
   const [enrolledFingerprintId, setEnrolledFingerprintId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Member[]>([]);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [isUpdateMode, setIsUpdateMode] = useState(false);
+  const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false);
+  const [showFingerprintDialog, setShowFingerprintDialog] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -51,6 +59,78 @@ export default function RegisterTab() {
     m.ageGroup === 'adult' && !m.parentId
   );
 
+  // Helper functions
+  const handleClearForm = () => {
+    form.reset();
+    setEnrolledFingerprintId(null);
+    setShowFingerprintEnroll(false);
+    setSearchQuery("");
+    setSearchResults([]);
+    setSelectedMember(null);
+    setIsUpdateMode(false);
+    setShowUpdateConfirmation(false);
+    setShowFingerprintDialog(false);
+  };
+
+  const handleSearchMembers = () => {
+    if (searchQuery.trim().length >= 2) {
+      searchMembersMutation.mutate(searchQuery.trim());
+    } else {
+      toast({
+        title: "Search Query Too Short",
+        description: "Please enter at least 2 characters to search.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSelectMember = (member: Member) => {
+    setSelectedMember(member);
+    setIsUpdateMode(true);
+    setSearchResults([]);
+    
+    // Populate form with existing member data
+    form.reset({
+      title: member.title || "",
+      firstName: member.firstName,
+      surname: member.surname,
+      gender: member.gender as "male" | "female",
+      ageGroup: member.ageGroup as "child" | "adolescent" | "adult",
+      phone: member.phone,
+      email: member.email || "",
+      whatsappNumber: member.whatsappNumber || "",
+      address: member.address || "",
+      dateOfBirth: member.dateOfBirth,
+      weddingAnniversary: member.weddingAnniversary || "",
+      isCurrentMember: member.isCurrentMember,
+      fingerprintId: member.fingerprintId || "",
+      parentId: member.parentId || "",
+    });
+    
+    // Set existing fingerprint if available
+    if (member.fingerprintId) {
+      setEnrolledFingerprintId(member.fingerprintId);
+    }
+  };
+
+  // Search members mutation
+  const searchMembersMutation = useMutation({
+    mutationFn: async (query: string) => {
+      const response = await apiRequest('GET', `/api/members?search=${encodeURIComponent(query)}`);
+      return response.json() as Promise<Member[]>;
+    },
+    onSuccess: (results) => {
+      setSearchResults(results);
+    },
+    onError: () => {
+      toast({
+        title: "Search Failed",
+        description: "Unable to search members. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   // Create member mutation
   const createMemberMutation = useMutation({
     mutationFn: async (data: InsertMember) => {
@@ -63,14 +143,36 @@ export default function RegisterTab() {
         title: "Success",
         description: "Member registered successfully!",
       });
-      form.reset();
-      setEnrolledFingerprintId(null);
-      setShowFingerprintEnroll(false);
+      handleClearForm();
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to register member",
+        title: "Registration Failed",
+        description: "Please check your information and try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update member mutation
+  const updateMemberMutation = useMutation({
+    mutationFn: async (data: { id: string; updates: Partial<InsertMember> }) => {
+      const response = await apiRequest('PUT', `/api/members/${data.id}`, data.updates);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/members'] });
+      toast({
+        title: "Success",
+        description: "Member updated successfully!",
+      });
+      handleClearForm();
+      setShowUpdateConfirmation(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Update Failed",
+        description: "Please check your information and try again.",
         variant: "destructive",
       });
     },
@@ -89,7 +191,27 @@ export default function RegisterTab() {
       ...data,
       fingerprintId: enrolledFingerprintId || undefined,
     };
-    createMemberMutation.mutate(memberData);
+    
+    if (isUpdateMode && selectedMember) {
+      setShowUpdateConfirmation(true);
+    } else {
+      createMemberMutation.mutate(memberData);
+    }
+  };
+
+  const handleConfirmUpdate = () => {
+    if (selectedMember) {
+      const formData = form.getValues();
+      const memberData = {
+        ...formData,
+        fingerprintId: enrolledFingerprintId || selectedMember.fingerprintId || undefined,
+      };
+      
+      updateMemberMutation.mutate({
+        id: selectedMember.id,
+        updates: memberData
+      });
+    }
   };
 
   const handleFingerprintEnroll = (fingerprintId: string) => {
@@ -112,13 +234,99 @@ export default function RegisterTab() {
   const parentChildren = members.filter(m => m.parentId === selectedParentId);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-      {/* Registration Form */}
-      <Card className="church-card">
+    <div className="space-y-6">
+      {/* Member Search Section */}
+      <Card>
         <CardHeader>
-          <CardTitle className="text-2xl font-semibold text-slate-900">Member Registration</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Search Existing Members
+          </CardTitle>
+          <p className="text-sm text-slate-600">
+            Search before registering to prevent duplicates. If found, you can update their information instead.
+          </p>
         </CardHeader>
         <CardContent>
+          <div className="flex space-x-2">
+            <Input
+              placeholder="Search by name (partial match supported)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearchMembers()}
+              className="flex-1"
+            />
+            <Button 
+              onClick={handleSearchMembers}
+              disabled={searchMembersMutation.isPending || searchQuery.trim().length < 2}
+              className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white"
+            >
+              <Search className="h-4 w-4 mr-2" />
+              {searchMembersMutation.isPending ? "Searching..." : "Search"}
+            </Button>
+            {(isUpdateMode || searchResults.length > 0) && (
+              <Button 
+                variant="outline"
+                onClick={handleClearForm}
+                className="border-slate-300"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Clear
+              </Button>
+            )}
+          </div>
+
+          {/* Search Results */}
+          {searchResults.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <p className="text-sm font-medium text-slate-700">Found {searchResults.length} members:</p>
+              <div className="border rounded-lg divide-y max-h-48 overflow-y-auto">
+                {searchResults.map((member) => (
+                  <button
+                    key={member.id}
+                    onClick={() => handleSelectMember(member)}
+                    className="w-full p-3 text-left hover:bg-slate-50 flex items-center justify-between"
+                  >
+                    <div>
+                      <p className="font-medium text-slate-900">
+                        {member.title && `${member.title} `}{member.firstName} {member.surname}
+                      </p>
+                      <p className="text-sm text-slate-500">
+                        {member.gender} • {member.ageGroup} • {member.phone}
+                        {member.email && ` • ${member.email}`}
+                      </p>
+                    </div>
+                    <div className="flex items-center text-slate-400">
+                      {member.fingerprintId && <Fingerprint className="h-4 w-4 mr-2" />}
+                      <ChevronRight className="h-4 w-4" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Update Mode Indicator */}
+          {isUpdateMode && selectedMember && (
+            <Alert className="mt-4 border-green-200 bg-green-50">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription>
+                <strong>Update Mode:</strong> Editing {selectedMember.firstName} {selectedMember.surname}'s information.
+                {selectedMember.fingerprintId && " (Fingerprint enrolled)"}
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Registration Form */}
+        <Card className="church-card">
+          <CardHeader>
+            <CardTitle className="text-2xl font-semibold text-slate-900">
+              {isUpdateMode ? 'Update Member Information' : 'Member Registration'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -494,15 +702,18 @@ export default function RegisterTab() {
               <div className="flex space-x-4">
                 <Button 
                   type="submit" 
-                  disabled={createMemberMutation.isPending}
+                  disabled={createMemberMutation.isPending || updateMemberMutation.isPending}
                   className="church-button-primary flex-1"
                 >
                   <Save className="mr-2 h-4 w-4" />
-                  {createMemberMutation.isPending ? "Registering..." : "Register Member"}
+                  {isUpdateMode
+                    ? (updateMemberMutation.isPending ? "Updating..." : "Update Member")
+                    : (createMemberMutation.isPending ? "Registering..." : "Register Member")
+                  }
                 </Button>
                 <Button 
                   type="button" 
-                  onClick={clearForm}
+                  onClick={handleClearForm}
                   variant="outline"
                   className="church-button-secondary"
                 >
@@ -567,6 +778,84 @@ export default function RegisterTab() {
           </Button>
         </CardContent>
       </Card>
+      </div>
+
+      {/* Update Confirmation Dialog */}
+      <Dialog open={showUpdateConfirmation} onOpenChange={setShowUpdateConfirmation}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-orange-500" />
+              Confirm Member Update
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>
+              Are you sure you want to update <strong>{selectedMember?.firstName} {selectedMember?.surname}</strong>'s information?
+            </p>
+            {selectedMember?.fingerprintId && !enrolledFingerprintId && (
+              <Alert className="border-blue-200 bg-blue-50">
+                <AlertDescription>
+                  <strong>Fingerprint Preserved:</strong> The existing fingerprint enrollment will be kept.
+                </AlertDescription>
+              </Alert>
+            )}
+            {enrolledFingerprintId && enrolledFingerprintId !== selectedMember?.fingerprintId && (
+              <Alert className="border-orange-200 bg-orange-50">
+                <AlertDescription>
+                  <strong>Fingerprint Updated:</strong> A new fingerprint has been enrolled and will replace the existing one.
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowUpdateConfirmation(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleConfirmUpdate} disabled={updateMemberMutation.isPending}>
+              {updateMemberMutation.isPending ? "Updating..." : "Confirm Update"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Fingerprint Re-enrollment Dialog */}
+      <Dialog open={showFingerprintDialog} onOpenChange={setShowFingerprintDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Fingerprint className="h-5 w-5 text-blue-500" />
+              Fingerprint Options
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p>
+              <strong>{selectedMember?.firstName} {selectedMember?.surname}</strong> already has a fingerprint enrolled.
+            </p>
+            <div className="space-y-2">
+              <Button
+                onClick={() => {
+                  setShowFingerprintDialog(false);
+                  setShowFingerprintEnroll(true);
+                }}
+                className="w-full justify-start"
+                variant="outline"
+              >
+                <Fingerprint className="h-4 w-4 mr-2" />
+                Re-enroll New Fingerprint
+              </Button>
+              <Button
+                onClick={() => setShowFingerprintDialog(false)}
+                className="w-full justify-start"
+                variant="outline"
+              >
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Keep Existing Fingerprint
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
