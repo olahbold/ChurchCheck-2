@@ -191,9 +191,24 @@ export default function VisitorsTab() {
   const onEditSubmit = (data: InsertVisitor) => {
     if (!selectedVisitor) return;
 
+    // Clean the data similar to create mutation
+    const cleanedData = {
+      ...data,
+      address: data.address || "",
+      email: data.email || "",
+      phone: data.phone || "",
+      whatsappNumber: data.whatsappNumber || "",
+      prayerPoints: data.prayerPoints || "",
+      howDidYouHearAboutUs: data.howDidYouHearAboutUs || "",
+      comments: data.comments || "",
+      assignedTo: data.assignedTo || "",
+      weddingAnniversary: data.weddingAnniversary || "",
+      birthday: data.birthday || "",
+    };
+
     updateVisitorMutation.mutate({
       id: selectedVisitor.id,
-      updates: data,
+      updates: cleanedData,
     });
   };
 
