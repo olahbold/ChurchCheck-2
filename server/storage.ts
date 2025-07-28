@@ -631,17 +631,17 @@ export class DatabaseStorage implements IStorage {
       // Get the visitor data first
       const [visitor] = await db.select().from(visitors).where(eq(visitors.id, id));
       if (visitor) {
-        // Check if member record already exists for this visitor
-        const existingMember = await db.select().from(members)
-          .where(sql`LOWER(${members.firstName} || ' ' || ${members.surname}) = LOWER(${visitor.name})`);
+        // Split name into first and last name
+        const nameParts = visitor.name.trim().split(' ');
+        const firstName = nameParts[0] || visitor.name;
+        const surname = nameParts.slice(1).join(' ') || '';
         
-        if (existingMember.length === 0) {
-          // Create member record from visitor data
-          const nameParts = visitor.name.trim().split(' ');
-          const firstName = nameParts[0] || visitor.name;
-          const surname = nameParts.slice(1).join(' ') || '';
-          
-          await db.insert(members).values({
+        // Check if member record already exists
+        const existingMembers = await db.select().from(members)
+          .where(sql`LOWER(${members.firstName}) = LOWER(${firstName}) AND LOWER(${members.surname}) = LOWER(${surname})`);
+        
+        if (existingMembers.length === 0) {
+          const memberData: any = {
             firstName,
             surname,
             gender: visitor.gender || 'male',
@@ -650,10 +650,18 @@ export class DatabaseStorage implements IStorage {
             email: visitor.email || '',
             whatsappNumber: visitor.whatsappNumber || '',
             address: visitor.address || '',
-            dateOfBirth: visitor.birthday || '',
-            weddingAnniversary: visitor.weddingAnniversary || '',
             isCurrentMember: true,
-          });
+          };
+          
+          // Only include date fields if they have valid values
+          if (visitor.birthday && visitor.birthday.trim() !== '') {
+            memberData.dateOfBirth = visitor.birthday;
+          }
+          if (visitor.weddingAnniversary && visitor.weddingAnniversary.trim() !== '') {
+            memberData.weddingAnniversary = visitor.weddingAnniversary;
+          }
+          
+          await db.insert(members).values(memberData);
         }
       }
     }
