@@ -10,11 +10,11 @@ export const members = pgTable("members", {
   surname: text("surname").notNull(),
   gender: text("gender").notNull(), // "male", "female"
   ageGroup: text("age_group").notNull(), // "child", "adolescent", "adult"
-  phone: text("phone").notNull(),
+  phone: text("phone"), // Optional for children/adolescents
   email: text("email"),
   whatsappNumber: text("whatsapp_number"),
   address: text("address"),
-  dateOfBirth: date("date_of_birth").notNull(),
+  dateOfBirth: date("date_of_birth"), // Optional
   weddingAnniversary: date("wedding_anniversary"),
   isCurrentMember: boolean("is_current_member").notNull().default(true),
   fingerprintId: text("fingerprint_id"), // Simulated fingerprint identifier
@@ -106,7 +106,7 @@ export const insertMemberSchema = createInsertSchema(members, {
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
   phone: z.string().optional().or(z.literal("")),
   whatsappNumber: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid WhatsApp number format").optional().or(z.literal("")),
-  dateOfBirth: z.string().refine((date) => new Date(date) < new Date(), "Date of birth must be in the past"),
+  dateOfBirth: z.string().optional().refine((date) => !date || new Date(date) < new Date(), "Date of birth must be in the past"),
   weddingAnniversary: z.string().optional().or(z.literal("")),
   gender: z.enum(["male", "female"]),
   ageGroup: z.enum(["child", "adolescent", "adult"]),

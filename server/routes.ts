@@ -16,10 +16,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Member routes
   app.post("/api/members", async (req, res) => {
     try {
-      const memberData = insertMemberSchema.parse(req.body);
+      console.log('Member creation request body:', JSON.stringify(req.body, null, 2));
+      
+      // Clean up empty string values for optional fields
+      const cleanedData = { ...req.body };
+      Object.keys(cleanedData).forEach(key => {
+        if (cleanedData[key] === "" || cleanedData[key] === null) {
+          if (key === 'dateOfBirth' || key === 'weddingAnniversary') {
+            delete cleanedData[key]; // Remove completely for date fields
+          } else if (key === 'parentId' && cleanedData[key] === "") {
+            cleanedData[key] = null; // Convert empty string to null for foreign key
+          } else {
+            cleanedData[key] = undefined;
+          }
+        }
+      });
+      
+      console.log('Cleaned member data:', JSON.stringify(cleanedData, null, 2));
+      
+      const memberData = insertMemberSchema.parse(cleanedData);
       const member = await storage.createMember(memberData);
       res.json(member);
     } catch (error) {
+      console.error('Member creation error:', error);
       res.status(400).json({ error: error instanceof Error ? error.message : "Invalid member data" });
     }
   });
