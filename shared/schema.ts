@@ -100,27 +100,11 @@ export const visitorsRelations = relations(visitors, ({ one }) => ({
   }),
 }));
 
-// Insert schemas
+// Insert schemas - using transform with refined validation
 export const insertMemberSchema = createInsertSchema(members, {
   title: z.string().optional().or(z.literal("")),
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
-  phone: z.string().optional().superRefine((val, ctx) => {
-    const ageGroup = (ctx.parent as any).ageGroup;
-    // Phone is required for adults, optional for children and adolescents
-    if (ageGroup === "adult" && (!val || val.trim() === "")) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Phone number is required for adults"
-      });
-    }
-    // If provided, must be valid format
-    if (val && val.trim() !== "" && !/^\+?[\d\s\-\(\)]+$/.test(val)) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Invalid phone number format"
-      });
-    }
-  }),
+  phone: z.string().optional().or(z.literal("")),
   whatsappNumber: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid WhatsApp number format").optional().or(z.literal("")),
   dateOfBirth: z.string().refine((date) => new Date(date) < new Date(), "Date of birth must be in the past"),
   weddingAnniversary: z.string().optional().or(z.literal("")),
@@ -133,10 +117,33 @@ export const insertMemberSchema = createInsertSchema(members, {
   id: true,
   createdAt: true,
   updatedAt: true,
+}).superRefine((data, ctx) => {
+  // Phone validation based on age group
+  if (data.ageGroup === "adult" && (!data.phone || data.phone.trim() === "")) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Phone number is required for adults",
+      path: ["phone"]
+    });
+  }
+  
+  // Phone format validation if provided
+  if (data.phone && data.phone.trim() !== "" && !/^\+?[\d\s\-\(\)]+$/.test(data.phone)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Invalid phone number format",
+      path: ["phone"]
+    });
+  }
 });
 
 // Update schema with more lenient validation for partial updates
-export const updateMemberSchema = insertMemberSchema.partial().extend({
+export const updateMemberSchema = z.object({
+  title: z.string().optional(),
+  firstName: z.string().optional(),
+  surname: z.string().optional(),
+  gender: z.enum(["male", "female"]).optional(),
+  ageGroup: z.enum(["child", "adolescent", "adult"]).optional(),
   phone: z.string().optional().refine((val) => {
     // If provided, must be valid format
     if (val && val.trim() !== "" && !/^\+?[\d\s\-\(\)]+$/.test(val)) {
@@ -144,8 +151,14 @@ export const updateMemberSchema = insertMemberSchema.partial().extend({
     }
     return true;
   }, "Invalid phone number format"),
-  whatsappNumber: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid WhatsApp number format").optional().or(z.literal("")),
+  email: z.string().email("Invalid email format").optional(),
+  whatsappNumber: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid WhatsApp number format").optional(),
+  address: z.string().optional(),
   dateOfBirth: z.string().refine((date) => !date || new Date(date) < new Date(), "Date of birth must be in the past").optional(),
+  weddingAnniversary: z.string().optional(),
+  isCurrentMember: z.boolean().optional(),
+  fingerprintId: z.string().optional(),
+  parentId: z.string().optional(),
 });
 
 export const insertAttendanceRecordSchema = createInsertSchema(attendanceRecords, {
