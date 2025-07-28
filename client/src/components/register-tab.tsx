@@ -26,6 +26,8 @@ export default function RegisterTab() {
   const [isUpdateMode, setIsUpdateMode] = useState(false);
   const [showUpdateConfirmation, setShowUpdateConfirmation] = useState(false);
   const [showFingerprintDialog, setShowFingerprintDialog] = useState(false);
+  const [showParentContactDialog, setShowParentContactDialog] = useState(false);
+  const [pendingParentId, setPendingParentId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -70,6 +72,8 @@ export default function RegisterTab() {
     setIsUpdateMode(false);
     setShowUpdateConfirmation(false);
     setShowFingerprintDialog(false);
+    setShowParentContactDialog(false);
+    setPendingParentId(null);
   };
 
   const handleSearchMembers = () => {
@@ -111,6 +115,47 @@ export default function RegisterTab() {
     if (member.fingerprintId) {
       setEnrolledFingerprintId(member.fingerprintId);
     }
+  };
+
+  // Handle parent selection with contact info prompt
+  const handleParentSelection = (parentId: string) => {
+    const currentAgeGroup = form.getValues("ageGroup");
+    if ((currentAgeGroup === "child" || currentAgeGroup === "adolescent") && parentId && parentId !== "none") {
+      const parent = potentialParents.find(p => p.id === parentId);
+      if (parent && (parent.phone || parent.address)) {
+        setPendingParentId(parentId);
+        setShowParentContactDialog(true);
+      } else {
+        form.setValue("parentId", parentId);
+      }
+    } else {
+      form.setValue("parentId", parentId === "none" ? "" : parentId);
+    }
+  };
+
+  const handleCopyParentContact = (copyContact: boolean) => {
+    if (pendingParentId && copyContact) {
+      const parent = potentialParents.find(p => p.id === pendingParentId);
+      if (parent) {
+        if (parent.phone && !form.getValues("phone")) {
+          form.setValue("phone", parent.phone);
+        }
+        if (parent.whatsappNumber && !form.getValues("whatsappNumber")) {
+          form.setValue("whatsappNumber", parent.whatsappNumber);
+        }
+        if (parent.address && !form.getValues("address")) {
+          form.setValue("address", parent.address);
+        }
+        toast({
+          title: "Contact Information Copied",
+          description: "Parent's contact details have been copied to this member's profile.",
+        });
+      }
+    }
+    
+    form.setValue("parentId", pendingParentId || "");
+    setShowParentContactDialog(false);
+    setPendingParentId(null);
   };
 
   // Search members mutation
@@ -555,7 +600,7 @@ export default function RegisterTab() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Link to Parent</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <Select onValueChange={handleParentSelection} value={field.value || ""}>
                         <FormControl>
                           <SelectTrigger className="church-form-input">
                             <SelectValue placeholder="Select parent (optional)" />
@@ -854,6 +899,50 @@ export default function RegisterTab() {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Parent Contact Information Dialog */}
+      <Dialog open={showParentContactDialog} onOpenChange={setShowParentContactDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserPlus className="h-5 w-5 text-blue-500" />
+              Copy Parent's Contact Information?
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {pendingParentId && (
+              <>
+                <p>
+                  Would you like to copy <strong>{potentialParents.find(p => p.id === pendingParentId)?.firstName} {potentialParents.find(p => p.id === pendingParentId)?.surname}</strong>'s contact information to this {form.getValues("ageGroup")}?
+                </p>
+                <div className="bg-slate-50 p-4 rounded-lg space-y-2">
+                  <p className="text-sm text-slate-700 font-medium">Parent's Contact Details:</p>
+                  {potentialParents.find(p => p.id === pendingParentId)?.phone && (
+                    <p className="text-sm">📞 {potentialParents.find(p => p.id === pendingParentId)?.phone}</p>
+                  )}
+                  {potentialParents.find(p => p.id === pendingParentId)?.whatsappNumber && (
+                    <p className="text-sm">📱 {potentialParents.find(p => p.id === pendingParentId)?.whatsappNumber}</p>
+                  )}
+                  {potentialParents.find(p => p.id === pendingParentId)?.address && (
+                    <p className="text-sm">🏠 {potentialParents.find(p => p.id === pendingParentId)?.address}</p>
+                  )}
+                </div>
+                <p className="text-xs text-slate-500">
+                  This will only copy information to empty fields and won't overwrite existing data.
+                </p>
+              </>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => handleCopyParentContact(false)}>
+              Skip - Keep Empty
+            </Button>
+            <Button onClick={() => handleCopyParentContact(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
+              Yes, Copy Contact Info
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

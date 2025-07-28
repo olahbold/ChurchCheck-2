@@ -104,7 +104,23 @@ export const visitorsRelations = relations(visitors, ({ one }) => ({
 export const insertMemberSchema = createInsertSchema(members, {
   title: z.string().optional().or(z.literal("")),
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
-  phone: z.string().min(1, "Phone number is required").regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone number format"),
+  phone: z.string().optional().superRefine((val, ctx) => {
+    const ageGroup = (ctx.parent as any).ageGroup;
+    // Phone is required for adults, optional for children and adolescents
+    if (ageGroup === "adult" && (!val || val.trim() === "")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Phone number is required for adults"
+      });
+    }
+    // If provided, must be valid format
+    if (val && val.trim() !== "" && !/^\+?[\d\s\-\(\)]+$/.test(val)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Invalid phone number format"
+      });
+    }
+  }),
   whatsappNumber: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid WhatsApp number format").optional().or(z.literal("")),
   dateOfBirth: z.string().refine((date) => new Date(date) < new Date(), "Date of birth must be in the past"),
   weddingAnniversary: z.string().optional().or(z.literal("")),
@@ -121,7 +137,13 @@ export const insertMemberSchema = createInsertSchema(members, {
 
 // Update schema with more lenient validation for partial updates
 export const updateMemberSchema = insertMemberSchema.partial().extend({
-  phone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone number format").optional(),
+  phone: z.string().optional().refine((val) => {
+    // If provided, must be valid format
+    if (val && val.trim() !== "" && !/^\+?[\d\s\-\(\)]+$/.test(val)) {
+      return false;
+    }
+    return true;
+  }, "Invalid phone number format"),
   whatsappNumber: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid WhatsApp number format").optional().or(z.literal("")),
   dateOfBirth: z.string().refine((date) => !date || new Date(date) < new Date(), "Date of birth must be in the past").optional(),
 });

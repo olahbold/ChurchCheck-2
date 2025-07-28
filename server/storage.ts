@@ -122,10 +122,7 @@ export class DatabaseStorage implements IStorage {
   async createMember(member: InsertMember): Promise<Member> {
     const [newMember] = await db
       .insert(members)
-      .values({
-        ...member,
-        updatedAt: new Date(),
-      })
+      .values(member)
       .returning();
     return newMember;
   }
