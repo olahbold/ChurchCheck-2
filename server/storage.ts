@@ -673,6 +673,24 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedVisitor;
   }
+
+  async updateVisitorAttendanceToMember(visitorId: string, memberId: string): Promise<boolean> {
+    try {
+      const result = await db
+        .update(attendanceRecords)
+        .set({ 
+          memberId: memberId,
+          visitorId: null,
+          isGuest: false
+        })
+        .where(eq(attendanceRecords.visitorId, visitorId));
+      
+      return true;
+    } catch (error) {
+      console.error('Error updating visitor attendance to member:', error);
+      return false;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

@@ -364,6 +364,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Fix visitor-to-member attendance records
+  app.post("/api/attendance/fix-visitor-member-records", async (req, res) => {
+    try {
+      // Find all visitors who became members (same name)
+      const visitors = await storage.getAllVisitors();
+      const members = await storage.getAllMembers();
+      
+      let updatedCount = 0;
+      
+      for (const visitor of visitors) {
+        // Split visitor name into first and last name to match with member records
+        const nameParts = visitor.name ? visitor.name.trim().split(' ') : [];
+        const visitorFirstName = nameParts[0] || '';
+        const visitorSurname = nameParts.slice(1).join(' ') || '';
+        
+        // Find matching member by name
+        const matchingMember = members.find(member => 
+          member.firstName.toLowerCase() === visitorFirstName.toLowerCase() && 
+          member.surname.toLowerCase() === visitorSurname.toLowerCase()
+        );
+        
+        if (matchingMember) {
+          // Update attendance records from visitor to member
+          const updated = await storage.updateVisitorAttendanceToMember(visitor.id, matchingMember.id);
+          if (updated) updatedCount++;
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        message: `Updated ${updatedCount} attendance records from visitor to member status`,
+        updatedCount
+      });
+    } catch (error) {
+      console.error('Fix attendance records error:', error);
+      res.status(500).json({ error: "Failed to fix attendance records" });
+    }
+  });
+
   // Export data route
   app.get("/api/export/members", async (req, res) => {
     try {
