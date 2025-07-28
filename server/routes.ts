@@ -611,6 +611,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Visitor check-in route - creates visitor record AND attendance record
+  app.post("/api/visitor-checkin", async (req, res) => {
+    try {
+      const visitorData = insertVisitorSchema.parse(req.body);
+      
+      // Create visitor record
+      const visitor = await storage.createVisitor(visitorData);
+      
+      // Create attendance record for the visitor
+      const today = new Date().toISOString().split('T')[0];
+      const attendanceRecord = await storage.createAttendanceRecord({
+        visitorId: visitor.id,
+        attendanceDate: today,
+        checkInMethod: "visitor",
+        isGuest: true,
+        visitorName: visitor.name,
+        visitorGender: visitor.gender as "male" | "female",
+        visitorAgeGroup: visitor.ageGroup as "child" | "adolescent" | "adult",
+      });
+      
+      res.json({ visitor, attendanceRecord });
+    } catch (error) {
+      res.status(400).json({ error: error instanceof Error ? error.message : "Invalid visitor data" });
+    }
+  });
+
   app.get("/api/visitors", async (req, res) => {
     try {
       const { status } = req.query;

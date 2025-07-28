@@ -49,8 +49,9 @@ export interface IStorage {
     total: number;
     male: number;
     female: number;
-    children: number;
+    child: number;
     adolescent: number;
+    adult: number;
   }>;
 
   // Follow-up methods
@@ -199,14 +200,19 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAttendanceForDate(date: string): Promise<any[]> {
-    return await db
+    // Get both member and visitor attendance in a single query
+    const memberAttendance = await db
       .select({
         id: attendanceRecords.id,
         memberId: attendanceRecords.memberId,
+        visitorId: attendanceRecords.visitorId,
         attendanceDate: attendanceRecords.attendanceDate,
         checkInTime: attendanceRecords.checkInTime,
         checkInMethod: attendanceRecords.checkInMethod,
         isGuest: attendanceRecords.isGuest,
+        visitorName: attendanceRecords.visitorName,
+        visitorGender: attendanceRecords.visitorGender,
+        visitorAgeGroup: attendanceRecords.visitorAgeGroup,
         member: {
           id: members.id,
           firstName: members.firstName,
@@ -214,12 +220,35 @@ export class DatabaseStorage implements IStorage {
           gender: members.gender,
           ageGroup: members.ageGroup,
           phone: members.phone,
+          email: members.email,
         }
       })
       .from(attendanceRecords)
-      .innerJoin(members, eq(attendanceRecords.memberId, members.id))
+      .leftJoin(members, eq(attendanceRecords.memberId, members.id))
       .where(eq(attendanceRecords.attendanceDate, date))
       .orderBy(desc(attendanceRecords.checkInTime));
+
+    // Transform the data to have a consistent structure for both members and visitors
+    return memberAttendance.map(record => ({
+      id: record.id,
+      memberId: record.memberId,
+      visitorId: record.visitorId,
+      attendanceDate: record.attendanceDate,
+      checkInTime: record.checkInTime,
+      checkInMethod: record.checkInMethod,
+      isGuest: record.isGuest,
+      // Unified person data - use member data if it's a member, visitor data if it's a visitor
+      member: record.member ? record.member : {
+        id: record.visitorId,
+        firstName: record.visitorName?.split(' ')[0] || 'Visitor',
+        surname: record.visitorName?.split(' ').slice(1).join(' ') || '',
+        gender: record.visitorGender,
+        ageGroup: record.visitorAgeGroup,
+        phone: null,
+        email: null,
+      },
+      isVisitor: !record.memberId
+    }));
   }
 
   async getMemberAttendanceHistory(memberId: string, limit = 10): Promise<AttendanceRecord[]> {
@@ -235,60 +264,39 @@ export class DatabaseStorage implements IStorage {
     total: number;
     male: number;
     female: number;
-    children: number;
+    child: number;
     adolescent: number;
     adult: number;
   }> {
-    const genderStats = await db
+    // Query with a UNION approach to combine member and visitor stats
+    const allAttendanceRecords = await db
       .select({
-        gender: members.gender,
-        count: count(),
+        gender: sql<string>`COALESCE(${members.gender}, ${attendanceRecords.visitorGender})`,
+        ageGroup: sql<string>`COALESCE(${members.ageGroup}, ${attendanceRecords.visitorAgeGroup})`,
       })
       .from(attendanceRecords)
-      .innerJoin(members, eq(attendanceRecords.memberId, members.id))
-      .where(eq(attendanceRecords.attendanceDate, date))
-      .groupBy(members.gender);
-
-    const ageGroupStats = await db
-      .select({
-        ageGroup: members.ageGroup,
-        count: count(),
-      })
-      .from(attendanceRecords)
-      .innerJoin(members, eq(attendanceRecords.memberId, members.id))
-      .where(eq(attendanceRecords.attendanceDate, date))
-      .groupBy(members.ageGroup);
+      .leftJoin(members, eq(attendanceRecords.memberId, members.id))
+      .where(eq(attendanceRecords.attendanceDate, date));
 
     const result = {
-      total: 0,
+      total: allAttendanceRecords.length,
       male: 0,
       female: 0,
-      children: 0,
+      child: 0,
       adolescent: 0,
       adult: 0,
     };
 
-    // Count total first
-    const totalStats = await db
-      .select({
-        count: count(),
-      })
-      .from(attendanceRecords)
-      .where(eq(attendanceRecords.attendanceDate, date));
-    
-    result.total = totalStats[0]?.count || 0;
-
-    // Gender stats
-    genderStats.forEach(stat => {
-      if (stat.gender === 'male') result.male = stat.count;
-      if (stat.gender === 'female') result.female = stat.count;
-    });
-
-    // Age group stats  
-    ageGroupStats.forEach(stat => {
-      if (stat.ageGroup === 'child') result.children = stat.count;
-      if (stat.ageGroup === 'adolescent') result.adolescent = stat.count;
-      if (stat.ageGroup === 'adult') result.adult = stat.count;
+    // Count demographics
+    allAttendanceRecords.forEach(record => {
+      // Gender stats
+      if (record.gender === 'male') result.male++;
+      if (record.gender === 'female') result.female++;
+      
+      // Age group stats
+      if (record.ageGroup === 'child') result.child++;
+      if (record.ageGroup === 'adolescent') result.adolescent++;
+      if (record.ageGroup === 'adult') result.adult++;
     });
 
     return result;

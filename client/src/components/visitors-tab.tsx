@@ -74,17 +74,18 @@ export default function VisitorsTab() {
     queryKey: ["/api/visitors"],
   });
 
-  // Create visitor mutation
+  // Create visitor mutation - now includes check-in
   const createVisitorMutation = useMutation({
     mutationFn: async (data: InsertVisitor) => {
-      const response = await apiRequest('POST', '/api/visitors', data);
+      const response = await apiRequest('POST', '/api/visitor-checkin', data);
       return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/visitors'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/attendance'] });
       toast({
         title: "Success",
-        description: "Visitor information saved successfully!",
+        description: "Visitor checked in successfully! They are now included in today's attendance.",
       });
       form.reset();
       setIsAddDialogOpen(false);
@@ -92,7 +93,7 @@ export default function VisitorsTab() {
     onError: (error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to save visitor information",
+        description: error.message || "Failed to check in visitor",
         variant: "destructive",
       });
     },
@@ -994,7 +995,7 @@ export default function VisitorsTab() {
                   className="flex-1 bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white"
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  {createVisitorMutation.isPending ? "Saving..." : "Save Visitor Information"}
+                  {createVisitorMutation.isPending ? "Checking In..." : "Check In Visitor"}
                 </Button>
                 <Button
                   type="button"

@@ -2,7 +2,7 @@ export interface AttendanceStats {
   total: number;
   male: number;
   female: number;
-  children: number;
+  child: number;
   adolescent: number;
   adult: number;
 }
@@ -26,6 +26,7 @@ export interface MemberWithChildren {
 export interface CheckInResult {
   member: MemberWithChildren | null;
   checkInSuccess: boolean;
+  scannedFingerprintId?: string;
 }
 
 export interface FamilyCheckInResult {

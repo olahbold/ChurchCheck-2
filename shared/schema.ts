@@ -25,11 +25,16 @@ export const members = pgTable("members", {
 
 export const attendanceRecords = pgTable("attendance_records", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  memberId: varchar("member_id").notNull().references(() => members.id),
+  memberId: varchar("member_id").references(() => members.id),
+  visitorId: varchar("visitor_id").references(() => visitors.id),
   attendanceDate: date("attendance_date").notNull(),
   checkInTime: timestamp("check_in_time").defaultNow().notNull(),
-  checkInMethod: text("check_in_method").notNull(), // "fingerprint", "manual", "family"
+  checkInMethod: text("check_in_method").notNull(), // "fingerprint", "manual", "family", "visitor"
   isGuest: boolean("is_guest").default(false),
+  // Denormalized fields for visitors to avoid complex joins
+  visitorName: text("visitor_name"),
+  visitorGender: text("visitor_gender"),
+  visitorAgeGroup: text("visitor_age_group"),
 });
 
 export const followUpRecords = pgTable("follow_up_records", {
@@ -60,6 +65,10 @@ export const attendanceRecordsRelations = relations(attendanceRecords, ({ one })
   member: one(members, {
     fields: [attendanceRecords.memberId],
     references: [members.id],
+  }),
+  visitor: one(visitors, {
+    fields: [attendanceRecords.visitorId],
+    references: [visitors.id],
   }),
 }));
 
@@ -93,11 +102,12 @@ export const visitors = pgTable("visitors", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const visitorsRelations = relations(visitors, ({ one }) => ({
+export const visitorsRelations = relations(visitors, ({ one, many }) => ({
   member: one(members, {
     fields: [visitors.memberId],
     references: [members.id],
   }),
+  attendanceRecords: many(attendanceRecords),
 }));
 
 // Insert schemas - using transform with refined validation
@@ -163,10 +173,44 @@ export const updateMemberSchema = z.object({
 
 export const insertAttendanceRecordSchema = createInsertSchema(attendanceRecords, {
   attendanceDate: z.string(),
-  checkInMethod: z.enum(["fingerprint", "manual", "family"]),
+  checkInMethod: z.enum(["fingerprint", "manual", "family", "visitor"]),
+  memberId: z.string().optional(),
+  visitorId: z.string().optional(),
+  visitorName: z.string().optional(),
+  visitorGender: z.enum(["male", "female"]).optional(),
+  visitorAgeGroup: z.enum(["child", "adolescent", "adult"]).optional(),
 }).omit({
   id: true,
   checkInTime: true,
+}).superRefine((data, ctx) => {
+  // Either memberId or visitorId must be provided (but not both)
+  const hasMember = data.memberId && data.memberId.trim() !== "";
+  const hasVisitor = data.visitorId && data.visitorId.trim() !== "";
+  
+  if (!hasMember && !hasVisitor) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Either memberId or visitorId must be provided",
+      path: ["memberId"],
+    });
+  }
+  
+  if (hasMember && hasVisitor) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Cannot provide both memberId and visitorId",
+      path: ["memberId"],
+    });
+  }
+  
+  // If visitorId is provided, visitor demographic fields should be provided
+  if (hasVisitor && (!data.visitorName || !data.visitorGender || !data.visitorAgeGroup)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Visitor demographic fields (name, gender, ageGroup) are required for visitor check-ins",
+      path: ["visitorName"],
+    });
+  }
 });
 
 export const insertFollowUpRecordSchema = createInsertSchema(followUpRecords).omit({
