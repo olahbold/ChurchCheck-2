@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FingerprintScanner } from "@/components/ui/fingerprint-scanner";
 import { useToast } from "@/hooks/use-toast";
-import { Save, X, Link, Unlink, Fingerprint, Search, RotateCcw, AlertTriangle, CheckCircle, UserPlus, ChevronRight } from "lucide-react";
+import { Save, X, Link, Unlink, Fingerprint, Search, RotateCcw, AlertTriangle, CheckCircle, UserPlus, ChevronRight, Download } from "lucide-react";
 
 export default function RegisterTab() {
   const [showFingerprintEnroll, setShowFingerprintEnroll] = useState(false);
@@ -30,6 +30,39 @@ export default function RegisterTab() {
   const [pendingParentId, setPendingParentId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Export function
+  const handleExportMembers = async () => {
+    try {
+      const response = await fetch('/api/export/members');
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      const date = new Date().toISOString().split('T')[0];
+      a.download = `members_export_${date}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Success",
+        description: "Members data exported successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export members data",
+        variant: "destructive",
+      });
+    }
+  };
 
   const form = useForm<InsertMember>({
     resolver: zodResolver(insertMemberSchema),
@@ -307,6 +340,14 @@ export default function RegisterTab() {
             >
               <Search className="h-4 w-4 mr-2" />
               {searchMembersMutation.isPending ? "Searching..." : "Search"}
+            </Button>
+            <Button 
+              onClick={handleExportMembers}
+              variant="outline"
+              className="border-[hsl(258,90%,66%)] text-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,66%)] hover:text-white"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Export
             </Button>
             {(isUpdateMode || searchResults.length > 0) && (
               <Button 

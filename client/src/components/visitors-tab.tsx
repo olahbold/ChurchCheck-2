@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { User, Phone, Mail, Calendar, Heart, MessageSquare, Filter, Users, UserCheck, Clock, Search, Edit, Plus, UserPlus, Save, X } from "lucide-react";
+import { User, Phone, Mail, Calendar, Heart, MessageSquare, Filter, Users, UserCheck, Clock, Search, Edit, Plus, UserPlus, Save, X, Download } from "lucide-react";
 
 export default function VisitorsTab() {
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "contacted" | "member">("all");
@@ -28,6 +28,39 @@ export default function VisitorsTab() {
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Export function
+  const handleExportVisitors = async () => {
+    try {
+      const response = await fetch('/api/export/visitors');
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      const date = new Date().toISOString().split('T')[0];
+      a.download = `visitors_export_${date}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Success",
+        description: "Visitors data exported successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to export visitors data",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Form for adding new visitors
   const form = useForm<InsertVisitor>({
@@ -324,13 +357,23 @@ export default function VisitorsTab() {
           </div>
         </div>
 
-        <Button 
-          onClick={() => setIsAddDialogOpen(true)} 
-          className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white"
-        >
-          <UserPlus className="h-4 w-4 mr-2" />
-          Add Visitor
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={handleExportVisitors}
+            variant="outline"
+            className="border-[hsl(258,90%,66%)] text-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,66%)] hover:text-white"
+          >
+            <Download className="h-4 w-4 mr-2" />
+            Export Visitors
+          </Button>
+          <Button 
+            onClick={() => setIsAddDialogOpen(true)} 
+            className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Add Visitor
+          </Button>
+        </div>
       </div>
 
       {/* Visitors Table */}

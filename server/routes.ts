@@ -600,6 +600,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Export routes
+  app.get("/api/export/members", async (req, res) => {
+    try {
+      const members = await storage.getAllMembers();
+      
+      // Convert to CSV format
+      const headers = [
+        'ID', 'Title', 'First Name', 'Surname', 'Gender', 'Age Group', 
+        'Phone', 'Email', 'WhatsApp', 'Address', 'Date of Birth', 
+        'Wedding Anniversary', 'Current Member', 'Fingerprint ID', 
+        'Parent ID', 'Created At', 'Updated At'
+      ];
+      
+      const csvRows = [headers.join(',')];
+      
+      members.forEach(member => {
+        const row = [
+          member.id,
+          `"${member.title || ''}"`,
+          `"${member.firstName}"`,
+          `"${member.surname}"`,
+          member.gender,
+          member.ageGroup,
+          `"${member.phone || ''}"`,
+          `"${member.email || ''}"`,
+          `"${member.whatsappNumber || ''}"`,
+          `"${member.address || ''}"`,
+          member.dateOfBirth || '',
+          member.weddingAnniversary || '',
+          member.isCurrentMember,
+          `"${member.fingerprintId || ''}"`,
+          `"${member.parentId || ''}"`,
+          member.createdAt,
+          member.updatedAt
+        ];
+        csvRows.push(row.join(','));
+      });
+
+      const csv = csvRows.join('\n');
+      const date = new Date().toISOString().split('T')[0];
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="members_export_${date}.csv"`);
+      res.send(csv);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to export members" });
+    }
+  });
+
+  app.get("/api/export/visitors", async (req, res) => {
+    try {
+      const visitors = await storage.getAllVisitors();
+      
+      // Convert to CSV format
+      const headers = [
+        'ID', 'Member ID', 'Name', 'Gender', 'Age Group', 'Address', 
+        'Email', 'Phone', 'WhatsApp', 'Wedding Anniversary', 'Birthday',
+        'Prayer Points', 'How Heard About Us', 'Comments', 'Visit Date',
+        'Follow-up Status', 'Assigned To', 'Created At', 'Updated At'
+      ];
+      
+      const csvRows = [headers.join(',')];
+      
+      visitors.forEach(visitor => {
+        const row = [
+          visitor.id,
+          `"${visitor.memberId || ''}"`,
+          `"${visitor.name}"`,
+          visitor.gender || '',
+          visitor.ageGroup || '',
+          `"${visitor.address || ''}"`,
+          `"${visitor.email || ''}"`,
+          `"${visitor.phone || ''}"`,
+          `"${visitor.whatsappNumber || ''}"`,
+          visitor.weddingAnniversary || '',
+          visitor.birthday || '',
+          `"${visitor.prayerPoints || ''}"`,
+          `"${visitor.howDidYouHearAboutUs || ''}"`,
+          `"${visitor.comments || ''}"`,
+          visitor.visitDate,
+          visitor.followUpStatus,
+          `"${visitor.assignedTo || ''}"`,
+          visitor.createdAt,
+          visitor.updatedAt
+        ];
+        csvRows.push(row.join(','));
+      });
+
+      const csv = csvRows.join('\n');
+      const date = new Date().toISOString().split('T')[0];
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="visitors_export_${date}.csv"`);
+      res.send(csv);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to export visitors" });
+    }
+  });
+
   // Visitor routes
   app.post("/api/visitors", async (req, res) => {
     try {
