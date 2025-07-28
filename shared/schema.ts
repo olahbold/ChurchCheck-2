@@ -223,8 +223,16 @@ export const insertVisitorSchema = createInsertSchema(visitors, {
   email: z.string().email("Invalid email format").optional().or(z.literal("")),
   phone: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid phone number format").optional().or(z.literal("")),
   whatsappNumber: z.string().regex(/^\+?[\d\s\-\(\)]+$/, "Invalid WhatsApp number format").optional().or(z.literal("")),
-  weddingAnniversary: z.string().optional().or(z.literal("")),
-  birthday: z.string().optional().or(z.literal("")),
+  weddingAnniversary: z.string().optional().or(z.literal("")).transform(val => {
+    // Convert empty strings and placeholder text to null for database
+    if (!val || val.trim() === "" || val === "dd/mm/yyyy") return null;
+    return val;
+  }),
+  birthday: z.string().optional().or(z.literal("")).transform(val => {
+    // Convert empty strings and placeholder text to null for database
+    if (!val || val.trim() === "" || val === "dd/mm/yyyy") return null;
+    return val;
+  }),
   followUpStatus: z.enum(["pending", "contacted", "member"]).optional(),
 }).omit({
   id: true,

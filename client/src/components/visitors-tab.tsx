@@ -34,7 +34,8 @@ export default function VisitorsTab() {
     resolver: zodResolver(insertVisitorSchema),
     defaultValues: {
       name: "",
-      group: undefined,
+      gender: undefined,
+      ageGroup: undefined,
       address: "",
       email: "",
       phone: "",
@@ -54,7 +55,8 @@ export default function VisitorsTab() {
     resolver: zodResolver(insertVisitorSchema),
     defaultValues: {
       name: "",
-      group: undefined,
+      gender: undefined,
+      ageGroup: undefined,
       address: "",
       email: "",
       phone: "",
