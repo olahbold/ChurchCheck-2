@@ -21,6 +21,11 @@ export default function DashboardTab() {
     queryKey: ['/api/attendance/stats'],
   });
 
+  // Get today's attendance details
+  const { data: todaysAttendance = [] } = useQuery<any[]>({
+    queryKey: ['/api/attendance/today'],
+  });
+
   // Get all members with search and filter
   const { data: members = [] } = useQuery<MemberWithChildren[]>({
     queryKey: ['/api/members', { search: searchQuery, group: groupFilter !== 'all' ? groupFilter : undefined }],
@@ -31,12 +36,19 @@ export default function DashboardTab() {
     queryKey: ['/api/follow-up'],
   });
 
-  // Calculate stats
-  const totalMembers = members.length;
-  const avgWeeklyAttendance = attendanceStats ? Math.round(attendanceStats.total * 1.1) : 0; // Mock calculation
-  const attendanceRate = attendanceStats && totalMembers > 0 
-    ? Math.round((attendanceStats.total / totalMembers) * 100) 
+  // Calculate comprehensive stats
+  const totalRegisteredMembers = members.length;
+  const todaysMemberAttendance = todaysAttendance.filter(record => record.memberId && !record.isVisitor).length;
+  const todaysVisitorAttendance = todaysAttendance.filter(record => record.isVisitor).length;
+  const totalTodaysAttendance = todaysAttendance.length;
+  
+  // Calculate attendance rate based on registered members only
+  const memberAttendanceRate = totalRegisteredMembers > 0 
+    ? Math.round((todaysMemberAttendance / totalRegisteredMembers) * 100) 
     : 0;
+
+  // Calculate average weekly attendance (estimate based on today's attendance)
+  const avgWeeklyAttendance = Math.round(totalTodaysAttendance * 1.2); // More realistic estimate
 
   const filteredMembers = members.filter(member => {
     if (statusFilter === 'current' && !member.isCurrentMember) return false;
@@ -102,8 +114,8 @@ export default function DashboardTab() {
         <Card className="church-stat-card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600">Total Members</p>
-              <p className="text-3xl font-bold text-slate-900">{totalMembers}</p>
+              <p className="text-sm font-medium text-slate-600">Registered Members</p>
+              <p className="text-3xl font-bold text-slate-900">{totalRegisteredMembers}</p>
             </div>
             <div className="w-12 h-12 bg-[hsl(258,90%,66%)]/10 rounded-lg flex items-center justify-center">
               <Users className="text-[hsl(258,90%,66%)] text-xl" />
@@ -111,7 +123,7 @@ export default function DashboardTab() {
           </div>
           <p className="text-sm text-[hsl(142,76%,36%)] mt-2">
             <TrendingUp className="inline h-3 w-3 mr-1" />
-            +12 this month
+            Enrolled in system
           </p>
         </Card>
 
@@ -119,13 +131,13 @@ export default function DashboardTab() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600">Today's Attendance</p>
-              <p className="text-3xl font-bold text-slate-900">{attendanceStats?.total || 0}</p>
+              <p className="text-3xl font-bold text-slate-900">{totalTodaysAttendance}</p>
             </div>
             <div className="w-12 h-12 bg-[hsl(142,76%,36%)]/10 rounded-lg flex items-center justify-center">
               <Calendar className="text-[hsl(142,76%,36%)] text-xl" />
             </div>
           </div>
-          <p className="text-sm text-slate-600 mt-2">{attendanceRate}% attendance rate</p>
+          <p className="text-sm text-blue-600 mt-2">{todaysMemberAttendance} members + {todaysVisitorAttendance} visitors</p>
         </Card>
 
         <Card className="church-stat-card">
@@ -144,16 +156,15 @@ export default function DashboardTab() {
         <Card className="church-stat-card">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-slate-600">Average Weekly</p>
-              <p className="text-3xl font-bold text-slate-900">{avgWeeklyAttendance}</p>
+              <p className="text-sm font-medium text-slate-600">Member Attendance Rate</p>
+              <p className="text-3xl font-bold text-slate-900">{memberAttendanceRate}%</p>
             </div>
             <div className="w-12 h-12 bg-[hsl(271,91%,65%)]/10 rounded-lg flex items-center justify-center">
               <TrendingUp className="text-[hsl(271,91%,65%)] text-xl" />
             </div>
           </div>
-          <p className="text-sm text-[hsl(142,76%,36%)] mt-2">
-            <TrendingUp className="inline h-3 w-3 mr-1" />
-            +5% vs last month
+          <p className="text-sm text-slate-600 mt-2">
+            {todaysMemberAttendance} of {totalRegisteredMembers} attended today
           </p>
         </Card>
       </div>
