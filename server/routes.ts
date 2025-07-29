@@ -500,14 +500,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const members = await storage.getAllMembers();
       
-      // Convert to CSV format
-      const csvHeader = "First Name,Surname,Gender,Age Group,Phone,Date of Birth,Current Member,Created At\n";
-      const csvData = members.map(member => 
-        `"${member.firstName}","${member.surname}","${member.gender}","${member.ageGroup}","${member.phone}","${member.dateOfBirth}","${member.isCurrentMember}","${member.createdAt}"`
-      ).join('\n');
+      // Convert to CSV format with full member details
+      const csvHeader = "Member Name,Title,Gender,Age Group,Phone,Email,WhatsApp Number,Address,Date of Birth,Wedding Anniversary,Current Member,Fingerprint ID,Parent ID,Created At,Updated At\n";
+      const csvData = members.map(member => {
+        const memberName = `${member.firstName} ${member.surname}`;
+        const dateOfBirth = member.dateOfBirth ? new Date(member.dateOfBirth).toISOString().split('T')[0] : '';
+        const weddingAnniversary = member.weddingAnniversary ? new Date(member.weddingAnniversary).toISOString().split('T')[0] : '';
+        const createdAt = member.createdAt ? new Date(member.createdAt).toISOString().replace('T', ' ').replace('Z', '') : '';
+        const updatedAt = member.updatedAt ? new Date(member.updatedAt).toISOString().replace('T', ' ').replace('Z', '') : '';
+        
+        return `"${memberName}","${member.title || ''}","${member.gender}","${member.ageGroup}","${member.phone || ''}","${member.email || ''}","${member.whatsappNumber || ''}","${member.address || ''}","${dateOfBirth}","${weddingAnniversary}","${member.isCurrentMember}","${member.fingerprintId || ''}","${member.parentId || ''}","${createdAt}","${updatedAt}"`;
+      }).join('\n');
       
+      const date = new Date().toISOString().split('T')[0];
       res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename="church_members.csv"');
+      res.setHeader('Content-Disposition', `attachment; filename="church_members_full_${date}.csv"`);
       res.send(csvHeader + csvData);
     } catch (error) {
       res.status(500).json({ error: "Export failed" });

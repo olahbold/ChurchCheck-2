@@ -507,10 +507,17 @@ export class DatabaseStorage implements IStorage {
     const membersWithoutRecentAttendance = await db
       .select({
         memberName: sql`${members.firstName} || ' ' || ${members.surname}`,
+        title: members.title,
         gender: members.gender,
         ageGroup: members.ageGroup,
         phone: members.phone,
+        email: members.email,
+        whatsappNumber: members.whatsappNumber,
+        address: members.address,
+        dateOfBirth: sql`TO_CHAR(${members.dateOfBirth}, 'YYYY-MM-DD')`,
+        weddingAnniversary: sql`TO_CHAR(${members.weddingAnniversary}, 'YYYY-MM-DD')`,
         lastAttendance: sql`MAX(${attendanceRecords.attendanceDate})`,
+        createdAt: sql`TO_CHAR(${members.createdAt}, 'YYYY-MM-DD HH24:MI:SS')`,
       })
       .from(members)
       .leftJoin(
@@ -521,7 +528,7 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .where(sql`${attendanceRecords.id} IS NULL`)
-      .groupBy(members.id, members.firstName, members.surname, members.gender, members.ageGroup, members.phone);
+      .groupBy(members.id, members.title, members.firstName, members.surname, members.gender, members.ageGroup, members.phone, members.email, members.whatsappNumber, members.address, members.dateOfBirth, members.weddingAnniversary, members.createdAt);
 
     return membersWithoutRecentAttendance;
   }
@@ -530,10 +537,16 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select({
         memberName: sql`${members.firstName} || ' ' || ${members.surname}`,
+        title: members.title,
         gender: members.gender,
         ageGroup: members.ageGroup,
         phone: members.phone,
         email: members.email,
+        whatsappNumber: members.whatsappNumber,
+        address: members.address,
+        dateOfBirth: sql`TO_CHAR(${members.dateOfBirth}, 'YYYY-MM-DD')`,
+        weddingAnniversary: sql`TO_CHAR(${members.weddingAnniversary}, 'YYYY-MM-DD')`,
+        isCurrentMember: members.isCurrentMember,
         createdAt: sql`TO_CHAR(${members.createdAt}, 'YYYY-MM-DD HH24:MI:SS')`,
         updatedAt: sql`TO_CHAR(${members.updatedAt}, 'YYYY-MM-DD HH24:MI:SS')`,
       })
@@ -554,14 +567,21 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select({
         memberName: sql`${members.firstName} || ' ' || ${members.surname}`,
+        title: members.title,
         gender: members.gender,
         ageGroup: members.ageGroup,
         phone: members.phone,
+        email: members.email,
+        whatsappNumber: members.whatsappNumber,
+        address: members.address,
+        dateOfBirth: sql`TO_CHAR(${members.dateOfBirth}, 'YYYY-MM-DD')`,
+        weddingAnniversary: sql`TO_CHAR(${members.weddingAnniversary}, 'YYYY-MM-DD')`,
         lastAttendance: sql`MAX(${attendanceRecords.attendanceDate})`,
+        createdAt: sql`TO_CHAR(${members.createdAt}, 'YYYY-MM-DD HH24:MI:SS')`,
       })
       .from(members)
       .leftJoin(attendanceRecords, eq(members.id, attendanceRecords.memberId))
-      .groupBy(members.id, members.firstName, members.surname, members.gender, members.ageGroup, members.phone)
+      .groupBy(members.id, members.title, members.firstName, members.surname, members.gender, members.ageGroup, members.phone, members.email, members.whatsappNumber, members.address, members.dateOfBirth, members.weddingAnniversary, members.createdAt)
       .having(
         sql`MAX(${attendanceRecords.attendanceDate}) < ${weeksAgo.toISOString().split('T')[0]} OR MAX(${attendanceRecords.attendanceDate}) IS NULL`
       );
@@ -623,12 +643,21 @@ export class DatabaseStorage implements IStorage {
   async getFollowUpActionTracker(): Promise<any> {
     return await db
       .select({
-        memberId: followUpRecords.memberId,
         memberName: sql`${members.firstName} || ' ' || ${members.surname}`,
+        title: members.title,
+        gender: members.gender,
+        ageGroup: members.ageGroup,
+        phone: members.phone,
+        email: members.email,
+        whatsappNumber: members.whatsappNumber,
+        address: members.address,
+        dateOfBirth: sql`TO_CHAR(${members.dateOfBirth}, 'YYYY-MM-DD')`,
+        weddingAnniversary: sql`TO_CHAR(${members.weddingAnniversary}, 'YYYY-MM-DD')`,
         consecutiveAbsences: followUpRecords.consecutiveAbsences,
-        lastContactDate: followUpRecords.lastContactDate,
+        lastContactDate: sql`TO_CHAR(${followUpRecords.lastContactDate}, 'YYYY-MM-DD HH24:MI:SS')`,
         contactMethod: followUpRecords.contactMethod,
         needsFollowUp: followUpRecords.needsFollowUp,
+        memberSince: sql`TO_CHAR(${members.createdAt}, 'YYYY-MM-DD HH24:MI:SS')`,
       })
       .from(followUpRecords)
       .innerJoin(members, eq(followUpRecords.memberId, members.id))

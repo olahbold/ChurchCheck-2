@@ -142,14 +142,17 @@ Key features:
 
 ## Recent Changes
 
-### July 29, 2025 - Enhanced Reporting Module with Export-Only Workflow
+### July 29, 2025 - Enhanced Reporting Module with Comprehensive Member Details
+- **Full Member Details Integration**: Enhanced key reports with complete member information:
+  - Missed 3+ Services Report: Now includes title, gender, age group, phone, email, WhatsApp number, address, date of birth, wedding anniversary, last attendance date, and member registration date
+  - New Members Report: Complete member profile with title, contact details, address, personal dates, membership status, and full timestamps
+  - Follow-up Action Tracker: Comprehensive member information including all contact details, personal information, consecutive absences, last contact details, and member history
+  - Member Export (Settings): Enhanced CSV export with all 15 member fields including full contact information, personal dates, and system metadata
 - **Enhanced Report Data Structure**: Updated all 8 reports with comprehensive demographic fields:
   - Weekly Attendance Summary: Now includes both gender and age group breakdowns for deeper insights
   - Member Attendance Log: Added gender/age group columns, time-only display for check-in times, sequential numbering, and clear check-in method labels ("Family (manual)", "Manual", "Fingerprint", "Visitor")
-  - New Members Report: Full timestamp display for both created_at and updated_at fields (YYYY-MM-DD HH24:MI:SS format)
   - Group Attendance Trend: Enhanced with both gender and age group demographic breakdowns
   - Family Check-in Summary: Fixed technical issues and now properly displays parent-child relationships with formatted check-in methods
-  - Missed Services & Inactive Members: Enhanced with gender and age group information
 - **Export-Only Report Workflow**: Transformed reporting interface to focus on data export rather than display:
   - Reports no longer show raw data on screen after generation
   - Professional "Report Generated" confirmation screen with download-focused interface
