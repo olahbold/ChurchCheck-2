@@ -6,6 +6,7 @@ import CheckInTab from "@/components/checkin-tab";
 import DashboardTab from "@/components/dashboard-tab";
 import AdminTab from "@/components/admin-tab";
 import VisitorsTab from "@/components/visitors-tab";
+import HistoryTab from "@/components/history-tab";
 import LoginModal from "@/components/login-modal";
 
 export default function Home() {
@@ -28,6 +29,7 @@ export default function Home() {
     { id: 'register', label: 'Register', icon: 'fa-user-plus' },
     { id: 'checkin', label: 'Check-In', icon: 'fa-fingerprint' },
     { id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-bar' },
+    { id: 'history', label: 'History', icon: 'fa-history' },
     { id: 'visitors', label: 'Visitors', icon: 'fa-heart' },
     { id: 'admin', label: 'Admin', icon: 'fa-shield-alt' },
   ];
@@ -135,6 +137,7 @@ export default function Home() {
         {activeTab === 'register' && <RegisterTab />}
         {activeTab === 'checkin' && <CheckInTab />}
         {activeTab === 'dashboard' && <DashboardTab />}
+        {activeTab === 'history' && <HistoryTab />}
         {activeTab === 'visitors' && <VisitorsTab />}
         {activeTab === 'admin' && <AdminTab authState={authState} onLogout={handleLogout} />}
       </main>

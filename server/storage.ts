@@ -691,6 +691,137 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
+
+  async getAttendanceHistory(startDate: string, endDate: string, filters?: {
+    memberId?: string;
+    gender?: string;
+    ageGroup?: string;
+    isCurrentMember?: boolean;
+  }): Promise<any[]> {
+    let conditions = [
+      gte(attendanceRecords.attendanceDate, startDate),
+      lte(attendanceRecords.attendanceDate, endDate)
+    ];
+
+    // Apply additional filters
+    if (filters?.memberId) {
+      conditions.push(eq(attendanceRecords.memberId, filters.memberId));
+    }
+    if (filters?.gender) {
+      conditions.push(sql`COALESCE(${members.gender}, ${visitors.gender}) = ${filters.gender}`);
+    }
+    if (filters?.ageGroup) {
+      conditions.push(sql`COALESCE(${members.ageGroup}, ${visitors.ageGroup}) = ${filters.ageGroup}`);
+    }
+    if (filters?.isCurrentMember !== undefined) {
+      conditions.push(eq(members.isCurrentMember, filters.isCurrentMember));
+    }
+
+    return db
+      .select({
+        id: attendanceRecords.id,
+        memberId: attendanceRecords.memberId,
+        visitorId: attendanceRecords.visitorId,
+        attendanceDate: attendanceRecords.attendanceDate,
+        checkInTime: attendanceRecords.checkInTime,
+        checkInMethod: attendanceRecords.checkInMethod,
+        isGuest: attendanceRecords.isGuest,
+        member: {
+          id: sql`COALESCE(${members.id}, ${visitors.id})`,
+          firstName: sql`COALESCE(${members.firstName}, SPLIT_PART(${visitors.name}, ' ', 1))`,
+          surname: sql`COALESCE(${members.surname}, SPLIT_PART(${visitors.name}, ' ', 2))`,
+          gender: sql`COALESCE(${members.gender}, ${visitors.gender})`,
+          ageGroup: sql`COALESCE(${members.ageGroup}, ${visitors.ageGroup})`,
+          phone: sql`COALESCE(${members.phone}, ${visitors.phone})`,
+          email: sql`COALESCE(${members.email}, ${visitors.email})`,
+          isCurrentMember: members.isCurrentMember,
+        },
+        isVisitor: sql`CASE WHEN ${attendanceRecords.visitorId} IS NOT NULL THEN true ELSE false END`,
+      })
+      .from(attendanceRecords)
+      .leftJoin(members, eq(attendanceRecords.memberId, members.id))
+      .leftJoin(visitors, eq(attendanceRecords.visitorId, visitors.id))
+      .where(and(...conditions))
+      .orderBy(desc(attendanceRecords.attendanceDate), desc(attendanceRecords.checkInTime));
+  }
+
+  async getAttendanceDateRange(): Promise<{ earliest: string; latest: string }> {
+    const result = await db
+      .select({
+        earliest: sql<string>`MIN(${attendanceRecords.attendanceDate})`,
+        latest: sql<string>`MAX(${attendanceRecords.attendanceDate})`,
+      })
+      .from(attendanceRecords);
+
+    return {
+      earliest: result[0]?.earliest || new Date().toISOString().split('T')[0],
+      latest: result[0]?.latest || new Date().toISOString().split('T')[0],
+    };
+  }
+
+  async getAttendanceStatsByDateRange(startDate: string, endDate: string): Promise<{
+    totalDays: number;
+    totalAttendance: number;
+    averagePerDay: number;
+    memberAttendance: number;
+    visitorAttendance: number;
+    genderBreakdown: { male: number; female: number };
+    ageGroupBreakdown: { child: number; adolescent: number; adult: number };
+  }> {
+    const stats = await db
+      .select({
+        total: count(),
+        members: sql<number>`COUNT(CASE WHEN ${attendanceRecords.memberId} IS NOT NULL THEN 1 END)`,
+        visitors: sql<number>`COUNT(CASE WHEN ${attendanceRecords.visitorId} IS NOT NULL THEN 1 END)`,
+        male: sql<number>`COUNT(CASE WHEN COALESCE(${members.gender}, ${visitors.gender}) = 'male' THEN 1 END)`,
+        female: sql<number>`COUNT(CASE WHEN COALESCE(${members.gender}, ${visitors.gender}) = 'female' THEN 1 END)`,
+        child: sql<number>`COUNT(CASE WHEN COALESCE(${members.ageGroup}, ${visitors.ageGroup}) = 'child' THEN 1 END)`,
+        adolescent: sql<number>`COUNT(CASE WHEN COALESCE(${members.ageGroup}, ${visitors.ageGroup}) = 'adolescent' THEN 1 END)`,
+        adult: sql<number>`COUNT(CASE WHEN COALESCE(${members.ageGroup}, ${visitors.ageGroup}) = 'adult' THEN 1 END)`,
+      })
+      .from(attendanceRecords)
+      .leftJoin(members, eq(attendanceRecords.memberId, members.id))
+      .leftJoin(visitors, eq(attendanceRecords.visitorId, visitors.id))
+      .where(
+        and(
+          gte(attendanceRecords.attendanceDate, startDate),
+          lte(attendanceRecords.attendanceDate, endDate)
+        )
+      );
+
+    const uniqueDates = await db
+      .select({
+        date: attendanceRecords.attendanceDate,
+      })
+      .from(attendanceRecords)
+      .where(
+        and(
+          gte(attendanceRecords.attendanceDate, startDate),
+          lte(attendanceRecords.attendanceDate, endDate)
+        )
+      )
+      .groupBy(attendanceRecords.attendanceDate);
+
+    const totalDays = uniqueDates.length;
+    const totalAttendance = stats[0]?.total || 0;
+
+    return {
+      totalDays,
+      totalAttendance,
+      averagePerDay: totalDays > 0 ? Math.round(totalAttendance / totalDays * 100) / 100 : 0,
+      memberAttendance: stats[0]?.members || 0,
+      visitorAttendance: stats[0]?.visitors || 0,
+      genderBreakdown: {
+        male: stats[0]?.male || 0,
+        female: stats[0]?.female || 0,
+      },
+      ageGroupBreakdown: {
+        child: stats[0]?.child || 0,
+        adolescent: stats[0]?.adolescent || 0,
+        adult: stats[0]?.adult || 0,
+      },
+    };
+  }
 }
 
 export const storage = new DatabaseStorage();

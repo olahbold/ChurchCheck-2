@@ -226,6 +226,65 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get attendance history with date range and filters
+  app.get("/api/attendance/history", async (req, res) => {
+    try {
+      const { startDate, endDate, memberId, gender, ageGroup, isCurrentMember } = req.query;
+      
+      if (!startDate || !endDate) {
+        return res.status(400).json({ error: "Start date and end date are required" });
+      }
+
+      const filters: any = {};
+      if (memberId) filters.memberId = memberId as string;
+      if (gender) filters.gender = gender as string;
+      if (ageGroup) filters.ageGroup = ageGroup as string;
+      if (isCurrentMember !== undefined) filters.isCurrentMember = isCurrentMember === 'true';
+
+      const history = await storage.getAttendanceHistory(
+        startDate as string,
+        endDate as string,
+        filters
+      );
+      
+      res.json(history);
+    } catch (error) {
+      console.error('Attendance history error:', error);
+      res.status(500).json({ error: "Failed to fetch attendance history" });
+    }
+  });
+
+  // Get attendance date range (earliest and latest dates)
+  app.get("/api/attendance/date-range", async (req, res) => {
+    try {
+      const dateRange = await storage.getAttendanceDateRange();
+      res.json(dateRange);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch attendance date range" });
+    }
+  });
+
+  // Get attendance statistics for date range
+  app.get("/api/attendance/stats-range", async (req, res) => {
+    try {
+      const { startDate, endDate } = req.query;
+      
+      if (!startDate || !endDate) {
+        return res.status(400).json({ error: "Start date and end date are required" });
+      }
+
+      const stats = await storage.getAttendanceStatsByDateRange(
+        startDate as string,
+        endDate as string
+      );
+      
+      res.json(stats);
+    } catch (error) {
+      console.error('Attendance stats range error:', error);
+      res.status(500).json({ error: "Failed to fetch attendance statistics" });
+    }
+  });
+
   // Follow-up routes
   app.get("/api/follow-up", async (req, res) => {
     try {

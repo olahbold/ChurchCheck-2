@@ -36,7 +36,7 @@ export interface FamilyCheckInResult {
   success: boolean;
 }
 
-export type TabType = 'register' | 'checkin' | 'dashboard' | 'visitors' | 'admin';
+export type TabType = 'register' | 'checkin' | 'dashboard' | 'history' | 'visitors' | 'admin';
 
 export interface AuthState {
   isAuthenticated: boolean;
