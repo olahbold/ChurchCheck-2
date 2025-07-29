@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ReportData } from "@/lib/types";
 import { 
   Calendar, 
@@ -21,7 +22,8 @@ import {
   UserX,
   Target,
   Heart,
-  Activity
+  Activity,
+  X
 } from "lucide-react";
 
 const REPORT_CONFIGS = [
@@ -98,6 +100,8 @@ export default function ReportsAnalyticsTab() {
     endDate: new Date().toISOString().split('T')[0]
   });
   const [reportParams, setReportParams] = useState<any>({});
+  const [showReportListModal, setShowReportListModal] = useState(false);
+  const [filteredReportType, setFilteredReportType] = useState<string | null>(null);
 
   // Fetch report data
   const { data: reportData, isLoading, refetch } = useQuery<ReportData>({
@@ -149,6 +153,43 @@ export default function ReportsAnalyticsTab() {
         {frequency.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
       </Badge>
     );
+  };
+
+  const handleSummaryCardClick = (type: string) => {
+    setFilteredReportType(type);
+    setShowReportListModal(true);
+  };
+
+  const getFilteredReports = () => {
+    if (!filteredReportType) return REPORT_CONFIGS;
+    
+    switch (filteredReportType) {
+      case 'total':
+        return REPORT_CONFIGS;
+      case 'weekly':
+        return REPORT_CONFIGS.filter(r => r.frequency === 'weekly');
+      case 'monthly':
+        return REPORT_CONFIGS.filter(r => r.frequency === 'monthly');
+      case 'on-demand':
+        return REPORT_CONFIGS.filter(r => r.frequency === 'on-demand');
+      default:
+        return REPORT_CONFIGS;
+    }
+  };
+
+  const getSummaryTitle = () => {
+    switch (filteredReportType) {
+      case 'total':
+        return 'All Reports';
+      case 'weekly':
+        return 'Weekly Reports';
+      case 'monthly':
+        return 'Monthly Reports';
+      case 'on-demand':
+        return 'On-Demand Reports';
+      default:
+        return 'Reports';
+    }
   };
 
   const renderReportData = () => {
@@ -217,7 +258,10 @@ export default function ReportsAnalyticsTab() {
     <div className="space-y-6">
       {/* Analytics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="church-stat-card">
+        <Card 
+          className="church-stat-card cursor-pointer hover:shadow-md transition-shadow" 
+          onClick={() => handleSummaryCardClick('total')}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600">Total Reports</p>
@@ -229,7 +273,10 @@ export default function ReportsAnalyticsTab() {
           </div>
         </Card>
 
-        <Card className="church-stat-card">
+        <Card 
+          className="church-stat-card cursor-pointer hover:shadow-md transition-shadow" 
+          onClick={() => handleSummaryCardClick('weekly')}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600">Weekly Reports</p>
@@ -243,7 +290,10 @@ export default function ReportsAnalyticsTab() {
           </div>
         </Card>
 
-        <Card className="church-stat-card">
+        <Card 
+          className="church-stat-card cursor-pointer hover:shadow-md transition-shadow" 
+          onClick={() => handleSummaryCardClick('monthly')}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600">Monthly Reports</p>
@@ -257,7 +307,10 @@ export default function ReportsAnalyticsTab() {
           </div>
         </Card>
 
-        <Card className="church-stat-card">
+        <Card 
+          className="church-stat-card cursor-pointer hover:shadow-md transition-shadow" 
+          onClick={() => handleSummaryCardClick('on-demand')}
+        >
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600">On-Demand</p>
@@ -504,6 +557,72 @@ export default function ReportsAnalyticsTab() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Report List Modal */}
+      <Dialog open={showReportListModal} onOpenChange={setShowReportListModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>{getSummaryTitle()} ({getFilteredReports().length})</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowReportListModal(false)}
+                className="h-6 w-6 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            {getFilteredReports().map((report) => {
+              const Icon = report.icon;
+              return (
+                <Card key={report.id} className="church-card hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-start space-x-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${report.color}`}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-slate-900">{report.title}</h4>
+                          {getFrequencyBadge(report.frequency)}
+                        </div>
+                        <p className="text-sm text-slate-600 mb-3">{report.description}</p>
+                        <Button 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedReport(report.id);
+                            setShowReportListModal(false);
+                            // Switch to reports tab
+                            const tabsTrigger = document.querySelector('[value="reports"]') as HTMLElement;
+                            tabsTrigger?.click();
+                          }}
+                          className="church-button-primary"
+                        >
+                          <Play className="mr-1 h-3 w-3" />
+                          Run Report
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowReportListModal(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
