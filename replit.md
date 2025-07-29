@@ -142,6 +142,16 @@ Key features:
 
 ## Recent Changes
 
+### July 29, 2025 - Enhanced Daily Check-in Interface and Duplicate Prevention
+- **Dynamic Daily Title**: Changed from "Sunday Check-in" to "Today Check-in" with current date display for improved daily flexibility and multi-service support
+- **Comprehensive Duplicate Prevention**: Implemented backend validation to prevent multiple daily check-ins:
+  - Database-level duplicate detection for both members and visitors
+  - Enhanced error handling with clear user feedback messages
+  - Frontend toast notifications for duplicate check-in attempts
+  - Improved query client error handling to preserve response metadata
+- **System Versatility**: Application now supports any day of the week for services, events, meetings, or special gatherings
+- **User Experience**: Clear date reference helps staff know which day's attendance they're managing
+
 ### July 29, 2025 - Comprehensive Attendance History System
 - **Advanced History Tab**: Complete attendance tracking system with dual-view interface:
   - List view for detailed record browsing with individual member timelines

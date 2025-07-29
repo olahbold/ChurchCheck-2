@@ -284,6 +284,15 @@ export default function CheckInTab() {
     });
   };
 
+  const formatTodayDate = () => {
+    return new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
   // Delete attendance record mutation
   const deleteAttendanceMutation = useMutation({
     mutationFn: async (recordId: string) => {
@@ -450,7 +459,12 @@ export default function CheckInTab() {
       <div className="lg:col-span-2">
         <Card className="church-card">
           <CardHeader>
-            <CardTitle className="text-2xl font-semibold text-slate-900 text-center">Sunday Check-In</CardTitle>
+            <CardTitle className="text-2xl font-semibold text-slate-900 text-center">
+              Today Check-in
+              <div className="text-base font-normal text-slate-600 mt-1">
+                {formatTodayDate()}
+              </div>
+            </CardTitle>
           </CardHeader>
           <CardContent className="p-8">
             <FingerprintScanner
