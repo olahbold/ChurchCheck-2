@@ -137,8 +137,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const member = await storage.getMemberByFingerprint(scanFingerprintId);
       if (member) {
-        // Auto check-in the member
+        // Check if member already checked in today
         const today = new Date().toISOString().split('T')[0];
+        const existingAttendance = await storage.getAttendanceForDate(today);
+        
+        const isDuplicate = existingAttendance.some(record => record.memberId === member.id);
+        
+        if (isDuplicate) {
+          return res.json({ 
+            member, 
+            checkInSuccess: false,
+            isDuplicate: true,
+            message: "Member has already checked in today. Only one check-in per day is allowed." 
+          });
+        }
+        
+        // Auto check-in the member
         await storage.createAttendanceRecord({
           memberId: member.id,
           attendanceDate: today,
@@ -169,6 +183,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/attendance", async (req, res) => {
     try {
       const attendanceData = insertAttendanceRecordSchema.parse(req.body);
+      
+      // Check if member/visitor already checked in today
+      const today = attendanceData.attendanceDate || new Date().toISOString().split('T')[0];
+      const existingAttendance = await storage.getAttendanceForDate(today);
+      
+      // Check for duplicate check-in
+      const isDuplicate = existingAttendance.some(record => 
+        (attendanceData.memberId && record.memberId === attendanceData.memberId) ||
+        (attendanceData.visitorId && record.visitorId === attendanceData.visitorId)
+      );
+      
+      if (isDuplicate) {
+        const personType = attendanceData.memberId ? 'Member' : 'Visitor';
+        return res.status(400).json({ 
+          error: `${personType} has already checked in today. Only one check-in per day is allowed.`,
+          isDuplicate: true
+        });
+      }
+      
       const record = await storage.createAttendanceRecord(attendanceData);
       res.json(record);
     } catch (error) {

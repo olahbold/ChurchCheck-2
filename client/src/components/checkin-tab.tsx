@@ -66,6 +66,13 @@ export default function CheckInTab() {
           description: `Welcome, ${result.member.firstName} ${result.member.surname}`,
         });
         queryClient.invalidateQueries({ queryKey: ['/api/attendance'] });
+      } else if (result.isDuplicate && result.member) {
+        // Member already checked in today
+        toast({
+          title: "Already Checked In",
+          description: `${result.member.firstName} ${result.member.surname} has already checked in today`,
+          variant: "destructive",
+        });
       } else {
         // Fingerprint not recognized - offer enrollment opportunity
         setScannedFingerprintId(result.scannedFingerprintId || null);
@@ -103,12 +110,21 @@ export default function CheckInTab() {
       queryClient.invalidateQueries({ queryKey: ['/api/attendance'] });
       setSearchQuery("");
     },
-    onError: () => {
-      toast({
-        title: "Check-in Failed",
-        description: "Please try again",
-        variant: "destructive",
-      });
+    onError: (error: any) => {
+      // Check if this is a duplicate check-in error
+      if (error?.isDuplicate) {
+        toast({
+          title: "Already Checked In",
+          description: error.message || "This person has already checked in today",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Check-in Failed",
+          description: "Please try again",
+          variant: "destructive",
+        });
+      }
     },
   });
 
@@ -139,6 +155,20 @@ export default function CheckInTab() {
           description: `${memberToEnroll?.firstName} ${memberToEnroll?.surname} enrolled and checked in successfully`,
         });
         queryClient.invalidateQueries({ queryKey: ['/api/attendance'] });
+        setShowEnrollmentDialog(false);
+        setMemberToEnroll(null);
+        setScannedFingerprintId(null);
+      }).catch((error: any) => {
+        // Handle duplicate check-in after enrollment
+        if (error?.isDuplicate) {
+          toast({
+            title: "Enrollment Complete - Already Checked In",
+            description: `${memberToEnroll?.firstName} ${memberToEnroll?.surname} was enrolled but has already checked in today`,
+            variant: "destructive",
+          });
+        } else {
+          throw error; // Re-throw for the main error handler
+        }
         setShowEnrollmentDialog(false);
         setMemberToEnroll(null);
         setScannedFingerprintId(null);

@@ -27,6 +27,8 @@ export interface CheckInResult {
   member: MemberWithChildren | null;
   checkInSuccess: boolean;
   scannedFingerprintId?: string;
+  isDuplicate?: boolean;
+  message?: string;
 }
 
 export interface FamilyCheckInResult {
