@@ -246,6 +246,73 @@ export default function HistoryTab() {
         </div>
       </div>
 
+      {/* Statistics Summary */}
+      {rangeStats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="church-stat-card">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600">Total Attendance</p>
+                <p className="text-3xl font-bold text-slate-900">{rangeStats.totalAttendance}</p>
+              </div>
+              <div className="w-12 h-12 bg-[hsl(258,90%,66%)]/10 rounded-lg flex items-center justify-center">
+                <Users className="text-[hsl(258,90%,66%)] text-xl" />
+              </div>
+            </div>
+            <p className="text-sm text-slate-500 mt-2">
+              Over {rangeStats.totalDays} day{rangeStats.totalDays !== 1 ? 's' : ''}
+            </p>
+          </Card>
+
+          <Card className="church-stat-card">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600">Daily Average</p>
+                <p className="text-3xl font-bold text-slate-900">{rangeStats.averagePerDay}</p>
+              </div>
+              <div className="w-12 h-12 bg-[hsl(142,76%,36%)]/10 rounded-lg flex items-center justify-center">
+                <TrendingUp className="text-[hsl(142,76%,36%)] text-xl" />
+              </div>
+            </div>
+            <p className="text-sm text-blue-600 mt-2">
+              {rangeStats.memberAttendance} members + {rangeStats.visitorAttendance} visitors
+            </p>
+          </Card>
+
+          <Card className="church-stat-card">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600">Gender Split</p>
+                <p className="text-3xl font-bold text-slate-900">
+                  {rangeStats.genderBreakdown.male}M / {rangeStats.genderBreakdown.female}F
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                <BarChart3 className="text-blue-500 text-xl" />
+              </div>
+            </div>
+            <p className="text-sm text-slate-500 mt-2">
+              {Math.round((rangeStats.genderBreakdown.male / (rangeStats.genderBreakdown.male + rangeStats.genderBreakdown.female)) * 100)}% Male
+            </p>
+          </Card>
+
+          <Card className="church-stat-card">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-600">Age Groups</p>
+                <p className="text-lg font-bold text-slate-900">
+                  {rangeStats.ageGroupBreakdown.adult}A / {rangeStats.ageGroupBreakdown.child}C / {rangeStats.ageGroupBreakdown.adolescent}T
+                </p>
+              </div>
+              <div className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center">
+                <Clock className="text-orange-500 text-xl" />
+              </div>
+            </div>
+            <p className="text-sm text-slate-500 mt-2">Adult / Child / Teen</p>
+          </Card>
+        </div>
+      )}
+
       {/* Date Range and Filters */}
       <Card className="church-card">
         <CardHeader>
@@ -393,73 +460,6 @@ export default function HistoryTab() {
           )}
         </CardContent>
       </Card>
-
-      {/* Statistics Summary */}
-      {rangeStats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="church-stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600">Total Attendance</p>
-                <p className="text-3xl font-bold text-slate-900">{rangeStats.totalAttendance}</p>
-              </div>
-              <div className="w-12 h-12 bg-[hsl(258,90%,66%)]/10 rounded-lg flex items-center justify-center">
-                <Users className="text-[hsl(258,90%,66%)] text-xl" />
-              </div>
-            </div>
-            <p className="text-sm text-slate-500 mt-2">
-              Over {rangeStats.totalDays} day{rangeStats.totalDays !== 1 ? 's' : ''}
-            </p>
-          </Card>
-
-          <Card className="church-stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600">Daily Average</p>
-                <p className="text-3xl font-bold text-slate-900">{rangeStats.averagePerDay}</p>
-              </div>
-              <div className="w-12 h-12 bg-[hsl(142,76%,36%)]/10 rounded-lg flex items-center justify-center">
-                <TrendingUp className="text-[hsl(142,76%,36%)] text-xl" />
-              </div>
-            </div>
-            <p className="text-sm text-blue-600 mt-2">
-              {rangeStats.memberAttendance} members + {rangeStats.visitorAttendance} visitors
-            </p>
-          </Card>
-
-          <Card className="church-stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600">Gender Split</p>
-                <p className="text-3xl font-bold text-slate-900">
-                  {rangeStats.genderBreakdown.male}M / {rangeStats.genderBreakdown.female}F
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                <BarChart3 className="text-blue-500 text-xl" />
-              </div>
-            </div>
-            <p className="text-sm text-slate-500 mt-2">
-              {Math.round((rangeStats.genderBreakdown.male / (rangeStats.genderBreakdown.male + rangeStats.genderBreakdown.female)) * 100)}% Male
-            </p>
-          </Card>
-
-          <Card className="church-stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600">Age Groups</p>
-                <p className="text-lg font-bold text-slate-900">
-                  {rangeStats.ageGroupBreakdown.adult}A / {rangeStats.ageGroupBreakdown.child}C / {rangeStats.ageGroupBreakdown.adolescent}T
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center">
-                <Clock className="text-orange-500 text-xl" />
-              </div>
-            </div>
-            <p className="text-sm text-slate-500 mt-2">Adult / Child / Teen</p>
-          </Card>
-        </div>
-      )}
 
       {/* Main Content Views */}
       {viewMode === "list" ? (
