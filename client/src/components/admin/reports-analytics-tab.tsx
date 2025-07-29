@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { ReportData } from "@/lib/types";
 import { 
   Calendar, 
@@ -107,6 +107,29 @@ export default function ReportsAnalyticsTab() {
   const { data: reportData, isLoading, refetch } = useQuery<ReportData>({
     queryKey: [`/api/reports/${selectedReport}`, dateRange, reportParams],
     enabled: !!selectedReport,
+    queryFn: async () => {
+      // Build query parameters
+      const params = new URLSearchParams();
+      params.append('startDate', dateRange.startDate);
+      params.append('endDate', dateRange.endDate);
+      
+      // Add specific report parameters
+      if (reportParams.weeks) {
+        params.append('weeks', reportParams.weeks.toString());
+      }
+      if (reportParams.memberId) {
+        params.append('memberId', reportParams.memberId);
+      }
+      
+      const url = `/api/reports/${selectedReport}?${params.toString()}`;
+      const response = await fetch(url, { credentials: 'include' });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      return await response.json();
+    },
   });
 
   const selectedReportConfig = REPORT_CONFIGS.find(r => r.id === selectedReport);
@@ -130,15 +153,23 @@ export default function ReportsAnalyticsTab() {
     document.body.removeChild(a);
   };
 
-  const convertToCSV = (data: any[], title: string): string => {
-    if (!data || data.length === 0) return `${title}\nNo data available`;
+  const convertToCSV = (data: ReportData, title: string): string => {
+    if (!data) return `${title}\nNo data available`;
     
-    const headers = Object.keys(data[0]);
-    const csvData = data.map(row => 
-      headers.map(header => `"${row[header] || ''}"`).join(',')
-    ).join('\n');
+    // Handle array data
+    if (Array.isArray(data)) {
+      if (data.length === 0) return `${title}\nNo data available`;
+      
+      const headers = Object.keys(data[0]);
+      const csvData = data.map(row => 
+        headers.map(header => `"${row[header] || ''}"`).join(',')
+      ).join('\n');
+      
+      return `${headers.join(',')}\n${csvData}`;
+    }
     
-    return `${headers.join(',')}\n${csvData}`;
+    // Handle object data - convert to JSON string
+    return `${title}\n${JSON.stringify(data, null, 2)}`;
   };
 
   const getFrequencyBadge = (frequency: string) => {
@@ -383,7 +414,7 @@ export default function ReportsAnalyticsTab() {
                     <Input
                       type="date"
                       value={dateRange.startDate}
-                      onChange={(e) => setDateRange(prev => ({ ...prev, startDate: e.target.value }))}
+                      onChange={(e) => setDateRange((prev: any) => ({ ...prev, startDate: e.target.value }))}
                       className="church-form-input"
                     />
                   </div>
@@ -393,7 +424,7 @@ export default function ReportsAnalyticsTab() {
                     <Input
                       type="date"
                       value={dateRange.endDate}
-                      onChange={(e) => setDateRange(prev => ({ ...prev, endDate: e.target.value }))}
+                      onChange={(e) => setDateRange((prev: any) => ({ ...prev, endDate: e.target.value }))}
                       className="church-form-input"
                     />
                   </div>
@@ -403,7 +434,7 @@ export default function ReportsAnalyticsTab() {
                       <label className="text-sm font-medium text-slate-700 mb-2 block">Weeks Absent</label>
                       <Select 
                         value={reportParams.weeks?.toString() || '3'} 
-                        onValueChange={(value) => setReportParams(prev => ({ ...prev, weeks: parseInt(value) }))}
+                        onValueChange={(value) => setReportParams((prev: any) => ({ ...prev, weeks: parseInt(value) }))}
                       >
                         <SelectTrigger className="church-form-input">
                           <SelectValue />
@@ -423,7 +454,7 @@ export default function ReportsAnalyticsTab() {
                       <label className="text-sm font-medium text-slate-700 mb-2 block">Inactive Period</label>
                       <Select 
                         value={reportParams.weeks?.toString() || '4'} 
-                        onValueChange={(value) => setReportParams(prev => ({ ...prev, weeks: parseInt(value) }))}
+                        onValueChange={(value) => setReportParams((prev: any) => ({ ...prev, weeks: parseInt(value) }))}
                       >
                         <SelectTrigger className="church-form-input">
                           <SelectValue />
@@ -573,6 +604,9 @@ export default function ReportsAnalyticsTab() {
                 <X className="h-4 w-4" />
               </Button>
             </DialogTitle>
+            <DialogDescription>
+              Click any report below to run it directly in the Report Generator tab.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
