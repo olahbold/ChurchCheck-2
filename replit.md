@@ -142,6 +142,21 @@ Key features:
 
 ## Recent Changes
 
+### July 29, 2025 - Enhanced Reporting Module with Export-Only Workflow
+- **Enhanced Report Data Structure**: Updated all 8 reports with comprehensive demographic fields:
+  - Weekly Attendance Summary: Now includes both gender and age group breakdowns for deeper insights
+  - Member Attendance Log: Added gender/age group columns, time-only display for check-in times, sequential numbering, and clear check-in method labels ("Family (manual)", "Manual", "Fingerprint", "Visitor")
+  - New Members Report: Full timestamp display for both created_at and updated_at fields (YYYY-MM-DD HH24:MI:SS format)
+  - Group Attendance Trend: Enhanced with both gender and age group demographic breakdowns
+  - Family Check-in Summary: Fixed technical issues and now properly displays parent-child relationships with formatted check-in methods
+  - Missed Services & Inactive Members: Enhanced with gender and age group information
+- **Export-Only Report Workflow**: Transformed reporting interface to focus on data export rather than display:
+  - Reports no longer show raw data on screen after generation
+  - Professional "Report Generated" confirmation screen with download-focused interface
+  - Enhanced CSV export with proper sequential numbering for Member Attendance Log
+  - Streamlined user experience emphasizing data portability over on-screen viewing
+- **Technical Improvements**: Fixed API parameter formatting issues that were preventing report generation, resolved SQL join syntax problems in Family Check-in Summary, and enhanced error handling
+
 ### July 29, 2025 - Enhanced Daily Check-in Interface and Duplicate Prevention
 - **Dynamic Daily Title**: Changed from "Sunday Check-in" to "Today Check-in" with current date display for improved daily flexibility and multi-service support
 - **Comprehensive Duplicate Prevention**: Implemented backend validation to prevent multiple daily check-ins:

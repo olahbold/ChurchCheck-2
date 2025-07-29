@@ -161,6 +161,24 @@ export default function ReportsAnalyticsTab() {
       if (data.length === 0) return `${title}\nNo data available`;
       
       const headers = Object.keys(data[0]);
+      
+      // Add sequential numbering for Member Attendance Log
+      if (title.includes('Member Attendance Log')) {
+        const csvData = data.map((row, index) => {
+          const rowData = [`"${index + 1}"`]; // Sequential number
+          headers.forEach(header => {
+            if (header !== 'memberId') { // Exclude memberId
+              rowData.push(`"${row[header] || ''}"`);
+            }
+          });
+          return rowData.join(',');
+        }).join('\n');
+        
+        const csvHeaders = ['No.', ...headers.filter(h => h !== 'memberId')];
+        return `${csvHeaders.join(',')}\n${csvData}`;
+      }
+      
+      // Regular CSV generation for other reports
       const csvData = data.map(row => 
         headers.map(header => `"${row[header] || ''}"`).join(',')
       ).join('\n');
@@ -531,15 +549,36 @@ export default function ReportsAnalyticsTab() {
             </Card>
           </div>
 
-          {/* Report Results */}
-          <Card className="church-card">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold text-slate-900">Report Results</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {renderReportData()}
-            </CardContent>
-          </Card>
+          {/* Report Status */}
+          {reportData && (
+            <Card className="church-card">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-slate-900">Report Generated</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center py-8">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+                    <Download className="h-8 w-8 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                      {selectedReportConfig?.title} Ready
+                    </h3>
+                    <p className="text-slate-600 mb-4">
+                      Your report has been generated successfully with {Array.isArray(reportData) ? reportData.length : 1} record(s).
+                    </p>
+                    <Button 
+                      onClick={handleExportReport}
+                      className="church-button-primary"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download CSV Report
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="library" className="space-y-6">

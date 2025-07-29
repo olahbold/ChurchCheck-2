@@ -447,7 +447,8 @@ export class DatabaseStorage implements IStorage {
     const summary = await db
       .select({
         date: attendanceRecords.attendanceDate,
-        group: members.gender,
+        gender: members.gender,
+        ageGroup: members.ageGroup,
         count: count(),
       })
       .from(attendanceRecords)
@@ -458,8 +459,8 @@ export class DatabaseStorage implements IStorage {
           lte(attendanceRecords.attendanceDate, endDate)
         )
       )
-      .groupBy(attendanceRecords.attendanceDate, members.gender)
-      .orderBy(attendanceRecords.attendanceDate);
+      .groupBy(attendanceRecords.attendanceDate, members.gender, members.ageGroup)
+      .orderBy(attendanceRecords.attendanceDate, members.gender, members.ageGroup);
 
     return summary;
   }
@@ -472,12 +473,20 @@ export class DatabaseStorage implements IStorage {
 
     const queryBuilder = db
       .select({
-        memberId: attendanceRecords.memberId,
         memberName: sql`${members.firstName} || ' ' || ${members.surname}`,
-        group: members.gender,
+        gender: members.gender,
+        ageGroup: members.ageGroup,
         attendanceDate: attendanceRecords.attendanceDate,
-        checkInTime: attendanceRecords.checkInTime,
-        checkInMethod: attendanceRecords.checkInMethod,
+        checkInTime: sql`TO_CHAR(${attendanceRecords.checkInTime}, 'HH24:MI:SS')`,
+        checkInMethod: sql`
+          CASE 
+            WHEN ${attendanceRecords.checkInMethod} = 'family' THEN 'Family (manual)'
+            WHEN ${attendanceRecords.checkInMethod} = 'manual' THEN 'Manual'
+            WHEN ${attendanceRecords.checkInMethod} = 'fingerprint' THEN 'Fingerprint'
+            WHEN ${attendanceRecords.checkInMethod} = 'visitor' THEN 'Visitor'
+            ELSE ${attendanceRecords.checkInMethod}
+          END
+        `,
       })
       .from(attendanceRecords)
       .innerJoin(members, eq(attendanceRecords.memberId, members.id));
@@ -497,10 +506,9 @@ export class DatabaseStorage implements IStorage {
 
     const membersWithoutRecentAttendance = await db
       .select({
-        id: members.id,
-        firstName: members.firstName,
-        surname: members.surname,
-        group: members.gender,
+        memberName: sql`${members.firstName} || ' ' || ${members.surname}`,
+        gender: members.gender,
+        ageGroup: members.ageGroup,
         phone: members.phone,
         lastAttendance: sql`MAX(${attendanceRecords.attendanceDate})`,
       })
@@ -513,14 +521,22 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .where(sql`${attendanceRecords.id} IS NULL`)
-      .groupBy(members.id, members.firstName, members.surname, members.gender, members.phone);
+      .groupBy(members.id, members.firstName, members.surname, members.gender, members.ageGroup, members.phone);
 
     return membersWithoutRecentAttendance;
   }
 
   async getNewMembersReport(startDate: string, endDate: string): Promise<any> {
     return await db
-      .select()
+      .select({
+        memberName: sql`${members.firstName} || ' ' || ${members.surname}`,
+        gender: members.gender,
+        ageGroup: members.ageGroup,
+        phone: members.phone,
+        email: members.email,
+        createdAt: sql`TO_CHAR(${members.createdAt}, 'YYYY-MM-DD HH24:MI:SS')`,
+        updatedAt: sql`TO_CHAR(${members.updatedAt}, 'YYYY-MM-DD HH24:MI:SS')`,
+      })
       .from(members)
       .where(
         and(
@@ -537,16 +553,15 @@ export class DatabaseStorage implements IStorage {
 
     return await db
       .select({
-        id: members.id,
-        firstName: members.firstName,
-        surname: members.surname,
-        group: members.gender,
+        memberName: sql`${members.firstName} || ' ' || ${members.surname}`,
+        gender: members.gender,
+        ageGroup: members.ageGroup,
         phone: members.phone,
         lastAttendance: sql`MAX(${attendanceRecords.attendanceDate})`,
       })
       .from(members)
       .leftJoin(attendanceRecords, eq(members.id, attendanceRecords.memberId))
-      .groupBy(members.id, members.firstName, members.surname, members.gender, members.phone)
+      .groupBy(members.id, members.firstName, members.surname, members.gender, members.ageGroup, members.phone)
       .having(
         sql`MAX(${attendanceRecords.attendanceDate}) < ${weeksAgo.toISOString().split('T')[0]} OR MAX(${attendanceRecords.attendanceDate}) IS NULL`
       );
@@ -555,7 +570,8 @@ export class DatabaseStorage implements IStorage {
   async getGroupAttendanceTrend(startDate: string, endDate: string): Promise<any> {
     return await db
       .select({
-        group: members.gender,
+        gender: members.gender,
+        ageGroup: members.ageGroup,
         attendanceDate: attendanceRecords.attendanceDate,
         count: count(),
       })
@@ -567,22 +583,34 @@ export class DatabaseStorage implements IStorage {
           lte(attendanceRecords.attendanceDate, endDate)
         )
       )
-      .groupBy(members.gender, attendanceRecords.attendanceDate)
-      .orderBy(attendanceRecords.attendanceDate, members.gender);
+      .groupBy(members.gender, members.ageGroup, attendanceRecords.attendanceDate)
+      .orderBy(attendanceRecords.attendanceDate, members.gender, members.ageGroup);
   }
 
   async getFamilyCheckInSummary(date: string): Promise<any> {
     return await db
       .select({
         parentId: members.parentId,
-        parentName: sql`parent.first_name || ' ' || parent.surname`,
+        parentName: sql`
+          CASE 
+            WHEN ${members.parentId} IS NOT NULL AND ${members.parentId} != '' THEN
+              (SELECT first_name || ' ' || surname FROM members p WHERE p.id = ${members.parentId})
+            ELSE 'No Parent'
+          END
+        `,
         childName: sql`${members.firstName} || ' ' || ${members.surname}`,
-        childGroup: members.ageGroup,
-        checkInTime: attendanceRecords.checkInTime,
+        childGender: members.gender,
+        childAgeGroup: members.ageGroup,
+        checkInTime: sql`TO_CHAR(${attendanceRecords.checkInTime}, 'HH24:MI:SS')`,
+        checkInMethod: sql`
+          CASE 
+            WHEN ${attendanceRecords.checkInMethod} = 'family' THEN 'Family (manual)'
+            ELSE ${attendanceRecords.checkInMethod}
+          END
+        `,
       })
       .from(attendanceRecords)
       .innerJoin(members, eq(attendanceRecords.memberId, members.id))
-      .leftJoin(sql`members as parent`, eq(members.parentId, sql`parent.id`))
       .where(
         and(
           eq(attendanceRecords.attendanceDate, date),
