@@ -4,10 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar as CalendarIcon, Download, Users, Filter, BarChart3, TrendingUp, Clock } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar as CalendarIcon, Download, Users, Filter, BarChart3, TrendingUp, Clock, Grid, List, User } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format } from "date-fns";
+import { format, parseISO, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 
 interface AttendanceRecord {
@@ -46,10 +47,12 @@ export default function HistoryTab() {
     new Date(new Date().setDate(new Date().getDate() - 30)) // Default to last 30 days
   );
   const [endDate, setEndDate] = useState<Date | undefined>(new Date());
-  const [genderFilter, setGenderFilter] = useState<string>("");
-  const [ageGroupFilter, setAgeGroupFilter] = useState<string>("");
-  const [memberTypeFilter, setMemberTypeFilter] = useState<string>("");
+  const [genderFilter, setGenderFilter] = useState<string>("all");
+  const [ageGroupFilter, setAgeGroupFilter] = useState<string>("all");
+  const [memberTypeFilter, setMemberTypeFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [selectedMember, setSelectedMember] = useState<string | null>(null);
 
   // Format dates for API calls
   const formatDateForAPI = (date: Date | undefined) => {
@@ -66,7 +69,7 @@ export default function HistoryTab() {
 
   // Get attendance history with filters
   const { data: attendanceHistory = [], isLoading: historyLoading } = useQuery<AttendanceRecord[]>({
-    queryKey: ['/api/attendance/history', startDateStr, endDateStr, genderFilter, ageGroupFilter, memberTypeFilter],
+    queryKey: ['/api/attendance/history', startDateStr, endDateStr, genderFilter, ageGroupFilter, memberTypeFilter, selectedMember],
     enabled: !!(startDateStr && endDateStr),
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -74,14 +77,20 @@ export default function HistoryTab() {
         endDate: endDateStr,
       });
       
-      if (genderFilter) params.append('gender', genderFilter);
-      if (ageGroupFilter) params.append('ageGroup', ageGroupFilter);
-      if (memberTypeFilter) params.append('isCurrentMember', memberTypeFilter);
+      if (genderFilter && genderFilter !== 'all') params.append('gender', genderFilter);
+      if (ageGroupFilter && ageGroupFilter !== 'all') params.append('ageGroup', ageGroupFilter);
+      if (memberTypeFilter && memberTypeFilter !== 'all') params.append('isCurrentMember', memberTypeFilter);
+      if (selectedMember) params.append('memberId', selectedMember);
 
       const response = await fetch(`/api/attendance/history?${params}`);
       if (!response.ok) throw new Error('Failed to fetch attendance history');
       return response.json();
     },
+  });
+
+  // Get all members for the member selector
+  const { data: allMembers = [] } = useQuery<any[]>({
+    queryKey: ['/api/members'],
   });
 
   // Get statistics for the selected date range
@@ -161,10 +170,42 @@ export default function HistoryTab() {
 
   // Clear all filters
   const clearFilters = () => {
-    setGenderFilter("");
-    setAgeGroupFilter("");
-    setMemberTypeFilter("");
+    setGenderFilter("all");
+    setAgeGroupFilter("all");
+    setMemberTypeFilter("all");
     setSearchQuery("");
+    setSelectedMember(null);
+  };
+
+  // Group attendance by date for calendar view
+  const attendanceByDate = attendanceHistory.reduce((acc, record) => {
+    const date = record.attendanceDate;
+    if (!acc[date]) acc[date] = [];
+    acc[date].push(record);
+    return acc;
+  }, {} as Record<string, AttendanceRecord[]>);
+
+  // Calendar day renderer
+  const renderCalendarDay = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const dayAttendance = attendanceByDate[dateStr] || [];
+    
+    if (dayAttendance.length === 0) return null;
+    
+    return (
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-6 h-6 bg-[hsl(258,90%,66%)] text-white text-xs rounded-full flex items-center justify-center font-medium">
+          {dayAttendance.length}
+        </div>
+      </div>
+    );
+  };
+
+  // Individual member timeline
+  const getMemberTimeline = (memberId: string) => {
+    return attendanceHistory
+      .filter(record => record.memberId === memberId || record.visitorId === memberId)
+      .sort((a, b) => new Date(b.attendanceDate).getTime() - new Date(a.attendanceDate).getTime());
   };
 
   return (
@@ -175,12 +216,34 @@ export default function HistoryTab() {
           <h2 className="text-2xl font-semibold text-slate-900">Attendance History</h2>
           <p className="text-slate-600">View and analyze attendance patterns over time</p>
         </div>
-        {filteredHistory.length > 0 && (
-          <Button onClick={handleExport} className="church-button-primary">
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV ({filteredHistory.length})
-          </Button>
-        )}
+        <div className="flex gap-2">
+          <div className="flex bg-slate-100 rounded-lg p-1">
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              className="h-8"
+            >
+              <List className="h-4 w-4 mr-1" />
+              List
+            </Button>
+            <Button
+              variant={viewMode === "calendar" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("calendar")}
+              className="h-8"
+            >
+              <Grid className="h-4 w-4 mr-1" />
+              Calendar
+            </Button>
+          </div>
+          {filteredHistory.length > 0 && (
+            <Button onClick={handleExport} className="church-button-primary">
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV ({filteredHistory.length})
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Date Range and Filters */}
@@ -248,7 +311,7 @@ export default function HistoryTab() {
           </div>
 
           {/* Filter Controls */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700">Search Name</label>
               <Input
@@ -260,13 +323,30 @@ export default function HistoryTab() {
             </div>
 
             <div className="space-y-2">
+              <label className="text-sm font-medium text-slate-700">Specific Member</label>
+              <Select value={selectedMember || "all"} onValueChange={(value) => setSelectedMember(value === "all" ? null : value)}>
+                <SelectTrigger className="church-form-input">
+                  <SelectValue placeholder="All Members" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Members</SelectItem>
+                  {allMembers.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.firstName} {member.surname}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
               <label className="text-sm font-medium text-slate-700">Gender</label>
               <Select value={genderFilter} onValueChange={setGenderFilter}>
                 <SelectTrigger className="church-form-input">
                   <SelectValue placeholder="All Genders" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Genders</SelectItem>
+                  <SelectItem value="all">All Genders</SelectItem>
                   <SelectItem value="male">Male</SelectItem>
                   <SelectItem value="female">Female</SelectItem>
                 </SelectContent>
@@ -280,7 +360,7 @@ export default function HistoryTab() {
                   <SelectValue placeholder="All Ages" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Ages</SelectItem>
+                  <SelectItem value="all">All Ages</SelectItem>
                   <SelectItem value="child">Child</SelectItem>
                   <SelectItem value="adolescent">Adolescent</SelectItem>
                   <SelectItem value="adult">Adult</SelectItem>
@@ -295,7 +375,7 @@ export default function HistoryTab() {
                   <SelectValue placeholder="All Types" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="all">All Types</SelectItem>
                   <SelectItem value="true">Current Members</SelectItem>
                   <SelectItem value="false">New Members</SelectItem>
                 </SelectContent>
@@ -304,7 +384,7 @@ export default function HistoryTab() {
           </div>
 
           {/* Clear Filters Button */}
-          {(genderFilter || ageGroupFilter || memberTypeFilter || searchQuery) && (
+          {(genderFilter !== "all" || ageGroupFilter !== "all" || memberTypeFilter !== "all" || searchQuery || selectedMember) && (
             <div className="flex justify-end">
               <Button variant="outline" onClick={clearFilters} size="sm">
                 Clear All Filters
@@ -381,65 +461,183 @@ export default function HistoryTab() {
         </div>
       )}
 
-      {/* Attendance Records */}
-      <Card className="church-card">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
-            <span>Attendance Records</span>
-            <span className="text-sm font-normal text-slate-500">
-              {historyLoading ? "Loading..." : `${filteredHistory.length} records found`}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {historyLoading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(258,90%,66%)] mx-auto"></div>
-              <p className="text-slate-500 mt-2">Loading attendance history...</p>
-            </div>
-          ) : filteredHistory.length === 0 ? (
-            <div className="text-center py-8">
-              <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
-              <p className="text-slate-500">No attendance records found for the selected criteria</p>
-            </div>
-          ) : (
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {filteredHistory.map((record) => (
-                <div key={record.id} className="flex items-center space-x-4 p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors">
-                  <div className="w-10 h-10 bg-[hsl(142,76%,36%)] rounded-full flex items-center justify-center">
-                    <span className="text-white font-medium text-sm">
-                      {record.member?.firstName?.[0] || 'U'}{record.member?.surname?.[0] || 'M'}
-                    </span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between">
-                      <p className="font-medium text-slate-900">
-                        {record.member?.firstName || 'Unknown'} {record.member?.surname || 'Member'}
-                        <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
-                          record.isVisitor 
-                            ? 'bg-blue-100 text-blue-700' 
-                            : 'bg-purple-100 text-purple-700'
-                        }`}>
-                          {record.isVisitor ? 'Visitor' : 'Member'}
-                        </span>
-                      </p>
-                      <p className="text-sm text-slate-600">
-                        {formatDate(record.attendanceDate)}
+      {/* Main Content Views */}
+      {viewMode === "list" ? (
+        /* List View */
+        <Card className="church-card">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>
+                {selectedMember 
+                  ? `${allMembers.find(m => m.id === selectedMember)?.firstName || ''} ${allMembers.find(m => m.id === selectedMember)?.surname || ''} Timeline`
+                  : 'Attendance Records'
+                }
+              </span>
+              <span className="text-sm font-normal text-slate-500">
+                {historyLoading ? "Loading..." : `${filteredHistory.length} records found`}
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {historyLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(258,90%,66%)] mx-auto"></div>
+                <p className="text-slate-500 mt-2">Loading attendance history...</p>
+              </div>
+            ) : filteredHistory.length === 0 ? (
+              <div className="text-center py-8">
+                <Users className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-500">No attendance records found for the selected criteria</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-96 overflow-y-auto">
+                {filteredHistory.map((record) => (
+                  <div key={record.id} className="flex items-center space-x-4 p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors">
+                    <div className="w-10 h-10 bg-[hsl(142,76%,36%)] rounded-full flex items-center justify-center">
+                      <span className="text-white font-medium text-sm">
+                        {record.member?.firstName?.[0] || 'U'}{record.member?.surname?.[0] || 'M'}
+                      </span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium text-slate-900">
+                          {record.member?.firstName || 'Unknown'} {record.member?.surname || 'Member'}
+                          <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                            record.isVisitor 
+                              ? 'bg-blue-100 text-blue-700' 
+                              : 'bg-purple-100 text-purple-700'
+                          }`}>
+                            {record.isVisitor ? 'Visitor' : 'Member'}
+                          </span>
+                        </p>
+                        <p className="text-sm text-slate-600">
+                          {formatDate(record.attendanceDate)}
+                        </p>
+                      </div>
+                      <p className="text-sm text-slate-500">
+                        {formatTime(record.checkInTime)} • {record.member?.gender} • {record.member?.ageGroup}
+                        {record.member?.phone && (
+                          <span className="ml-2">• {record.member.phone}</span>
+                        )}
                       </p>
                     </div>
-                    <p className="text-sm text-slate-500">
-                      {formatTime(record.checkInTime)} • {record.member?.gender} • {record.member?.ageGroup}
-                      {record.member?.phone && (
-                        <span className="ml-2">• {record.member.phone}</span>
-                      )}
-                    </p>
+                    {!selectedMember && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setSelectedMember(record.memberId || record.visitorId || null)}
+                        className="text-xs"
+                      >
+                        <User className="h-3 w-3 mr-1" />
+                        Timeline
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        /* Calendar View */
+        <Card className="church-card">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Calendar View</span>
+              <span className="text-sm font-normal text-slate-500">
+                Click on dates with attendance to see details
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {historyLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[hsl(258,90%,66%)] mx-auto"></div>
+                <p className="text-slate-500 mt-2">Loading calendar...</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <Calendar
+                  mode="single"
+                  selected={undefined}
+                  onSelect={(date) => {
+                    if (date) {
+                      const dateStr = format(date, 'yyyy-MM-dd');
+                      const dayAttendance = attendanceByDate[dateStr];
+                      if (dayAttendance && dayAttendance.length > 0) {
+                        // Could add modal or expand details here
+                        console.log(`Selected date: ${dateStr} with ${dayAttendance.length} attendance records`);
+                      }
+                    }
+                  }}
+                  className="rounded-md border mx-auto"
+                  components={{
+                    Day: ({ date, ...props }) => (
+                      <div className="relative">
+                        <button
+                          {...props}
+                          className={cn(
+                            "h-9 w-9 p-0 font-normal aria-selected:opacity-100 relative",
+                            attendanceByDate[format(date, 'yyyy-MM-dd')]?.length > 0 && "bg-[hsl(258,90%,66%)]/10"
+                          )}
+                        >
+                          {format(date, 'd')}
+                          {renderCalendarDay(date)}
+                        </button>
+                      </div>
+                    ),
+                  }}
+                />
+                
+                {/* Calendar Legend */}
+                <div className="flex items-center justify-center gap-4 text-sm text-slate-600">
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 bg-[hsl(258,90%,66%)] rounded-full"></div>
+                    <span>Has attendance records</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border border-slate-300 rounded-full"></div>
+                    <span>No records</span>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+
+                {/* Daily Details */}
+                {Object.keys(attendanceByDate).length > 0 && (
+                  <div className="mt-6">
+                    <h4 className="font-medium text-slate-900 mb-3">Daily Attendance Summary</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-64 overflow-y-auto">
+                      {Object.entries(attendanceByDate)
+                        .sort(([a], [b]) => new Date(b).getTime() - new Date(a).getTime())
+                        .map(([date, records]) => (
+                          <div key={date} className="bg-slate-50 p-3 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="font-medium text-sm">{formatDate(date)}</p>
+                              <span className="bg-[hsl(258,90%,66%)] text-white text-xs px-2 py-1 rounded-full">
+                                {records.length}
+                              </span>
+                            </div>
+                            <div className="space-y-1">
+                              {records.slice(0, 3).map((record) => (
+                                <p key={record.id} className="text-xs text-slate-600 truncate">
+                                  {record.member?.firstName} {record.member?.surname}
+                                </p>
+                              ))}
+                              {records.length > 3 && (
+                                <p className="text-xs text-slate-500">
+                                  +{records.length - 3} more
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
