@@ -74,12 +74,22 @@ export default function Home() {
   };
 
   const handleLogout = () => {
+    // Clear all authentication data from localStorage
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('church_data');
+    localStorage.removeItem('user_data');
+    
+    // Clear local state
     setAuthState({
       isAuthenticated: false,
       user: null,
       isLoading: false
     });
-    setActiveTab('register');
+    setChurchData(null);
+    setUserData(null);
+    
+    // Redirect to login page
+    window.location.href = '/login';
   };
 
   return (
