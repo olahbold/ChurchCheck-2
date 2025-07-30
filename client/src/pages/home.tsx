@@ -140,7 +140,7 @@ export default function Home() {
               <div className="text-right">
                 <p className="text-sm font-medium text-slate-900">
                   {userData ? `${userData.firstName} ${userData.lastName}` : 
-                   authState.user ? authState.user.fullName : 'ChurchConnect User'}
+                   authState.user?.fullName || 'ChurchConnect User'}
                 </p>
                 <div className="flex items-center justify-end space-x-2">
                   {userData?.role && (
@@ -157,8 +157,8 @@ export default function Home() {
                     <span className="text-white text-xs font-medium">
                       {userData && userData.firstName && userData.lastName ? 
                         `${userData.firstName[0]}${userData.lastName[0]}` : 
-                        authState.user?.fullName ? 
-                          authState.user.fullName.split(' ').map(n => n[0]).join('') : 'U'}
+                        (authState.user?.fullName ? 
+                          authState.user.fullName.split(' ').map((n: string) => n[0]).join('') : 'U')}
                     </span>
                   </div>
                   <button
