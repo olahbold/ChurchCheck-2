@@ -397,14 +397,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/follow-up/:memberId", async (req, res) => {
     try {
       const { method } = req.body; // "sms" or "email"
+      
+      // Get member details for notifications
+      const member = await storage.getMember(req.params.memberId);
+      if (!member) {
+        return res.status(404).json({ error: "Member not found" });
+      }
+
+      // Update follow-up record
       await storage.updateFollowUpRecord({
         memberId: req.params.memberId,
         lastContactDate: new Date(),
         contactMethod: method,
         needsFollowUp: false,
       });
+
+      // Send notification
+      try {
+        const { sendFollowUpEmail, sendFollowUpSMS } = await import('./notifications');
+        
+        if (method === 'email') {
+          await sendFollowUpEmail(member, method);
+        } else if (method === 'sms') {
+          await sendFollowUpSMS(member, method);
+        }
+      } catch (notificationError) {
+        console.error('Notification failed:', notificationError);
+        // Don't fail the whole request if notification fails
+      }
+
       res.json({ success: true });
     } catch (error) {
+      console.error('Follow-up update error:', error);
       res.status(500).json({ error: "Failed to update follow-up record" });
     }
   });
