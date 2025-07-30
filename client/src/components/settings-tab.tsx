@@ -24,7 +24,9 @@ import {
   Upload,
   Download,
   FileText,
-  AlertCircle
+  AlertCircle,
+  CreditCard,
+  Crown
 } from "lucide-react";
 
 export default function SettingsTab() {
@@ -580,6 +582,28 @@ export default function SettingsTab() {
                   >
                     <History className="mr-3 h-4 w-4" />
                     View Activity Log
+                  </Button>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-200 pt-6">
+                <h4 className="font-medium text-slate-900 mb-3">Subscription & Billing</h4>
+                <div className="space-y-3">
+                  <Button 
+                    onClick={() => window.location.href = '/subscription'}
+                    variant="outline" 
+                    className="w-full justify-start"
+                  >
+                    <CreditCard className="mr-3 h-4 w-4" />
+                    Manage Subscription
+                  </Button>
+                  <Button 
+                    onClick={() => window.location.href = '/subscription'}
+                    variant="outline" 
+                    className="w-full justify-start"
+                  >
+                    <Crown className="mr-3 h-4 w-4" />
+                    Upgrade Plan
                   </Button>
                 </div>
               </div>
