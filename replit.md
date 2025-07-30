@@ -142,6 +142,14 @@ Key features:
 
 ## Recent Changes
 
+### July 30, 2025 - Enhanced Header with Church Branding
+- **Personalized Header Display**: Updated dashboard header to show church-specific branding:
+  - Format: "ChurchConnect | Church Name" with church name in smaller font
+  - Dynamic church name loading from localStorage authentication data
+  - Color-coded subscription tier badges (Free Trial, Starter, Growth, Enterprise)
+  - Enhanced user information display with role badges (Admin, Volunteer, Data Viewer)
+  - Professional visual hierarchy with proper typography scaling
+
 ### July 30, 2025 - Phase 2 Stripe Integration & Subscription Management Complete
 - **Complete Stripe Payment Processing**: Implemented full subscription lifecycle management:
   - Stripe checkout sessions with automatic plan selection and trial handling
