@@ -745,35 +745,419 @@ export default function HistoryTab() {
           </CardContent>
         </Card>
       ) : viewMode === "analytics" ? (
-        /* Analytics View - Coming Soon */
-        <Card className="church-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="h-5 w-5" />
-              Advanced Analytics Dashboard
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="py-12">
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-[hsl(258,90%,66%)]/10 rounded-full flex items-center justify-center mx-auto">
-                <Trophy className="h-8 w-8 text-[hsl(258,90%,66%)]" />
+        /* Analytics Dashboard */
+        <div className="space-y-6">
+          {/* Analytics Navigation */}
+          <Card className="church-card">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Advanced Analytics Dashboard
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant={analyticsView === "overview" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAnalyticsView("overview")}
+                >
+                  <Activity className="h-4 w-4 mr-1" />
+                  Overview
+                </Button>
+                <Button
+                  variant={analyticsView === "trends" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAnalyticsView("trends")}
+                >
+                  <TrendingUp className="h-4 w-4 mr-1" />
+                  Trends
+                </Button>
+                <Button
+                  variant={analyticsView === "top-performers" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAnalyticsView("top-performers")}
+                >
+                  <Trophy className="h-4 w-4 mr-1" />
+                  Top Performers
+                </Button>
+                <Button
+                  variant={analyticsView === "insights" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAnalyticsView("insights")}
+                >
+                  <Target className="h-4 w-4 mr-1" />
+                  Insights
+                </Button>
               </div>
-              <h3 className="text-xl font-semibold text-slate-900">Comprehensive Analytics Coming Soon!</h3>
-              <div className="max-w-md mx-auto space-y-2 text-slate-600">
-                <p className="font-medium">🏆 Top Performing Members</p>
-                <p className="font-medium">📈 Attendance Trend Analysis</p>
-                <p className="font-medium">📊 Demographic Insights</p>
-                <p className="font-medium">⭐ Smart Recommendations</p>
-                <p className="font-medium">📋 Growth Metrics & Predictions</p>
+            </CardContent>
+          </Card>
+
+          {/* Analytics Content */}
+          {analyticsView === "overview" && (() => {
+            const trendData = getAttendanceTrends();
+            const demographics = getDemographicBreakdown();
+            const insights = getAttendanceInsights();
+            const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7300', '#8dd1e1'];
+
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Attendance Trend Chart */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Attendance Trends</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <LineChart data={trendData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip />
+                        <Line type="monotone" dataKey="attendance" stroke="#8884d8" strokeWidth={2} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Gender Demographics */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Gender Demographics</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <PieChart>
+                        <Pie
+                          data={demographics.gender}
+                          cx="50%"
+                          cy="50%"
+                          outerRadius={80}
+                          fill="#8884d8"
+                          dataKey="value"
+                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        >
+                          {demographics.gender.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Age Group Distribution */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Age Group Distribution</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                      <BarChart data={demographics.age}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <Tooltip />
+                        <Bar dataKey="value" fill="#82ca9d" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Quick Stats */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Quick Statistics</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Unique Members</span>
+                      <span className="text-2xl font-bold text-[hsl(258,90%,66%)]">{insights.totalUnique}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Average Daily</span>
+                      <span className="text-2xl font-bold text-[hsl(142,76%,36%)]">{insights.avgAttendance}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Peak Day</span>
+                      <span className="text-lg font-bold text-blue-600">{insights.peakDay.date}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">Growth Rate</span>
+                      <span className={`text-lg font-bold ${insights.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {insights.growthRate >= 0 ? '+' : ''}{insights.growthRate}%
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
-              <div className="pt-4">
-                <p className="text-sm text-slate-500">
-                  Advanced analytics with charts, leaderboards, and actionable insights to help you understand congregation patterns and engagement levels.
-                </p>
+            );
+          })()}
+
+          {analyticsView === "trends" && (() => {
+            const trendData = getAttendanceTrends();
+            const insights = getAttendanceInsights();
+
+            return (
+              <div className="space-y-6">
+                {/* Area Chart for Detailed Trends */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Detailed Attendance Trends</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <AreaChart data={trendData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip />
+                        <Area type="monotone" dataKey="attendance" stroke="#8884d8" fill="#8884d8" fillOpacity={0.3} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Weekly vs Monthly Comparison */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Card className="church-card">
+                    <CardHeader>
+                      <CardTitle>Weekly Analysis</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span>Recent Week Average</span>
+                          <span className="font-bold">{Math.round(trendData.slice(-7).reduce((sum, day) => sum + day.attendance, 0) / Math.min(7, trendData.length))}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Previous Week Average</span>
+                          <span className="font-bold">{Math.round(trendData.slice(-14, -7).reduce((sum, day) => sum + day.attendance, 0) / Math.min(7, trendData.slice(-14, -7).length))}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Best Day</span>
+                          <span className="font-bold text-green-600">{insights.peakDay.date} ({insights.peakDay.attendance})</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="church-card">
+                    <CardHeader>
+                      <CardTitle>Growth Metrics</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span>Growth Trend</span>
+                          <span className={`font-bold ${insights.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {insights.growthRate >= 0 ? '↗' : '↘'} {Math.abs(insights.growthRate)}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Consistent Attendees</span>
+                          <span className="font-bold text-blue-600">{insights.consistentMembers}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Total Days Tracked</span>
+                          <span className="font-bold">{insights.totalDays}</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            );
+          })()}
+
+          {analyticsView === "top-performers" && (() => {
+            const topPerformers = getTopPerformers();
+
+            return (
+              <div className="space-y-6">
+                {/* Top Performers Leaderboard */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-yellow-500" />
+                      Attendance Champions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {topPerformers.map((member, index) => (
+                        <div key={member.name} className={`flex items-center space-x-4 p-4 rounded-lg border-2 ${
+                          index === 0 ? 'bg-yellow-50 border-yellow-200' :
+                          index === 1 ? 'bg-gray-50 border-gray-200' :
+                          index === 2 ? 'bg-orange-50 border-orange-200' :
+                          'bg-slate-50 border-slate-200'
+                        }`}>
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
+                            index === 0 ? 'bg-yellow-500' :
+                            index === 1 ? 'bg-gray-500' :
+                            index === 2 ? 'bg-orange-500' :
+                            'bg-slate-500'
+                          }`}>
+                            {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-semibold text-slate-900">{member.name}</p>
+                                <p className="text-sm text-slate-600">
+                                  {member.gender} • {member.ageGroup}
+                                  {member.email && ` • ${member.email}`}
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-2xl font-bold text-[hsl(258,90%,66%)]">{member.attendance}</p>
+                                <p className="text-xs text-slate-500">attendances</p>
+                              </div>
+                            </div>
+                          </div>
+                          {index < 3 && (
+                            <Award className={`h-6 w-6 ${
+                              index === 0 ? 'text-yellow-500' :
+                              index === 1 ? 'text-gray-500' :
+                              'text-orange-500'
+                            }`} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Top Performers Chart */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Top 10 Attendance Chart</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <BarChart data={topPerformers} layout="horizontal">
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" />
+                        <YAxis dataKey="name" type="category" width={100} />
+                        <Tooltip />
+                        <Bar dataKey="attendance" fill="#8884d8" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })()}
+
+          {analyticsView === "insights" && (() => {
+            const insights = getAttendanceInsights();
+            const topPerformers = getTopPerformers();
+
+            return (
+              <div className="space-y-6">
+                {/* Key Insights Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <Card className="church-card border-l-4 border-l-green-500">
+                    <CardHeader>
+                      <CardTitle className="text-green-700">Growth Analysis</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <p className="text-2xl font-bold text-green-600">{insights.growthRate}%</p>
+                        <p className="text-sm text-slate-600">
+                          {insights.growthRate >= 0 ? 'Growth' : 'Decline'} compared to earlier period
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {insights.growthRate >= 0 ? 'Positive trend indicates increasing engagement' : 'Consider outreach strategies to boost attendance'}
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="church-card border-l-4 border-l-blue-500">
+                    <CardHeader>
+                      <CardTitle className="text-blue-700">Engagement Score</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <p className="text-2xl font-bold text-blue-600">{Math.round((insights.consistentMembers / insights.totalUnique) * 100)}%</p>
+                        <p className="text-sm text-slate-600">
+                          Members attending 75%+ of services
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {insights.consistentMembers} out of {insights.totalUnique} total members
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="church-card border-l-4 border-l-purple-500">
+                    <CardHeader>
+                      <CardTitle className="text-purple-700">Peak Performance</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2">
+                        <p className="text-2xl font-bold text-purple-600">{insights.peakDay.attendance}</p>
+                        <p className="text-sm text-slate-600">
+                          Best attended service on {insights.peakDay.date}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {((insights.peakDay.attendance / insights.avgAttendance) * 100 - 100).toFixed(0)}% above average
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Recommendations */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Star className="h-5 w-5 text-yellow-500" />
+                      Smart Recommendations
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {insights.growthRate < 0 && (
+                        <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <h4 className="font-semibold text-yellow-800">⚠️ Attendance Declining</h4>
+                          <p className="text-yellow-700 text-sm mt-1">
+                            Consider implementing member outreach programs or special events to re-engage the congregation.
+                          </p>
+                        </div>
+                      )}
+                      {insights.consistentMembers / insights.totalUnique < 0.5 && (
+                        <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                          <h4 className="font-semibold text-blue-800">📈 Engagement Opportunity</h4>
+                          <p className="text-blue-700 text-sm mt-1">
+                            Less than 50% of members attend regularly. Consider follow-up programs for members with low attendance.
+                          </p>
+                        </div>
+                      )}
+                      {topPerformers.length >= 5 && (
+                        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                          <h4 className="font-semibold text-green-800">🌟 Recognition Program</h4>
+                          <p className="text-green-700 text-sm mt-1">
+                            You have {topPerformers.length} highly engaged members. Consider a recognition program for consistent attendees.
+                          </p>
+                        </div>
+                      )}
+                      <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                        <h4 className="font-semibold text-purple-800">📊 Data-Driven Insights</h4>
+                        <p className="text-purple-700 text-sm mt-1">
+                          Your peak attendance was {insights.peakDay.attendance} on {insights.peakDay.date}. 
+                          Analyze what made that service special to replicate success.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })()}
+        </div>
       ) : (
         <div>No view selected</div>
       )}
