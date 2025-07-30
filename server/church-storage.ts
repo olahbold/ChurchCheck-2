@@ -79,6 +79,11 @@ export class ChurchStorage {
       .where(eq(churchUsers.id, userId));
   }
 
+  async deleteChurchUser(id: string): Promise<boolean> {
+    const result = await db.delete(churchUsers).where(eq(churchUsers.id, id));
+    return result.count > 0;
+  }
+
   // Subscription management
   async createSubscription(subscriptionData: InsertSubscription): Promise<Subscription> {
     const [subscription] = await db.insert(subscriptions).values(subscriptionData).returning();

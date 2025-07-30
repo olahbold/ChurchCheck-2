@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { churchStorage } from "./church-storage.js";
 import churchRoutes from "./church-routes.js";
 import subscriptionRoutes from "./subscription-routes.js";
 import { 
@@ -9,10 +10,18 @@ import {
   checkMemberLimit 
 } from "./feature-gate-middleware.js";
 import { 
+  authenticateToken,
+  requireRole,
+  ensureChurchContext,
+  hashPassword,
+  type AuthenticatedRequest
+} from "./auth.js";
+import { 
   insertMemberSchema, 
   updateMemberSchema,
   insertAttendanceRecordSchema, 
   insertAdminUserSchema,
+  insertChurchUserSchema,
   insertReportConfigSchema,
   insertReportRunSchema,
   insertVisitorSchema
@@ -721,59 +730,178 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin user routes
-  app.post("/api/admin/users", async (req, res) => {
+  // Church user routes (new multi-tenant system)
+  app.post("/api/admin/users", authenticateToken, requireRole(['admin']), ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
-      const userData = insertAdminUserSchema.parse(req.body);
-      const user = await storage.createAdminUser(userData);
-      // Don't send password back
-      const { password, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
+      // Create church user creation schema based on form data
+      const churchUserData = z.object({
+        username: z.string().min(1, "Username is required"),
+        fullName: z.string().min(1, "Full name is required"),
+        email: z.string().email("Invalid email format"),
+        password: z.string().min(6, "Password must be at least 6 characters"),
+        role: z.enum(['admin', 'volunteer', 'data_viewer']),
+        region: z.string().optional(),
+        isActive: z.boolean().default(true)
+      }).parse(req.body);
+
+      // Check if email already exists for this church
+      const existingUser = await churchStorage.getChurchUserByEmail(churchUserData.email);
+      if (existingUser && existingUser.churchId === req.churchId) {
+        return res.status(400).json({ error: "Email already exists for this church" });
+      }
+
+      // Hash password and create user
+      const passwordHash = await hashPassword(churchUserData.password);
+      const user = await churchStorage.createChurchUser({
+        churchId: req.churchId!,
+        email: churchUserData.email,
+        passwordHash,
+        firstName: churchUserData.fullName.split(' ')[0] || churchUserData.fullName,
+        lastName: churchUserData.fullName.split(' ').slice(1).join(' ') || '',
+        role: churchUserData.role,
+        isActive: churchUserData.isActive,
+        region: churchUserData.region || null
+      });
+
+      // Convert to admin user format for compatibility
+      const adminUserFormat = {
+        id: user.id,
+        username: churchUserData.username,
+        fullName: `${user.firstName} ${user.lastName}`.trim(),
+        email: user.email,
+        role: user.role,
+        region: user.region,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      };
+
+      res.json(adminUserFormat);
     } catch (error) {
+      console.error('Create church user error:', error);
       res.status(400).json({ error: error instanceof Error ? error.message : "Invalid user data" });
     }
   });
 
-  app.get("/api/admin/users", async (req, res) => {
+  app.get("/api/admin/users", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
-      const users = await storage.getAllAdminUsers();
-      // Don't send passwords back
-      const usersWithoutPasswords = users.map(({ password, ...user }) => user);
-      res.json(usersWithoutPasswords);
+      const users = await churchStorage.getChurchUsers(req.churchId!);
+      
+      // Convert to admin user format for compatibility with frontend
+      const adminUserFormat = users.map(user => ({
+        id: user.id,
+        username: user.email.split('@')[0], // Use email prefix as username
+        fullName: `${user.firstName} ${user.lastName}`.trim(),
+        email: user.email,
+        role: user.role,
+        region: user.region,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }));
+
+      res.json(adminUserFormat);
     } catch (error) {
+      console.error('Fetch church users error:', error);
       res.status(500).json({ error: "Failed to fetch admin users" });
     }
   });
 
-  app.get("/api/admin/users/:id", async (req, res) => {
+  app.get("/api/admin/users/:id", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
-      const user = await storage.getAdminUser(req.params.id);
+      const users = await churchStorage.getChurchUsers(req.churchId!);
+      const user = users.find(u => u.id === req.params.id);
+      
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      const { password, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
+
+      // Convert to admin user format
+      const adminUserFormat = {
+        id: user.id,
+        username: user.email.split('@')[0],
+        fullName: `${user.firstName} ${user.lastName}`.trim(),
+        email: user.email,
+        role: user.role,
+        region: user.region,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      };
+
+      res.json(adminUserFormat);
     } catch (error) {
+      console.error('Fetch church user error:', error);
       res.status(500).json({ error: "Failed to fetch user" });
     }
   });
 
-  app.put("/api/admin/users/:id", async (req, res) => {
+  app.put("/api/admin/users/:id", authenticateToken, requireRole(['admin']), ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
-      const userData = insertAdminUserSchema.partial().parse(req.body);
-      const user = await storage.updateAdminUser(req.params.id, userData);
-      const { password, ...userWithoutPassword } = user;
-      res.json(userWithoutPassword);
+      const updateData = z.object({
+        username: z.string().optional(),
+        fullName: z.string().optional(),
+        email: z.string().email().optional(),
+        password: z.string().optional(),
+        role: z.enum(['admin', 'volunteer', 'data_viewer']).optional(),
+        region: z.string().optional(),
+        isActive: z.boolean().optional()
+      }).parse(req.body);
+
+      const updatePayload: any = {};
+      
+      if (updateData.email) updatePayload.email = updateData.email;
+      if (updateData.fullName) {
+        const nameParts = updateData.fullName.split(' ');
+        updatePayload.firstName = nameParts[0] || updateData.fullName;
+        updatePayload.lastName = nameParts.slice(1).join(' ') || '';
+      }
+      if (updateData.password) updatePayload.passwordHash = await hashPassword(updateData.password);
+      if (updateData.role) updatePayload.role = updateData.role;
+      if (updateData.region !== undefined) updatePayload.region = updateData.region || null;
+      if (updateData.isActive !== undefined) updatePayload.isActive = updateData.isActive;
+
+      const user = await churchStorage.updateChurchUser(req.params.id, updatePayload);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Convert to admin user format
+      const adminUserFormat = {
+        id: user.id,
+        username: user.email.split('@')[0],
+        fullName: `${user.firstName} ${user.lastName}`.trim(),
+        email: user.email,
+        role: user.role,
+        region: user.region,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      };
+
+      res.json(adminUserFormat);
     } catch (error) {
+      console.error('Update church user error:', error);
       res.status(400).json({ error: error instanceof Error ? error.message : "Invalid user data" });
     }
   });
 
-  app.delete("/api/admin/users/:id", async (req, res) => {
+  app.delete("/api/admin/users/:id", authenticateToken, requireRole(['admin']), ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
-      await storage.deleteAdminUser(req.params.id);
-      res.json({ success: true });
+      // Prevent users from deleting themselves
+      if (req.user?.id === req.params.id) {
+        return res.status(400).json({ error: "Cannot delete your own account" });
+      }
+
+      const success = await churchStorage.deleteChurchUser(req.params.id);
+      if (success) {
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ error: "User not found" });
+      }
     } catch (error) {
+      console.error('Delete church user error:', error);
       res.status(500).json({ error: "Failed to delete user" });
     }
   });
