@@ -8,6 +8,7 @@ import RegisterPage from '@/pages/register';
 import LoginPage from '@/pages/login';
 import SubscriptionPage from '@/pages/subscription';
 import Home from '@/pages/home';
+import UserManagementDemo from '@/pages/user-management-demo';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,6 +31,9 @@ function App() {
             
             {/* SaaS management routes */}
             <Route path="/subscription" component={SubscriptionPage} />
+            
+            {/* Demo pages */}
+            <Route path="/user-management-demo" component={UserManagementDemo} />
             
             {/* Protected app routes - redirect to original app for now */}
             <Route path="/dashboard" component={Home} />
