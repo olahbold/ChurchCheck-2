@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import churchRoutes from "./church-routes.js";
 import { 
   insertMemberSchema, 
   updateMemberSchema,
@@ -1081,6 +1082,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(400).json({ error: error instanceof Error ? error.message : "Invalid visitor data" });
     }
   });
+
+  // Church routes for multi-tenant functionality
+  app.use('/api/churches', churchRoutes);
 
   const httpServer = createServer(app);
   return httpServer;

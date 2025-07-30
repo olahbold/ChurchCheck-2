@@ -1,29 +1,56 @@
-import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import Home from "@/pages/home";
-import NotFound from "@/pages/not-found";
-import FirstTimerPage from "@/pages/first-timer";
+import { Router, Route, Switch } from 'wouter';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from '@/components/ui/toaster';
 
-function Router() {
-  return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/first-timer" component={FirstTimerPage} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
+// Import pages
+import LandingPage from '@/pages/landing';
+import RegisterPage from '@/pages/register';
+import LoginPage from '@/pages/login';
+import Home from '@/pages/home';
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+        <Router>
+          <Switch>
+            {/* Public routes */}
+            <Route path="/" component={LandingPage} />
+            <Route path="/register" component={RegisterPage} />
+            <Route path="/login" component={LoginPage} />
+            
+            {/* Protected app routes - redirect to original app for now */}
+            <Route path="/dashboard" component={Home} />
+            <Route path="/checkin" component={Home} />
+            <Route path="/member" component={Home} />
+            <Route path="/history" component={Home} />
+            <Route path="/followup" component={Home} />
+            <Route path="/settings" component={Home} />
+            <Route path="/admin" component={Home} />
+            
+            {/* Fallback */}
+            <Route>
+              <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+                <div className="text-center">
+                  <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">404</h1>
+                  <p className="text-gray-600 dark:text-gray-300 mb-8">Page not found</p>
+                  <a href="/" className="text-indigo-600 dark:text-indigo-400 hover:underline">
+                    Go back to homepage
+                  </a>
+                </div>
+              </div>
+            </Route>
+          </Switch>
+        </Router>
         <Toaster />
-        <Router />
-      </TooltipProvider>
     </QueryClientProvider>
   );
 }

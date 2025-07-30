@@ -3,8 +3,54 @@ import { pgTable, text, varchar, timestamp, boolean, integer, date } from "drizz
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Multi-tenant Churches table
+export const churches = pgTable("churches", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  subdomain: varchar("subdomain", { length: 50 }).unique(),
+  logoUrl: text("logo_url"),
+  brandColor: varchar("brand_color", { length: 7 }).default("#6366f1"), // Hex color
+  subscriptionTier: varchar("subscription_tier", { length: 20 }).notNull().default("trial"), // trial, starter, growth, enterprise
+  trialStartDate: timestamp("trial_start_date").defaultNow(),
+  trialEndDate: timestamp("trial_end_date").default(sql`NOW() + INTERVAL '30 days'`),
+  subscriptionStartDate: timestamp("subscription_start_date"),
+  maxMembers: integer("max_members").default(100), // Based on subscription tier
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Church users/admins for authentication
+export const churchUsers = pgTable("church_users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  churchId: varchar("church_id").notNull().references(() => churches.id, { onDelete: "cascade" }),
+  email: varchar("email", { length: 255 }).unique().notNull(),
+  passwordHash: text("password_hash").notNull(),
+  role: varchar("role", { length: 20 }).notNull().default("admin"), // admin, volunteer, data_viewer
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  isActive: boolean("is_active").default(true),
+  lastLoginAt: timestamp("last_login_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Subscription tracking
+export const subscriptions = pgTable("subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  churchId: varchar("church_id").notNull().references(() => churches.id, { onDelete: "cascade" }),
+  stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }).unique(),
+  status: varchar("status", { length: 20 }).notNull(), // active, canceled, past_due, etc.
+  planId: varchar("plan_id", { length: 50 }).notNull(), // starter, growth, enterprise
+  currentPeriodStart: timestamp("current_period_start"),
+  currentPeriodEnd: timestamp("current_period_end"),
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const members = pgTable("members", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  churchId: varchar("church_id").notNull().references(() => churches.id, { onDelete: "cascade" }),
   title: text("title"), // Mr, Mrs, Dr, Pastor, etc.
   firstName: text("first_name").notNull(),
   surname: text("surname").notNull(),
@@ -25,6 +71,7 @@ export const members = pgTable("members", {
 
 export const attendanceRecords = pgTable("attendance_records", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  churchId: varchar("church_id").notNull().references(() => churches.id, { onDelete: "cascade" }),
   memberId: varchar("member_id").references(() => members.id),
   visitorId: varchar("visitor_id").references(() => visitors.id),
   attendanceDate: date("attendance_date").notNull(),
@@ -39,6 +86,7 @@ export const attendanceRecords = pgTable("attendance_records", {
 
 export const followUpRecords = pgTable("follow_up_records", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  churchId: varchar("church_id").notNull().references(() => churches.id, { onDelete: "cascade" }),
   memberId: varchar("member_id").notNull().references(() => members.id),
   lastContactDate: timestamp("last_contact_date"),
   contactMethod: text("contact_method"), // "sms", "email"
@@ -47,7 +95,34 @@ export const followUpRecords = pgTable("follow_up_records", {
 });
 
 // Relations
+export const churchesRelations = relations(churches, ({ many, one }) => ({
+  members: many(members),
+  attendanceRecords: many(attendanceRecords),
+  followUpRecords: many(followUpRecords),
+  visitors: many(visitors),
+  churchUsers: many(churchUsers),
+  subscriptions: many(subscriptions),
+}));
+
+export const churchUsersRelations = relations(churchUsers, ({ one }) => ({
+  church: one(churches, {
+    fields: [churchUsers.churchId],
+    references: [churches.id],
+  }),
+}));
+
+export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
+  church: one(churches, {
+    fields: [subscriptions.churchId],
+    references: [churches.id],
+  }),
+}));
+
 export const membersRelations = relations(members, ({ many, one }) => ({
+  church: one(churches, {
+    fields: [members.churchId],
+    references: [churches.id],
+  }),
   attendanceRecords: many(attendanceRecords),
   followUpRecord: one(followUpRecords, {
     fields: [members.id],
@@ -62,6 +137,10 @@ export const membersRelations = relations(members, ({ many, one }) => ({
 }));
 
 export const attendanceRecordsRelations = relations(attendanceRecords, ({ one }) => ({
+  church: one(churches, {
+    fields: [attendanceRecords.churchId],
+    references: [churches.id],
+  }),
   member: one(members, {
     fields: [attendanceRecords.memberId],
     references: [members.id],
@@ -73,6 +152,10 @@ export const attendanceRecordsRelations = relations(attendanceRecords, ({ one })
 }));
 
 export const followUpRecordsRelations = relations(followUpRecords, ({ one }) => ({
+  church: one(churches, {
+    fields: [followUpRecords.churchId],
+    references: [churches.id],
+  }),
   member: one(members, {
     fields: [followUpRecords.memberId],
     references: [members.id],
@@ -82,6 +165,7 @@ export const followUpRecordsRelations = relations(followUpRecords, ({ one }) => 
 // First-time visitors table for detailed visitor information
 export const visitors = pgTable("visitors", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  churchId: varchar("church_id").notNull().references(() => churches.id, { onDelete: "cascade" }),
   memberId: varchar("member_id").references(() => members.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   gender: varchar("gender", { length: 10 }), // male, female
@@ -103,6 +187,10 @@ export const visitors = pgTable("visitors", {
 });
 
 export const visitorsRelations = relations(visitors, ({ one, many }) => ({
+  church: one(churches, {
+    fields: [visitors.churchId],
+    references: [churches.id],
+  }),
   member: one(members, {
     fields: [visitors.memberId],
     references: [members.id],
@@ -355,3 +443,49 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+// Multi-tenant schema definitions
+export const insertChurchSchema = createInsertSchema(churches, {
+  name: z.string().min(1, "Church name is required"),
+  subdomain: z.string().min(3, "Subdomain must be at least 3 characters").regex(/^[a-z0-9-]+$/, "Subdomain can only contain lowercase letters, numbers, and hyphens").optional(),
+  logoUrl: z.string().url("Invalid logo URL").optional().or(z.literal("")),
+  brandColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Brand color must be a valid hex color").optional(),
+  subscriptionTier: z.enum(["trial", "starter", "growth", "enterprise"]).default("trial"),
+  maxMembers: z.number().positive("Max members must be positive").default(100),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  trialStartDate: true,
+  trialEndDate: true,
+});
+
+export const insertChurchUserSchema = createInsertSchema(churchUsers, {
+  email: z.string().email("Invalid email format"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  role: z.enum(["admin", "volunteer", "data_viewer"]).default("admin"),
+  passwordHash: z.string().min(1, "Password is required"),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  lastLoginAt: true,
+});
+
+export const insertSubscriptionSchema = createInsertSchema(subscriptions, {
+  planId: z.enum(["starter", "growth", "enterprise"]),
+  status: z.enum(["active", "canceled", "past_due", "trialing", "incomplete"]),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Multi-tenant types
+export type Church = typeof churches.$inferSelect;
+export type InsertChurch = z.infer<typeof insertChurchSchema>;
+export type ChurchUser = typeof churchUsers.$inferSelect;
+export type InsertChurchUser = z.infer<typeof insertChurchUserSchema>;
+export type Subscription = typeof subscriptions.$inferSelect;
+export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;
