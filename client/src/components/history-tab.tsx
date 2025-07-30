@@ -682,20 +682,24 @@ export default function HistoryTab() {
                   }}
                   className="rounded-md border mx-auto"
                   components={{
-                    Day: ({ date, ...props }) => (
-                      <div className="relative">
-                        <button
-                          {...props}
-                          className={cn(
-                            "h-9 w-9 p-0 font-normal aria-selected:opacity-100 relative",
-                            attendanceByDate[format(date, 'yyyy-MM-dd')]?.length > 0 && "bg-[hsl(258,90%,66%)]/10"
-                          )}
-                        >
-                          {format(date, 'd')}
-                          {renderCalendarDay(date)}
-                        </button>
-                      </div>
-                    ),
+                    Day: ({ date, ...props }) => {
+                      // Filter out any non-standard props that shouldn't be passed to DOM
+                      const { displayMonth, ...buttonProps } = props;
+                      return (
+                        <div className="relative">
+                          <button
+                            {...buttonProps}
+                            className={cn(
+                              "h-9 w-9 p-0 font-normal aria-selected:opacity-100 relative",
+                              attendanceByDate[format(date, 'yyyy-MM-dd')]?.length > 0 && "bg-[hsl(258,90%,66%)]/10"
+                            )}
+                          >
+                            {format(date, 'd')}
+                            {renderCalendarDay(date)}
+                          </button>
+                        </div>
+                      );
+                    },
                   }}
                 />
                 
@@ -932,11 +936,19 @@ export default function HistoryTab() {
                       <div className="space-y-3">
                         <div className="flex justify-between">
                           <span>Recent Week Average</span>
-                          <span className="font-bold">{Math.round(trendData.slice(-7).reduce((sum, day) => sum + day.attendance, 0) / Math.min(7, trendData.length))}</span>
+                          <span className="font-bold">{(() => {
+                            const recentWeek = trendData.slice(-7);
+                            const divisor = Math.min(7, trendData.length);
+                            return divisor > 0 ? Math.round(recentWeek.reduce((sum, day) => sum + day.attendance, 0) / divisor) : 0;
+                          })()}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Previous Week Average</span>
-                          <span className="font-bold">{Math.round(trendData.slice(-14, -7).reduce((sum, day) => sum + day.attendance, 0) / Math.min(7, trendData.slice(-14, -7).length))}</span>
+                          <span className="font-bold">{(() => {
+                            const previousWeek = trendData.slice(-14, -7);
+                            const divisor = Math.min(7, previousWeek.length);
+                            return divisor > 0 ? Math.round(previousWeek.reduce((sum, day) => sum + day.attendance, 0) / divisor) : 0;
+                          })()}</span>
                         </div>
                         <div className="flex justify-between">
                           <span>Best Day</span>
@@ -1046,7 +1058,8 @@ export default function HistoryTab() {
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis 
                           dataKey="name" 
-                          tick={{ fontSize: 10, angle: -45, textAnchor: 'end' }}
+                          tick={{ fontSize: 10, textAnchor: 'end' }}
+                          angle={-45}
                           height={60}
                           interval={0}
                         />
