@@ -94,7 +94,15 @@ export default function Home() {
               </div>
               <div>
                 <h1 className="text-xl font-semibold text-slate-900">
-                  {churchData?.name || 'ChurchConnect'}
+                  ChurchConnect
+                  {churchData?.name && (
+                    <>
+                      <span className="text-slate-400 mx-2">|</span>
+                      <span className="text-base font-normal text-slate-700">
+                        {churchData.name}
+                      </span>
+                    </>
+                  )}
                 </h1>
                 <div className="flex items-center space-x-2">
                   <p className="text-sm text-slate-500">Biometric Attendance System</p>
