@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TabType, AuthState, AdminUser } from "@/lib/types";
 import { Church, User, LogIn } from "lucide-react";
 import RegisterTab from "@/components/register-tab";
@@ -17,6 +17,27 @@ export default function Home() {
     isLoading: false
   });
   const [showLogin, setShowLogin] = useState(false);
+  
+  // Get church and user data from localStorage (SaaS authentication)
+  const [churchData, setChurchData] = useState<any>(null);
+  const [userData, setUserData] = useState<any>(null);
+  
+  // Load authentication data on component mount
+  useEffect(() => {
+    const authToken = localStorage.getItem('auth_token');
+    const storedChurchData = localStorage.getItem('church_data');
+    const storedUserData = localStorage.getItem('user_data');
+    
+    if (authToken && storedChurchData && storedUserData) {
+      setChurchData(JSON.parse(storedChurchData));
+      setUserData(JSON.parse(storedUserData));
+      setAuthState({
+        isAuthenticated: true,
+        user: JSON.parse(storedUserData),
+        isLoading: false
+      });
+    }
+  }, []);
   
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -72,22 +93,54 @@ export default function Home() {
                 <Church className="text-white text-lg" />
               </div>
               <div>
-                <h1 className="text-xl font-semibold text-slate-900">ChurchConnect</h1>
-                <p className="text-sm text-slate-500">Biometric Attendance System</p>
+                <h1 className="text-xl font-semibold text-slate-900">
+                  {churchData?.name || 'ChurchConnect'}
+                </h1>
+                <div className="flex items-center space-x-2">
+                  <p className="text-sm text-slate-500">Biometric Attendance System</p>
+                  {churchData?.subscriptionTier && (
+                    <>
+                      <span className="text-slate-300">•</span>
+                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                        churchData.subscriptionTier === 'trial' 
+                          ? 'bg-blue-100 text-blue-800'
+                          : churchData.subscriptionTier === 'enterprise'
+                          ? 'bg-purple-100 text-purple-800'
+                          : churchData.subscriptionTier === 'growth'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {churchData.subscriptionTier === 'trial' ? 'Free Trial' :
+                         churchData.subscriptionTier.charAt(0).toUpperCase() + churchData.subscriptionTier.slice(1)} Plan
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex items-center space-x-4">
               <div className="text-right">
                 <p className="text-sm font-medium text-slate-900">
-                  {authState.user ? authState.user.fullName : 'ChurchConnect User'}
+                  {userData ? `${userData.firstName} ${userData.lastName}` : 
+                   authState.user ? authState.user.fullName : 'ChurchConnect User'}
                 </p>
-                <p className="text-xs text-slate-500">{currentDate}</p>
+                <div className="flex items-center justify-end space-x-2">
+                  {userData?.role && (
+                    <span className="text-xs px-1.5 py-0.5 bg-slate-100 text-slate-600 rounded">
+                      {userData.role.charAt(0).toUpperCase() + userData.role.slice(1)}
+                    </span>
+                  )}
+                  <p className="text-xs text-slate-500">{currentDate}</p>
+                </div>
               </div>
               {authState.user ? (
                 <div className="flex items-center space-x-2">
                   <div className="w-8 h-8 bg-[hsl(258,90%,66%)] rounded-full flex items-center justify-center">
                     <span className="text-white text-xs font-medium">
-                      {authState.user.fullName.split(' ').map(n => n[0]).join('')}
+                      {userData && userData.firstName && userData.lastName ? 
+                        `${userData.firstName[0]}${userData.lastName[0]}` : 
+                        authState.user?.fullName ? 
+                          authState.user.fullName.split(' ').map(n => n[0]).join('') : 'U'}
                     </span>
                   </div>
                   <button
