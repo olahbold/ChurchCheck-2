@@ -28,10 +28,14 @@ export async function apiRequest(
 ): Promise<any> {
   const { method = 'GET', body, headers = {} } = options || {};
   
+  // Get auth token from localStorage for SaaS authentication
+  const authToken = localStorage.getItem('auth_token');
+  
   const res = await fetch(url, {
     method,
     headers: {
       'Content-Type': 'application/json',
+      ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
       ...headers,
     },
     body,
@@ -48,7 +52,13 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    // Get auth token from localStorage for SaaS authentication
+    const authToken = localStorage.getItem('auth_token');
+    
     const res = await fetch(queryKey.join("/") as string, {
+      headers: {
+        ...(authToken && { 'Authorization': `Bearer ${authToken}` }),
+      },
       credentials: "include",
     });
 
