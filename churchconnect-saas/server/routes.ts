@@ -2,6 +2,12 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import churchRoutes from "./church-routes.js";
+import subscriptionRoutes from "./subscription-routes.js";
+import { 
+  requireFeature, 
+  checkTrialStatus, 
+  checkMemberLimit 
+} from "./feature-gate-middleware.js";
 import { 
   insertMemberSchema, 
   updateMemberSchema,
@@ -14,8 +20,11 @@ import {
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Member routes
-  app.post("/api/members", async (req, res) => {
+  // Apply trial status checking to all routes
+  app.use('/api', checkTrialStatus);
+
+  // Member routes with feature gating
+  app.post("/api/members", checkMemberLimit, requireFeature('member_management'), async (req, res) => {
     try {
       console.log('Member creation request body:', JSON.stringify(req.body, null, 2));
       
@@ -235,8 +244,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Attendance routes
-  app.post("/api/attendance", async (req, res) => {
+  // Attendance routes with biometric feature gating
+  app.post("/api/attendance", requireFeature('basic_checkin'), async (req, res) => {
     try {
       const attendanceData = insertAttendanceRecordSchema.parse(req.body);
       
@@ -1085,6 +1094,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Church routes for multi-tenant functionality
   app.use('/api/churches', churchRoutes);
+  
+  // Subscription management routes
+  app.use('/api/subscriptions', subscriptionRoutes);
 
   const httpServer = createServer(app);
   return httpServer;

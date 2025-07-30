@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/toaster';
 import LandingPage from '@/pages/landing';
 import RegisterPage from '@/pages/register';
 import LoginPage from '@/pages/login';
+import SubscriptionPage from '@/pages/subscription';
 import Home from '@/pages/home';
 
 const queryClient = new QueryClient({
@@ -26,6 +27,9 @@ function App() {
             <Route path="/" component={LandingPage} />
             <Route path="/register" component={RegisterPage} />
             <Route path="/login" component={LoginPage} />
+            
+            {/* SaaS management routes */}
+            <Route path="/subscription" component={SubscriptionPage} />
             
             {/* Protected app routes - redirect to original app for now */}
             <Route path="/dashboard" component={Home} />

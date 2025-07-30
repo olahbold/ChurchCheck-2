@@ -166,14 +166,21 @@ export class ChurchStorage {
 
     // Feature matrix based on subscription tiers
     const featureMatrix: Record<string, string[]> = {
+      // Basic features available to all paid tiers
+      'basic_checkin': ['starter', 'growth', 'enterprise'],
+      'member_management': ['starter', 'growth', 'enterprise'],
+      'basic_reports': ['starter', 'growth', 'enterprise'],
+      
+      // Growth tier features
       'biometric_checkin': ['growth', 'enterprise'],
       'family_checkin': ['growth', 'enterprise'],
       'visitor_management': ['growth', 'enterprise'],
       'history_tracking': ['growth', 'enterprise'],
       'follow_up_queue': ['growth', 'enterprise'],
-      'basic_reports': ['growth', 'enterprise'],
+      'email_notifications': ['growth', 'enterprise'],
+      
+      // Enterprise-only features
       'full_analytics': ['enterprise'],
-      'email_notifications': ['enterprise'],
       'sms_notifications': ['enterprise'],
       'bulk_upload': ['enterprise'],
       'advanced_roles': ['enterprise'],
@@ -184,6 +191,60 @@ export class ChurchStorage {
 
     const allowedTiers = featureMatrix[feature] || [];
     return allowedTiers.includes(subscriptionTier);
+  }
+
+  // Enhanced feature access with usage limits
+  async checkFeatureLimit(churchId: string, feature: string, currentUsage: number): Promise<{
+    allowed: boolean;
+    reason?: string;
+    limit?: number;
+  }> {
+    const hasAccess = await this.hasFeatureAccess(churchId, feature);
+    if (!hasAccess) {
+      return { 
+        allowed: false, 
+        reason: 'Feature not available in current subscription tier' 
+      };
+    }
+
+    const church = await this.getChurchById(churchId);
+    if (!church) {
+      return { allowed: false, reason: 'Church not found' };
+    }
+
+    // Define usage limits per tier
+    const usageLimits: Record<string, Record<string, number>> = {
+      starter: {
+        members: 100,
+        monthly_reports: 5,
+        email_notifications: 100,
+      },
+      growth: {
+        members: 999999,
+        monthly_reports: 50,
+        email_notifications: 1000,
+        sms_notifications: 0, // Not available
+      },
+      enterprise: {
+        members: 999999,
+        monthly_reports: 999999,
+        email_notifications: 999999,
+        sms_notifications: 999999,
+      },
+    };
+
+    const tierLimits = usageLimits[church.subscriptionTier] || {};
+    const limit = tierLimits[feature];
+
+    if (limit !== undefined && currentUsage >= limit) {
+      return {
+        allowed: false,
+        reason: `Usage limit reached (${limit}). Upgrade your subscription for higher limits.`,
+        limit,
+      };
+    }
+
+    return { allowed: true, limit };
   }
 
   // Church onboarding and setup
