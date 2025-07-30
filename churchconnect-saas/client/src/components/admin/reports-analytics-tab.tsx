@@ -1,0 +1,701 @@
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { ReportData } from "@/lib/types";
+import { 
+  Calendar, 
+  Users, 
+  TrendingUp, 
+  Download, 
+  Play, 
+  Clock,
+  BarChart3,
+  FileText,
+  AlertTriangle,
+  UserPlus,
+  UserX,
+  Target,
+  Heart,
+  Activity,
+  X
+} from "lucide-react";
+
+const REPORT_CONFIGS = [
+  {
+    id: 'weekly-attendance',
+    title: 'Weekly Attendance Summary',
+    description: 'Total number present by group (Male, Female, Children, Adolescents)',
+    frequency: 'weekly' as const,
+    icon: Calendar,
+    color: 'bg-[hsl(142,76%,36%)]/10 text-[hsl(142,76%,36%)]'
+  },
+  {
+    id: 'member-attendance-log',
+    title: 'Member Attendance Log',
+    description: 'Individual attendance history by date',
+    frequency: 'on-demand' as const,
+    icon: Users,
+    color: 'bg-[hsl(258,90%,66%)]/10 text-[hsl(258,90%,66%)]'
+  },
+  {
+    id: 'missed-services',
+    title: 'Missed 3+ Services Report',
+    description: 'List of members who have missed 3 or more consecutive services',
+    frequency: 'weekly' as const,
+    icon: AlertTriangle,
+    color: 'bg-[hsl(45,93%,47%)]/10 text-[hsl(45,93%,47%)]'
+  },
+  {
+    id: 'new-members',
+    title: 'New Members Report',
+    description: 'Members who registered within a selected date range',
+    frequency: 'monthly' as const,
+    icon: UserPlus,
+    color: 'bg-[hsl(271,91%,65%)]/10 text-[hsl(271,91%,65%)]'
+  },
+  {
+    id: 'inactive-members',
+    title: 'Inactive Members Report',
+    description: 'Members with no check-in for the last X weeks/months',
+    frequency: 'monthly' as const,
+    icon: UserX,
+    color: 'bg-[hsl(0,84%,60%)]/10 text-[hsl(0,84%,60%)]'
+  },
+  {
+    id: 'group-attendance-trend',
+    title: 'Group-wise Attendance Trend',
+    description: 'Compare attendance trends across groups (e.g., Children vs Adults)',
+    frequency: 'monthly' as const,
+    icon: TrendingUp,
+    color: 'bg-[hsl(142,76%,36%)]/10 text-[hsl(142,76%,36%)]'
+  },
+  {
+    id: 'family-checkin-summary',
+    title: 'Family Check-in Summary',
+    description: 'Show which families checked in with children (parent-child mapping)',
+    frequency: 'weekly' as const,
+    icon: Heart,
+    color: 'bg-pink-500/10 text-pink-600'
+  },
+  {
+    id: 'followup-action-tracker',
+    title: 'Follow-up Action Tracker',
+    description: 'Shows members who were contacted after being absent',
+    frequency: 'weekly' as const,
+    icon: Target,
+    color: 'bg-indigo-500/10 text-indigo-600'
+  }
+];
+
+export default function ReportsAnalyticsTab() {
+  const [selectedReport, setSelectedReport] = useState<string>('weekly-attendance');
+  const [dateRange, setDateRange] = useState({
+    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
+  });
+  const [reportParams, setReportParams] = useState<any>({});
+  const [showReportListModal, setShowReportListModal] = useState(false);
+  const [filteredReportType, setFilteredReportType] = useState<string | null>(null);
+
+  // Fetch report data
+  const { data: reportData, isLoading, refetch } = useQuery<ReportData>({
+    queryKey: [`/api/reports/${selectedReport}`, dateRange, reportParams],
+    enabled: !!selectedReport,
+    queryFn: async () => {
+      // Build query parameters
+      const params = new URLSearchParams();
+      params.append('startDate', dateRange.startDate);
+      params.append('endDate', dateRange.endDate);
+      
+      // Add specific report parameters
+      if (reportParams.weeks) {
+        params.append('weeks', reportParams.weeks.toString());
+      }
+      if (reportParams.memberId) {
+        params.append('memberId', reportParams.memberId);
+      }
+      
+      const url = `/api/reports/${selectedReport}?${params.toString()}`;
+      const response = await fetch(url, { credentials: 'include' });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      return await response.json();
+    },
+  });
+
+  const selectedReportConfig = REPORT_CONFIGS.find(r => r.id === selectedReport);
+
+  const handleRunReport = () => {
+    refetch();
+  };
+
+  const handleExportReport = async () => {
+    if (!reportData) return;
+
+    const csvContent = convertToCSV(reportData, selectedReportConfig?.title || 'Report');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${selectedReportConfig?.title?.replace(/\s+/g, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  };
+
+  const convertToCSV = (data: ReportData, title: string): string => {
+    if (!data) return `${title}\nNo data available`;
+    
+    // Handle array data
+    if (Array.isArray(data)) {
+      if (data.length === 0) return `${title}\nNo data available`;
+      
+      const headers = Object.keys(data[0]);
+      
+      // Add sequential numbering for Member Attendance Log
+      if (title.includes('Member Attendance Log')) {
+        const csvData = data.map((row, index) => {
+          const rowData = [`"${index + 1}"`]; // Sequential number
+          headers.forEach(header => {
+            if (header !== 'memberId') { // Exclude memberId
+              rowData.push(`"${row[header] || ''}"`);
+            }
+          });
+          return rowData.join(',');
+        }).join('\n');
+        
+        const csvHeaders = ['No.', ...headers.filter(h => h !== 'memberId')];
+        return `${csvHeaders.join(',')}\n${csvData}`;
+      }
+      
+      // Regular CSV generation for other reports
+      const csvData = data.map(row => 
+        headers.map(header => `"${row[header] || ''}"`).join(',')
+      ).join('\n');
+      
+      return `${headers.join(',')}\n${csvData}`;
+    }
+    
+    // Handle object data - convert to JSON string
+    return `${title}\n${JSON.stringify(data, null, 2)}`;
+  };
+
+  const getFrequencyBadge = (frequency: string) => {
+    const colors = {
+      weekly: 'bg-[hsl(142,76%,36%)]/10 text-[hsl(142,76%,36%)]',
+      monthly: 'bg-[hsl(45,93%,47%)]/10 text-[hsl(45,93%,47%)]',
+      'on-demand': 'bg-[hsl(258,90%,66%)]/10 text-[hsl(258,90%,66%)]'
+    };
+    
+    return (
+      <Badge className={colors[frequency as keyof typeof colors] || colors['on-demand']}>
+        {frequency.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+      </Badge>
+    );
+  };
+
+  const handleSummaryCardClick = (type: string) => {
+    setFilteredReportType(type);
+    setShowReportListModal(true);
+  };
+
+  const getFilteredReports = () => {
+    if (!filteredReportType) return REPORT_CONFIGS;
+    
+    switch (filteredReportType) {
+      case 'total':
+        return REPORT_CONFIGS;
+      case 'weekly':
+        return REPORT_CONFIGS.filter(r => r.frequency === 'weekly');
+      case 'monthly':
+        return REPORT_CONFIGS.filter(r => r.frequency === 'monthly');
+      case 'on-demand':
+        return REPORT_CONFIGS.filter(r => r.frequency === 'on-demand');
+      default:
+        return REPORT_CONFIGS;
+    }
+  };
+
+  const getSummaryTitle = () => {
+    switch (filteredReportType) {
+      case 'total':
+        return 'All Reports';
+      case 'weekly':
+        return 'Weekly Reports';
+      case 'monthly':
+        return 'Monthly Reports';
+      case 'on-demand':
+        return 'On-Demand Reports';
+      default:
+        return 'Reports';
+    }
+  };
+
+  const renderReportData = () => {
+    if (isLoading) {
+      return (
+        <div className="flex items-center justify-center py-12">
+          <Activity className="h-8 w-8 animate-spin text-[hsl(258,90%,66%)]" />
+          <span className="ml-2 text-slate-600">Generating report...</span>
+        </div>
+      );
+    }
+
+    if (!reportData || (Array.isArray(reportData) && reportData.length === 0)) {
+      return (
+        <div className="text-center py-12">
+          <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+          <p className="text-slate-500">No data available for this report</p>
+          <p className="text-sm text-slate-400">Try adjusting the date range or parameters</p>
+        </div>
+      );
+    }
+
+    // Render data based on report type
+    if (Array.isArray(reportData)) {
+      return (
+        <div className="space-y-4">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse border border-slate-200">
+              <thead>
+                <tr className="bg-slate-50">
+                  {Object.keys(reportData[0]).map((key) => (
+                    <th key={key} className="border border-slate-200 p-3 text-left font-medium text-slate-900">
+                      {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {reportData.slice(0, 100).map((row, index) => (
+                  <tr key={index} className="hover:bg-slate-50">
+                    {Object.values(row).map((value, i) => (
+                      <td key={i} className="border border-slate-200 p-3 text-slate-700">
+                        {typeof value === 'string' && value.includes('T') && value.includes('Z') 
+                          ? new Date(value).toLocaleDateString()
+                          : String(value)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {reportData.length > 100 && (
+            <p className="text-sm text-slate-500 text-center">
+              Showing first 100 rows of {reportData.length} total records
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    return <pre className="bg-slate-50 p-4 rounded-lg text-sm overflow-x-auto">{JSON.stringify(reportData, null, 2)}</pre>;
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Analytics Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <Card 
+          className="church-stat-card cursor-pointer hover:shadow-md transition-shadow" 
+          onClick={() => handleSummaryCardClick('total')}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-600">Total Reports</p>
+              <p className="text-3xl font-bold text-slate-900">{REPORT_CONFIGS.length}</p>
+            </div>
+            <div className="w-12 h-12 bg-[hsl(258,90%,66%)]/10 rounded-lg flex items-center justify-center">
+              <BarChart3 className="text-[hsl(258,90%,66%)] text-xl" />
+            </div>
+          </div>
+        </Card>
+
+        <Card 
+          className="church-stat-card cursor-pointer hover:shadow-md transition-shadow" 
+          onClick={() => handleSummaryCardClick('weekly')}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-600">Weekly Reports</p>
+              <p className="text-3xl font-bold text-slate-900">
+                {REPORT_CONFIGS.filter(r => r.frequency === 'weekly').length}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-[hsl(142,76%,36%)]/10 rounded-lg flex items-center justify-center">
+              <Calendar className="text-[hsl(142,76%,36%)] text-xl" />
+            </div>
+          </div>
+        </Card>
+
+        <Card 
+          className="church-stat-card cursor-pointer hover:shadow-md transition-shadow" 
+          onClick={() => handleSummaryCardClick('monthly')}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-600">Monthly Reports</p>
+              <p className="text-3xl font-bold text-slate-900">
+                {REPORT_CONFIGS.filter(r => r.frequency === 'monthly').length}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-[hsl(45,93%,47%)]/10 rounded-lg flex items-center justify-center">
+              <Clock className="text-[hsl(45,93%,47%)] text-xl" />
+            </div>
+          </div>
+        </Card>
+
+        <Card 
+          className="church-stat-card cursor-pointer hover:shadow-md transition-shadow" 
+          onClick={() => handleSummaryCardClick('on-demand')}
+        >
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-slate-600">On-Demand</p>
+              <p className="text-3xl font-bold text-slate-900">
+                {REPORT_CONFIGS.filter(r => r.frequency === 'on-demand').length}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-[hsl(271,91%,65%)]/10 rounded-lg flex items-center justify-center">
+              <Play className="text-[hsl(271,91%,65%)] text-xl" />
+            </div>
+          </div>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="reports" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 h-12">
+          <TabsTrigger value="reports">Report Generator</TabsTrigger>
+          <TabsTrigger value="library">Report Library</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="reports" className="space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Report Selection */}
+            <Card className="church-card">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-slate-900">Select Report</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {REPORT_CONFIGS.map((report) => {
+                    const Icon = report.icon;
+                    return (
+                      <div
+                        key={report.id}
+                        onClick={() => setSelectedReport(report.id)}
+                        className={`p-4 border rounded-lg cursor-pointer transition-colors ${
+                          selectedReport === report.id 
+                            ? 'border-[hsl(258,90%,66%)] bg-[hsl(258,90%,66%)]/5' 
+                            : 'border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${report.color}`}>
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium text-slate-900">{report.title}</h4>
+                              {getFrequencyBadge(report.frequency)}
+                            </div>
+                            <p className="text-sm text-slate-600">{report.description}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Report Parameters */}
+            <Card className="church-card">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-slate-900">Parameters</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">Start Date</label>
+                    <Input
+                      type="date"
+                      value={dateRange.startDate}
+                      onChange={(e) => setDateRange((prev: any) => ({ ...prev, startDate: e.target.value }))}
+                      className="church-form-input"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="text-sm font-medium text-slate-700 mb-2 block">End Date</label>
+                    <Input
+                      type="date"
+                      value={dateRange.endDate}
+                      onChange={(e) => setDateRange((prev: any) => ({ ...prev, endDate: e.target.value }))}
+                      className="church-form-input"
+                    />
+                  </div>
+
+                  {selectedReport === 'missed-services' && (
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">Weeks Absent</label>
+                      <Select 
+                        value={reportParams.weeks?.toString() || '3'} 
+                        onValueChange={(value) => setReportParams((prev: any) => ({ ...prev, weeks: parseInt(value) }))}
+                      >
+                        <SelectTrigger className="church-form-input">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="2">2 weeks</SelectItem>
+                          <SelectItem value="3">3 weeks</SelectItem>
+                          <SelectItem value="4">4 weeks</SelectItem>
+                          <SelectItem value="6">6 weeks</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  {selectedReport === 'inactive-members' && (
+                    <div>
+                      <label className="text-sm font-medium text-slate-700 mb-2 block">Inactive Period</label>
+                      <Select 
+                        value={reportParams.weeks?.toString() || '4'} 
+                        onValueChange={(value) => setReportParams((prev: any) => ({ ...prev, weeks: parseInt(value) }))}
+                      >
+                        <SelectTrigger className="church-form-input">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="4">4 weeks</SelectItem>
+                          <SelectItem value="8">8 weeks</SelectItem>
+                          <SelectItem value="12">12 weeks</SelectItem>
+                          <SelectItem value="24">6 months</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div className="pt-4 space-y-3">
+                    <Button 
+                      onClick={handleRunReport}
+                      disabled={isLoading}
+                      className="church-button-primary w-full"
+                    >
+                      <Play className="mr-2 h-4 w-4" />
+                      {isLoading ? 'Generating...' : 'Generate Report'}
+                    </Button>
+
+                    {reportData && (
+                      <Button 
+                        onClick={handleExportReport}
+                        variant="outline"
+                        className="w-full"
+                      >
+                        <Download className="mr-2 h-4 w-4" />
+                        Export CSV
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Report Preview */}
+            <Card className="church-card">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-slate-900">
+                  {selectedReportConfig?.title || 'Report Preview'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {selectedReportConfig && (
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${selectedReportConfig.color}`}>
+                        <selectedReportConfig.icon className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-slate-900">{selectedReportConfig.title}</p>
+                        <p className="text-sm text-slate-600">{selectedReportConfig.description}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="pt-4 border-t border-slate-200">
+                      <p className="text-sm font-medium text-slate-700 mb-2">Frequency</p>
+                      {getFrequencyBadge(selectedReportConfig.frequency)}
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-200">
+                      <p className="text-sm font-medium text-slate-700 mb-2">Date Range</p>
+                      <p className="text-sm text-slate-600">
+                        {new Date(dateRange.startDate).toLocaleDateString()} - {new Date(dateRange.endDate).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Report Status */}
+          {reportData && (
+            <Card className="church-card">
+              <CardHeader>
+                <CardTitle className="text-lg font-semibold text-slate-900">Report Generated</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center py-8">
+                <div className="flex flex-col items-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+                    <Download className="h-8 w-8 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                      {selectedReportConfig?.title} Ready
+                    </h3>
+                    <p className="text-slate-600 mb-4">
+                      Your report has been generated successfully with {Array.isArray(reportData) ? reportData.length : 1} record(s).
+                    </p>
+                    <Button 
+                      onClick={handleExportReport}
+                      className="church-button-primary"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      Download CSV Report
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="library" className="space-y-6">
+          <Card className="church-card">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-slate-900">Available Reports</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {REPORT_CONFIGS.map((report) => {
+                  const Icon = report.icon;
+                  return (
+                    <Card key={report.id} className="church-card hover:shadow-md transition-shadow">
+                      <CardContent className="p-6">
+                        <div className="flex items-start space-x-4">
+                          <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${report.color}`}>
+                            <Icon className="h-6 w-6" />
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="font-medium text-slate-900">{report.title}</h4>
+                              {getFrequencyBadge(report.frequency)}
+                            </div>
+                            <p className="text-sm text-slate-600 mb-4">{report.description}</p>
+                            <Button 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedReport(report.id);
+                                // Switch to reports tab
+                                const tabsTrigger = document.querySelector('[value="reports"]') as HTMLElement;
+                                tabsTrigger?.click();
+                              }}
+                              className="church-button-primary"
+                            >
+                              <Play className="mr-2 h-3 w-3" />
+                              Run Report
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Report List Modal */}
+      <Dialog open={showReportListModal} onOpenChange={setShowReportListModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between">
+              <span>{getSummaryTitle()} ({getFilteredReports().length})</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowReportListModal(false)}
+                className="h-6 w-6 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </DialogTitle>
+            <DialogDescription>
+              Click any report below to run it directly in the Report Generator tab.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            {getFilteredReports().map((report) => {
+              const Icon = report.icon;
+              return (
+                <Card key={report.id} className="church-card hover:shadow-md transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-start space-x-3">
+                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${report.color}`}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium text-slate-900">{report.title}</h4>
+                          {getFrequencyBadge(report.frequency)}
+                        </div>
+                        <p className="text-sm text-slate-600 mb-3">{report.description}</p>
+                        <Button 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedReport(report.id);
+                            setShowReportListModal(false);
+                            // Switch to reports tab
+                            const tabsTrigger = document.querySelector('[value="reports"]') as HTMLElement;
+                            tabsTrigger?.click();
+                          }}
+                          className="church-button-primary"
+                        >
+                          <Play className="mr-1 h-3 w-3" />
+                          Run Report
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+
+          <DialogFooter className="mt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowReportListModal(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
