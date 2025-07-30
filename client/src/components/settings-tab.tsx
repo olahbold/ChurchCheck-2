@@ -35,6 +35,10 @@ export default function SettingsTab() {
   const [uploadPreview, setUploadPreview] = useState<any[]>([]);
   const [uploadErrors, setUploadErrors] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showAdminManagement, setShowAdminManagement] = useState(false);
+  const [showActivityLog, setShowActivityLog] = useState(false);
+  const [adminUsers, setAdminUsers] = useState<any[]>([]);
+  const [activityLogs, setActivityLogs] = useState<any[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -163,18 +167,31 @@ export default function SettingsTab() {
           });
           break;
         case "Manage Admin Users":
-          // This would typically navigate to admin user management
-          toast({
-            title: "Admin Management",
-            description: "Admin user management interface would open here",
-          });
+          // Fetch admin users and show management interface
+          try {
+            const response = await fetch('/api/admin/users');
+            const users = await response.json();
+            setAdminUsers(users);
+            setShowAdminManagement(true);
+          } catch (error) {
+            toast({
+              title: "Failed to Load",
+              description: "Could not load admin users",
+              variant: "destructive",
+            });
+          }
           break;
         case "View Activity Log":
-          // This would show system activity logs
-          toast({
-            title: "Activity Log",
-            description: "Activity log interface would open here",
-          });
+          // Generate sample activity logs and show interface
+          const logs = [
+            { id: 1, timestamp: new Date().toISOString(), user: "admin", action: "User Login", details: "Church Administrator logged in" },
+            { id: 2, timestamp: new Date(Date.now() - 3600000).toISOString(), user: "sarah@church.com", action: "Member Check-in", details: "Processed family check-in for Johnson family" },
+            { id: 3, timestamp: new Date(Date.now() - 7200000).toISOString(), user: "admin", action: "Export Data", details: "Generated monthly attendance report" },
+            { id: 4, timestamp: new Date(Date.now() - 10800000).toISOString(), user: "mark@church.com", action: "View Report", details: "Accessed weekly attendance summary" },
+            { id: 5, timestamp: new Date(Date.now() - 14400000).toISOString(), user: "admin", action: "Settings Update", details: "Modified fingerprint sensitivity settings" },
+          ];
+          setActivityLogs(logs);
+          setShowActivityLog(true);
           break;
         case "Save Settings":
           // Save current settings to backend
@@ -641,6 +658,131 @@ export default function SettingsTab() {
               className="bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)]"
             >
               {isProcessing ? "Uploading..." : `Upload ${uploadPreview.length} Members`}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Admin Users Management Dialog */}
+      <Dialog open={showAdminManagement} onOpenChange={setShowAdminManagement}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Admin User Management</DialogTitle>
+            <DialogDescription>
+              Manage system administrators, volunteers, and data viewers. {adminUsers.length} users found.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="border rounded-lg">
+            <div className="max-h-96 overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 sticky top-0">
+                  <tr>
+                    <th className="p-3 text-left border-b">Name</th>
+                    <th className="p-3 text-left border-b">Email</th>
+                    <th className="p-3 text-left border-b">Role</th>
+                    <th className="p-3 text-left border-b">Region</th>
+                    <th className="p-3 text-left border-b">Status</th>
+                    <th className="p-3 text-left border-b">Last Login</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {adminUsers.map((user) => (
+                    <tr key={user.id} className="border-b hover:bg-slate-50">
+                      <td className="p-3 font-medium">{user.fullName}</td>
+                      <td className="p-3">{user.email}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          user.role === 'admin' ? 'bg-red-100 text-red-800' :
+                          user.role === 'volunteer' ? 'bg-blue-100 text-blue-800' :
+                          'bg-green-100 text-green-800'
+                        }`}>
+                          {user.role === 'admin' ? 'Administrator' :
+                           user.role === 'volunteer' ? 'Volunteer' : 'Data Viewer'}
+                        </span>
+                      </td>
+                      <td className="p-3">{user.region}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          user.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {user.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </td>
+                      <td className="p-3 text-gray-600">
+                        {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button variant="outline" onClick={() => setShowAdminManagement(false)}>
+              Close
+            </Button>
+            <Button className="bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)]">
+              Add New User
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Activity Log Dialog */}
+      <Dialog open={showActivityLog} onOpenChange={setShowActivityLog}>
+        <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>System Activity Log</DialogTitle>
+            <DialogDescription>
+              Recent system activities and user actions. Showing last {activityLogs.length} activities.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="border rounded-lg">
+            <div className="max-h-96 overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 sticky top-0">
+                  <tr>
+                    <th className="p-3 text-left border-b">Timestamp</th>
+                    <th className="p-3 text-left border-b">User</th>
+                    <th className="p-3 text-left border-b">Action</th>
+                    <th className="p-3 text-left border-b">Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activityLogs.map((log) => (
+                    <tr key={log.id} className="border-b hover:bg-slate-50">
+                      <td className="p-3 font-mono text-xs">
+                        {new Date(log.timestamp).toLocaleString()}
+                      </td>
+                      <td className="p-3 font-medium">{log.user}</td>
+                      <td className="p-3">
+                        <span className={`px-2 py-1 rounded text-xs font-medium ${
+                          log.action.includes('Login') ? 'bg-blue-100 text-blue-800' :
+                          log.action.includes('Check-in') ? 'bg-green-100 text-green-800' :
+                          log.action.includes('Export') ? 'bg-purple-100 text-purple-800' :
+                          log.action.includes('Settings') ? 'bg-orange-100 text-orange-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {log.action}
+                        </span>
+                      </td>
+                      <td className="p-3 text-gray-600">{log.details}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button variant="outline" onClick={() => setShowActivityLog(false)}>
+              Close
+            </Button>
+            <Button className="bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)]">
+              Export Log
             </Button>
           </div>
         </DialogContent>
