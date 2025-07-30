@@ -45,11 +45,7 @@ export default function DashboardTab() {
   // Mutation for individual follow-up
   const sendFollowUpMutation = useMutation({
     mutationFn: async ({ memberId, method }: { memberId: string; method: 'sms' | 'email' }) => {
-      return await apiRequest(`/api/follow-up/${memberId}`, {
-        method: 'POST',
-        body: JSON.stringify({ method }),
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return await apiRequest('POST', `/api/follow-up/${memberId}`, { method });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/follow-up'] });
@@ -77,10 +73,8 @@ export default function DashboardTab() {
     setIsSendingAll(true);
     try {
       const promises = followUpMembers.map(member => 
-        apiRequest(`/api/follow-up/${member.id}`, {
-          method: 'POST',
-          body: JSON.stringify({ method: member.phone ? 'sms' : 'email' }),
-          headers: { 'Content-Type': 'application/json' }
+        apiRequest('POST', `/api/follow-up/${member.id}`, {
+          method: member.phone ? 'sms' : 'email'
         })
       );
       
@@ -307,7 +301,7 @@ export default function DashboardTab() {
                           {member.firstName} {member.surname}
                         </p>
                         <p className="text-sm text-slate-500">
-                          {member.group} • {member.isCurrentMember ? 'Current' : 'New'} Member
+                          {member.ageGroup} • {member.isCurrentMember ? 'Current' : 'New'} Member
                         </p>
                       </div>
                     </div>
