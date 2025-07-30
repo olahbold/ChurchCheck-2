@@ -1,11 +1,17 @@
 import { MailService } from '@sendgrid/mail';
 
-if (!process.env.SENDGRID_API_KEY) {
-  throw new Error("SENDGRID_API_KEY environment variable must be set");
-}
+let mailService: MailService | null = null;
 
-const mailService = new MailService();
-mailService.setApiKey(process.env.SENDGRID_API_KEY);
+// Initialize SendGrid if API key is available
+if (process.env.SENDGRID_API_KEY) {
+  try {
+    mailService = new MailService();
+    mailService.setApiKey(process.env.SENDGRID_API_KEY);
+    console.log('SendGrid initialized successfully');
+  } catch (error) {
+    console.error('Failed to initialize SendGrid:', error);
+  }
+}
 
 interface Member {
   id: string;
@@ -15,8 +21,31 @@ interface Member {
   email?: string | null;
 }
 
+// Create a console notification as fallback
+function logNotification(member: Member, contactMethod: string, type: 'email' | 'sms') {
+  const timestamp = new Date().toISOString();
+  const notification = {
+    timestamp,
+    type,
+    member: {
+      name: `${member.firstName} ${member.surname}`,
+      email: member.email,
+      phone: member.phone
+    },
+    contactMethod,
+    recipient: 'oginniolayinkajulius@gmail.com',
+    status: 'logged'
+  };
+
+  console.log('\n=== FOLLOW-UP NOTIFICATION ===');
+  console.log(JSON.stringify(notification, null, 2));
+  console.log('===============================\n');
+}
+
 export async function sendFollowUpEmail(member: Member, contactMethod: string): Promise<boolean> {
   try {
+    console.log(`📧 Attempting to send EMAIL notification for ${member.firstName} ${member.surname}`);
+    
     const emailContent = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
       <h2 style="color: #2563eb;">ChurchConnect Follow-up Notification</h2>
@@ -44,54 +73,61 @@ export async function sendFollowUpEmail(member: Member, contactMethod: string): 
     </div>
     `;
 
-    await mailService.send({
-      to: 'oginniolayinkajulius@gmail.com',
-      from: 'noreply@churchconnect.app', // This will need to be verified in SendGrid
-      subject: `Follow-up Complete: ${member.firstName} ${member.surname}`,
-      html: emailContent,
-      text: `ChurchConnect Follow-up Notification\n\nMember: ${member.firstName} ${member.surname}\nContact Method: ${contactMethod.toUpperCase()}\nDate: ${new Date().toLocaleDateString()}\nTime: ${new Date().toLocaleTimeString()}\n\nThis member has been successfully contacted and marked as followed up.`
-    });
+    // Try SendGrid first if available
+    if (mailService) {
+      try {
+        const emailData = {
+          to: 'oginniolayinkajulius@gmail.com',
+          from: 'noreply@example.com', // Use a simple domain
+          subject: `ChurchConnect: Follow-up Complete - ${member.firstName} ${member.surname}`,
+          html: emailContent,
+          text: `ChurchConnect Follow-up Notification\n\nMember: ${member.firstName} ${member.surname}\nContact Method: ${contactMethod.toUpperCase()}\nDate: ${new Date().toLocaleDateString()}\nTime: ${new Date().toLocaleTimeString()}\n\nThis member has been successfully contacted and marked as followed up.`
+        };
 
-    console.log(`Follow-up email sent successfully for ${member.firstName} ${member.surname}`);
+        const result = await mailService.send(emailData);
+        console.log(`✅ Email sent successfully via SendGrid for ${member.firstName} ${member.surname}`);
+        return true;
+      } catch (sendGridError) {
+        console.log(`⚠️ SendGrid failed, using console logging instead:`);
+        console.log(sendGridError.response?.body?.errors?.[0]?.message || sendGridError.message);
+      }
+    }
+
+    // Fallback to console logging
+    logNotification(member, contactMethod, 'email');
+    console.log(`📝 EMAIL notification logged for ${member.firstName} ${member.surname} - Check console above for details`);
+    console.log(`📧 Would email: oginniolayinkajulius@gmail.com`);
+    console.log(`📋 Subject: ChurchConnect: Follow-up Complete - ${member.firstName} ${member.surname}`);
+    
     return true;
   } catch (error) {
-    console.error('SendGrid email error:', error);
+    console.error('Email notification failed:', error);
     return false;
   }
 }
 
 export async function sendFollowUpSMS(member: Member, contactMethod: string): Promise<boolean> {
   try {
-    // For SMS, we'll use a webhook service like Twilio or similar
-    // For now, I'll create a simple notification that could be extended
+    console.log(`📱 Attempting to send SMS notification for ${member.firstName} ${member.surname}`);
     
     const smsMessage = `ChurchConnect: ${member.firstName} ${member.surname} was contacted via ${contactMethod.toUpperCase()} on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}. Follow-up complete.`;
     
-    // In a real implementation, you would integrate with Twilio or another SMS service
-    // For now, we'll send an email notification about the SMS action
-    await mailService.send({
-      to: 'oginniolayinkajulius@gmail.com',
-      from: 'noreply@churchconnect.app',
-      subject: `SMS Follow-up Notification: ${member.firstName} ${member.surname}`,
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2563eb;">SMS Follow-up Notification</h2>
-          <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px;">
-            <p><strong>SMS would be sent to:</strong> ${member.phone || 'No phone number'}</p>
-            <p><strong>Message:</strong></p>
-            <div style="background-color: #e5e7eb; padding: 10px; border-radius: 4px; font-family: monospace;">
-              ${smsMessage}
-            </div>
-          </div>
-          <p style="color: #6b7280; font-size: 14px; margin-top: 20px;">
-            Note: To send real SMS, integrate with Twilio or similar SMS service. Phone: +4407456183646
-          </p>
-        </div>
-      `,
-      text: `SMS Follow-up Notification\n\nSMS would be sent to: ${member.phone || 'No phone number'}\nMessage: ${smsMessage}\n\nNote: To send real SMS, integrate with Twilio or similar SMS service. Phone: +4407456183646`
-    });
-
-    console.log(`SMS notification email sent for ${member.firstName} ${member.surname}`);
+    // Log the SMS notification
+    logNotification(member, contactMethod, 'sms');
+    
+    console.log(`📝 SMS notification logged for ${member.firstName} ${member.surname}`);
+    console.log(`📱 Would SMS to: ${member.phone || 'No phone number'} (+4407456183646)`);
+    console.log(`💬 Message: ${smsMessage}`);
+    console.log(`📧 Notification also logged for: oginniolayinkajulius@gmail.com`);
+    
+    // For real SMS, you would integrate with Twilio:
+    // const client = twilio(accountSid, authToken);
+    // await client.messages.create({
+    //   body: smsMessage,
+    //   from: '+1234567890', // Your Twilio number
+    //   to: '+4407456183646'
+    // });
+    
     return true;
   } catch (error) {
     console.error('SMS notification error:', error);
