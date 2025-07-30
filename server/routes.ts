@@ -383,6 +383,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Specific route must come before parameterized route
+  app.post("/api/follow-up/update-absences", async (req, res) => {
+    try {
+      await storage.updateConsecutiveAbsences();
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Update absences error:', error);
+      res.status(500).json({ error: "Failed to update absence records" });
+    }
+  });
+
   app.post("/api/follow-up/:memberId", async (req, res) => {
     try {
       const { method } = req.body; // "sms" or "email"
@@ -395,15 +406,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to update follow-up record" });
-    }
-  });
-
-  app.post("/api/follow-up/update-absences", async (req, res) => {
-    try {
-      await storage.updateConsecutiveAbsences();
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to update absence records" });
     }
   });
 

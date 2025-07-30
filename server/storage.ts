@@ -24,7 +24,7 @@ import {
   type InsertUser 
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, gte, lte, count } from "drizzle-orm";
+import { eq, desc, and, sql, gte, lte, count, isNotNull } from "drizzle-orm";
 
 export interface IStorage {
   // Legacy user methods
@@ -304,24 +304,33 @@ export class DatabaseStorage implements IStorage {
 
   // Follow-up methods
   async updateFollowUpRecord(record: InsertFollowUpRecord): Promise<FollowUpRecord> {
-    const [existingRecord] = await db
-      .select()
-      .from(followUpRecords)
-      .where(eq(followUpRecords.memberId, record.memberId));
+    try {
+      console.log('Updating follow-up record for member:', record.memberId, record);
+      
+      const [existingRecord] = await db
+        .select()
+        .from(followUpRecords)
+        .where(eq(followUpRecords.memberId, record.memberId));
 
-    if (existingRecord) {
-      const [updatedRecord] = await db
-        .update(followUpRecords)
-        .set(record)
-        .where(eq(followUpRecords.memberId, record.memberId))
-        .returning();
-      return updatedRecord;
-    } else {
-      const [newRecord] = await db
-        .insert(followUpRecords)
-        .values(record)
-        .returning();
-      return newRecord;
+      if (existingRecord) {
+        console.log('Updating existing record');
+        const [updatedRecord] = await db
+          .update(followUpRecords)
+          .set(record)
+          .where(eq(followUpRecords.memberId, record.memberId))
+          .returning();
+        return updatedRecord;
+      } else {
+        console.log('Creating new record');
+        const [newRecord] = await db
+          .insert(followUpRecords)
+          .values(record)
+          .returning();
+        return newRecord;
+      }
+    } catch (error) {
+      console.error('Error in updateFollowUpRecord:', error);
+      throw error;
     }
   }
 
@@ -339,29 +348,52 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateConsecutiveAbsences(): Promise<void> {
-    // This would be called after each service to update absence counts
-    // Implementation would check last attendance and update follow-up records
-    const threeWeeksAgo = new Date();
-    threeWeeksAgo.setDate(threeWeeksAgo.getDate() - 21);
+    try {
+      // This would be called after each service to update absence counts
+      // Implementation would check last attendance and update follow-up records
+      const threeWeeksAgo = new Date();
+      threeWeeksAgo.setDate(threeWeeksAgo.getDate() - 21);
+      const threeWeeksAgoStr = threeWeeksAgo.toISOString().split('T')[0];
 
-    const membersWithoutRecentAttendance = await db
-      .select({ id: members.id })
-      .from(members)
-      .leftJoin(
-        attendanceRecords,
-        and(
-          eq(members.id, attendanceRecords.memberId),
-          gte(attendanceRecords.attendanceDate, threeWeeksAgo.toISOString().split('T')[0])
+      // Find all current members
+      const allMembers = await db.select({ 
+        id: members.id, 
+        firstName: members.firstName, 
+        surname: members.surname 
+      }).from(members).where(eq(members.isCurrentMember, true));
+
+      // Find members who have attended in the last 3 weeks
+      const recentAttendees = await db
+        .select({ memberId: attendanceRecords.memberId })
+        .from(attendanceRecords)
+        .where(
+          and(
+            gte(attendanceRecords.attendanceDate, threeWeeksAgoStr),
+            isNotNull(attendanceRecords.memberId)
+          )
         )
-      )
-      .where(sql`${attendanceRecords.id} IS NULL`);
+        .groupBy(attendanceRecords.memberId);
 
-    for (const member of membersWithoutRecentAttendance) {
-      await this.updateFollowUpRecord({
-        memberId: member.id,
-        consecutiveAbsences: 3,
-        needsFollowUp: true,
-      });
+      const recentAttendeeIds = new Set(recentAttendees.map(r => r.memberId));
+
+      // Find members who haven't attended in 3+ weeks
+      const membersWithoutRecentAttendance = allMembers.filter(
+        member => !recentAttendeeIds.has(member.id)
+      );
+
+      console.log(`Found ${membersWithoutRecentAttendance.length} members needing follow-up`);
+
+      for (const member of membersWithoutRecentAttendance) {
+        await this.updateFollowUpRecord({
+          memberId: member.id,
+          consecutiveAbsences: 3,
+          needsFollowUp: true,
+        });
+        console.log(`Updated follow-up for ${member.firstName} ${member.surname}`);
+      }
+    } catch (error) {
+      console.error('Error updating consecutive absences:', error);
+      throw error;
     }
   }
 
