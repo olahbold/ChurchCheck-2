@@ -525,20 +525,108 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { startDate, endDate } = req.query;
       
-      // For now, export today's attendance
-      const today = new Date().toISOString().split('T')[0];
-      const attendance = await storage.getAttendanceForDate(today);
+      // Use date range if provided, otherwise use today
+      const start = startDate as string || new Date().toISOString().split('T')[0];
+      const end = endDate as string || new Date().toISOString().split('T')[0];
       
-      const csvHeader = "Member ID,Attendance Date,Check-in Time,Method,Guest\n";
-      const csvData = attendance.map(record => 
-        `"${record.memberId}","${record.attendanceDate}","${record.checkInTime}","${record.checkInMethod}","${record.isGuest}"`
-      ).join('\n');
+      const attendance = await storage.getAttendanceHistory(start, end);
       
+      const csvHeader = "No.,Member Name,Gender,Age Group,Attendance Date,Check-in Time,Method,Type,Phone,Email\n";
+      const csvData = attendance.map((record, index) => {
+        const memberName = record.member 
+          ? `${record.member.firstName} ${record.member.surname}` 
+          : (record.visitorId ? 'Visitor' : 'Unknown');
+        const checkInTime = new Date(record.checkInTime).toLocaleTimeString('en-US', { 
+          hour12: false, 
+          hour: '2-digit', 
+          minute: '2-digit', 
+          second: '2-digit' 
+        });
+        const recordType = record.isVisitor ? 'Visitor' : 'Member';
+        const phone = record.member?.phone || '';
+        const email = record.member?.email || '';
+        const gender = record.member?.gender || '';
+        const ageGroup = record.member?.ageGroup || '';
+        
+        return `"${index + 1}","${memberName}","${gender}","${ageGroup}","${record.attendanceDate}","${checkInTime}","${record.checkInMethod}","${recordType}","${phone}","${email}"`;
+      }).join('\n');
+      
+      const dateRange = start === end ? start : `${start}_to_${end}`;
       res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename="attendance_records.csv"');
+      res.setHeader('Content-Disposition', `attachment; filename="attendance_history_${dateRange}.csv"`);
       res.send(csvHeader + csvData);
     } catch (error) {
+      console.error('Attendance export error:', error);
       res.status(500).json({ error: "Export failed" });
+    }
+  });
+
+  // Export monthly report
+  app.get("/api/export/monthly-report", async (req, res) => {
+    try {
+      const { month, year } = req.query;
+      
+      // Use current month/year if not provided
+      const currentDate = new Date();
+      const reportMonth = month ? parseInt(month as string) : currentDate.getMonth() + 1;
+      const reportYear = year ? parseInt(year as string) : currentDate.getFullYear();
+      
+      // Calculate start and end dates for the month
+      const startDate = `${reportYear}-${reportMonth.toString().padStart(2, '0')}-01`;
+      const lastDay = new Date(reportYear, reportMonth, 0).getDate();
+      const endDate = `${reportYear}-${reportMonth.toString().padStart(2, '0')}-${lastDay.toString().padStart(2, '0')}`;
+      
+      // Get monthly statistics
+      const monthlyStats = await storage.getAttendanceStatsForRange(startDate, endDate);
+      const weeklyAttendance = await storage.getWeeklyAttendanceSummary(startDate, endDate);
+      const newMembers = await storage.getNewMembersReport(startDate, endDate);
+      const attendanceHistory = await storage.getAttendanceHistory(startDate, endDate);
+      
+      // Create comprehensive monthly report CSV
+      const monthName = new Date(reportYear, reportMonth - 1).toLocaleDateString('en-US', { month: 'long' });
+      const reportTitle = `Monthly Report - ${monthName} ${reportYear}`;
+      
+      let csvContent = `${reportTitle}\n\n`;
+      
+      // Monthly Summary
+      csvContent += "MONTHLY SUMMARY\n";
+      csvContent += `Total Days with Services,${monthlyStats.totalDays}\n`;
+      csvContent += `Total Attendance,${monthlyStats.totalAttendance}\n`;
+      csvContent += `Average Daily Attendance,${monthlyStats.averageAttendance}\n`;
+      csvContent += `Total Members,${monthlyStats.totalMembers}\n`;
+      csvContent += `Total Visitors,${monthlyStats.totalVisitors}\n`;
+      csvContent += `Male Attendance,${monthlyStats.maleCount}\n`;
+      csvContent += `Female Attendance,${monthlyStats.femaleCount}\n`;
+      csvContent += `Children,${monthlyStats.childCount}\n`;
+      csvContent += `Adolescents,${monthlyStats.adolescentCount}\n`;
+      csvContent += `Adults,${monthlyStats.adultCount}\n\n`;
+      
+      // New Members This Month
+      csvContent += "NEW MEMBERS THIS MONTH\n";
+      if (newMembers.length > 0) {
+        csvContent += "Name,Gender,Age Group,Phone,Email,Registration Date\n";
+        newMembers.forEach((member: any) => {
+          csvContent += `"${member.memberName}","${member.gender}","${member.ageGroup}","${member.phone || ''}","${member.email || ''}","${member.createdAt}"\n`;
+        });
+      } else {
+        csvContent += "No new members this month\n";
+      }
+      csvContent += "\n";
+      
+      // Weekly Breakdown
+      csvContent += "WEEKLY ATTENDANCE BREAKDOWN\n";
+      csvContent += "Date,Gender,Age Group,Count\n";
+      weeklyAttendance.forEach((record: any) => {
+        csvContent += `"${record.date}","${record.gender}","${record.ageGroup}","${record.count}"\n`;
+      });
+      
+      const filename = `monthly_report_${reportYear}_${reportMonth.toString().padStart(2, '0')}.csv`;
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(csvContent);
+    } catch (error) {
+      console.error('Monthly report export error:', error);
+      res.status(500).json({ error: "Monthly report export failed" });
     }
   });
 

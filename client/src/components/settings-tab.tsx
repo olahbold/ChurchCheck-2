@@ -56,12 +56,16 @@ export default function SettingsTab() {
 
   const handleExportAttendance = async () => {
     try {
-      const response = await fetch('/api/export/attendance');
+      // Export all attendance history (last 365 days by default)
+      const endDate = new Date().toISOString().split('T')[0];
+      const startDate = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      
+      const response = await fetch(`/api/export/attendance?startDate=${startDate}&endDate=${endDate}`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'attendance_records.csv';
+      a.download = `attendance_history_${startDate}_to_${endDate}.csv`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -69,7 +73,37 @@ export default function SettingsTab() {
       
       toast({
         title: "Export Started",
-        description: "Attendance data is being downloaded",
+        description: "Attendance history is being downloaded",
+      });
+    } catch (error) {
+      toast({
+        title: "Export Failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleExportMonthlyReport = async () => {
+    try {
+      const currentDate = new Date();
+      const month = currentDate.getMonth() + 1;
+      const year = currentDate.getFullYear();
+      
+      const response = await fetch(`/api/export/monthly-report?month=${month}&year=${year}`);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `monthly_report_${year}_${month.toString().padStart(2, '0')}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Export Started",
+        description: "Monthly report is being downloaded",
       });
     } catch (error) {
       toast({
@@ -127,12 +161,12 @@ export default function SettingsTab() {
                     Export Attendance History (CSV)
                   </Button>
                   <Button 
-                    onClick={() => handleSystemAction("Monthly Report Export")}
+                    onClick={handleExportMonthlyReport}
                     variant="outline" 
                     className="w-full justify-start"
                   >
                     <BarChart3 className="mr-3 h-4 w-4" />
-                    Export Monthly Report (PDF)
+                    Export Monthly Report (CSV)
                   </Button>
                 </div>
               </div>

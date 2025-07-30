@@ -465,6 +465,57 @@ export class DatabaseStorage implements IStorage {
     return summary;
   }
 
+  async getAttendanceStatsForRange(startDate: string, endDate: string): Promise<any> {
+    const stats = await db
+      .select({
+        totalAttendance: count(),
+        totalMembers: sql`COUNT(CASE WHEN ${attendanceRecords.isGuest} = false THEN 1 END)`,
+        totalVisitors: sql`COUNT(CASE WHEN ${attendanceRecords.isGuest} = true THEN 1 END)`,
+        maleCount: sql`COUNT(CASE WHEN ${members.gender} = 'male' THEN 1 END)`,
+        femaleCount: sql`COUNT(CASE WHEN ${members.gender} = 'female' THEN 1 END)`,
+        childCount: sql`COUNT(CASE WHEN ${members.ageGroup} = 'child' THEN 1 END)`,
+        adolescentCount: sql`COUNT(CASE WHEN ${members.ageGroup} = 'adolescent' THEN 1 END)`,
+        adultCount: sql`COUNT(CASE WHEN ${members.ageGroup} = 'adult' THEN 1 END)`,
+      })
+      .from(attendanceRecords)
+      .leftJoin(members, eq(attendanceRecords.memberId, members.id))
+      .where(
+        and(
+          gte(attendanceRecords.attendanceDate, startDate),
+          lte(attendanceRecords.attendanceDate, endDate)
+        )
+      );
+
+    const uniqueDays = await db
+      .select({
+        uniqueDates: sql`COUNT(DISTINCT ${attendanceRecords.attendanceDate})`,
+      })
+      .from(attendanceRecords)
+      .where(
+        and(
+          gte(attendanceRecords.attendanceDate, startDate),
+          lte(attendanceRecords.attendanceDate, endDate)
+        )
+      );
+
+    const result = stats[0];
+    const totalDays = Number(uniqueDays[0]?.uniqueDates) || 0;
+    const averageAttendance = totalDays > 0 ? Math.round(Number(result.totalAttendance) / totalDays) : 0;
+
+    return {
+      totalDays,
+      totalAttendance: result.totalAttendance,
+      averageAttendance,
+      totalMembers: result.totalMembers,
+      totalVisitors: result.totalVisitors,
+      maleCount: result.maleCount,
+      femaleCount: result.femaleCount,
+      childCount: result.childCount,
+      adolescentCount: result.adolescentCount,
+      adultCount: result.adultCount,
+    };
+  }
+
   async getMemberAttendanceLog(memberId?: string, startDate?: string, endDate?: string): Promise<any> {
     let conditions = [];
     if (memberId) conditions.push(eq(attendanceRecords.memberId, memberId));
