@@ -15,10 +15,10 @@ const testSendGrid = async () => {
   try {
     const msg = {
       to: 'oginniolayinkajulius@gmail.com',
-      from: 'test@example.com', // This should match your verified sender in SendGrid
-      subject: 'SendGrid Test Email',
-      text: 'This is a test email from ChurchConnect to verify SendGrid integration.',
-      html: '<p>This is a test email from <strong>ChurchConnect</strong> to verify SendGrid integration.</p>'
+      from: 'oginniolayinkajulius@gmail.com', // Use your verified sender email
+      subject: 'ChurchConnect: SendGrid Test Email',
+      text: 'This is a test email from ChurchConnect to verify SendGrid integration with your verified sender.',
+      html: '<p>This is a test email from <strong>ChurchConnect</strong> to verify SendGrid integration with your verified sender.</p>'
     };
 
     console.log('Attempting to send test email...');

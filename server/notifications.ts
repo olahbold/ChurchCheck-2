@@ -78,7 +78,7 @@ export async function sendFollowUpEmail(member: Member, contactMethod: string): 
       try {
         const emailData = {
           to: 'oginniolayinkajulius@gmail.com',
-          from: 'noreply@example.com', // Use a simple domain
+          from: 'oginniolayinkajulius@gmail.com', // Use your verified sender email
           subject: `ChurchConnect: Follow-up Complete - ${member.firstName} ${member.surname}`,
           html: emailContent,
           text: `ChurchConnect Follow-up Notification\n\nMember: ${member.firstName} ${member.surname}\nContact Method: ${contactMethod.toUpperCase()}\nDate: ${new Date().toLocaleDateString()}\nTime: ${new Date().toLocaleTimeString()}\n\nThis member has been successfully contacted and marked as followed up.`
