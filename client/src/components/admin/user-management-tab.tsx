@@ -62,8 +62,7 @@ export default function UserManagementTab() {
   // Create admin user mutation
   const createUserMutation = useMutation({
     mutationFn: async (data: InsertAdminUser) => {
-      const response = await apiRequest('POST', '/api/admin/users', data);
-      return response.json();
+      return await apiRequest('POST', '/api/admin/users', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
@@ -86,8 +85,7 @@ export default function UserManagementTab() {
   // Update admin user mutation
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<InsertAdminUser> }) => {
-      const response = await apiRequest('PUT', `/api/admin/users/${id}`, data);
-      return response.json();
+      return await apiRequest('PUT', `/api/admin/users/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
@@ -109,8 +107,7 @@ export default function UserManagementTab() {
   // Delete admin user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (id: string) => {
-      const response = await apiRequest('DELETE', `/api/admin/users/${id}`);
-      return response.json();
+      return await apiRequest('DELETE', `/api/admin/users/${id}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
@@ -372,6 +369,7 @@ export default function UserManagementTab() {
                             <Input 
                               placeholder="e.g., Main Campus, Youth Center" 
                               {...field} 
+                              value={field.value || ""}
                               className="church-form-input" 
                             />
                           </FormControl>
