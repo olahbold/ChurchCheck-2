@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { 
   Users, 
   Calendar, 
@@ -19,13 +20,22 @@ import {
   Trash2,
   RotateCcw,
   Save,
-  CheckCircle
+  CheckCircle,
+  Upload,
+  Download,
+  FileText,
+  AlertCircle
 } from "lucide-react";
 
 export default function SettingsTab() {
   const [followUpEnabled, setFollowUpEnabled] = useState(true);
   const [scanSensitivity, setScanSensitivity] = useState("medium");
   const [followUpWeeks, setFollowUpWeeks] = useState("3");
+  const [showBulkUploadDialog, setShowBulkUploadDialog] = useState(false);
+  const [uploadPreview, setUploadPreview] = useState<any[]>([]);
+  const [uploadErrors, setUploadErrors] = useState<string[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   const handleExportMembers = async () => {
@@ -131,6 +141,131 @@ export default function SettingsTab() {
     }
   };
 
+  const downloadTemplate = () => {
+    const headers = [
+      'firstName', 'surname', 'title', 'gender', 'ageGroup', 
+      'phone', 'email', 'whatsappNumber', 'address', 
+      'dateOfBirth', 'weddingAnniversary', 'isCurrentMember'
+    ];
+    
+    const csvTemplate = headers.join(',') + '\n' +
+      'John,Smith,Mr.,male,adult,+234-123-456-7890,john@example.com,+234-987-654-3210,"123 Main St, City",1990-01-15,2020-06-10,true\n' +
+      'Jane,Doe,Mrs.,female,adult,+234-123-456-7891,jane@example.com,+234-987-654-3211,"456 Oak Ave, City",1985-05-20,2018-08-15,true';
+    
+    const blob = new Blob([csvTemplate], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'member_upload_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    
+    toast({
+      title: "Template Downloaded",
+      description: "CSV template has been downloaded. Fill it out and upload to add members in bulk.",
+    });
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const csvText = e.target?.result as string;
+        const lines = csvText.split('\n').filter(line => line.trim());
+        const headers = lines[0].split(',').map(h => h.trim());
+        
+        const data = lines.slice(1).map((line, index) => {
+          const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+          const row: any = { rowNumber: index + 2 };
+          
+          headers.forEach((header, i) => {
+            row[header] = values[i] || '';
+          });
+          
+          return row;
+        });
+
+        setUploadPreview(data);
+        setUploadErrors([]);
+        setShowBulkUploadDialog(true);
+      } catch (error) {
+        toast({
+          title: "File Error",
+          description: "Could not read the CSV file. Please check the format.",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    reader.readAsText(file);
+  };
+
+  const validateData = (data: any[]) => {
+    const errors: string[] = [];
+    
+    data.forEach((row, index) => {
+      if (!row.firstName) errors.push(`Row ${row.rowNumber}: First name is required`);
+      if (!row.surname) errors.push(`Row ${row.rowNumber}: Surname is required`);
+      if (row.gender && !['male', 'female'].includes(row.gender)) {
+        errors.push(`Row ${row.rowNumber}: Gender must be 'male' or 'female'`);
+      }
+      if (row.ageGroup && !['child', 'adolescent', 'adult'].includes(row.ageGroup)) {
+        errors.push(`Row ${row.rowNumber}: Age group must be 'child', 'adolescent', or 'adult'`);
+      }
+      if (row.email && !row.email.includes('@')) {
+        errors.push(`Row ${row.rowNumber}: Invalid email format`);
+      }
+    });
+    
+    return errors;
+  };
+
+  const processBulkUpload = async () => {
+    setIsProcessing(true);
+    const errors = validateData(uploadPreview);
+    
+    if (errors.length > 0) {
+      setUploadErrors(errors);
+      setIsProcessing(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/members/bulk-upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ members: uploadPreview }),
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        toast({
+          title: "Upload Successful",
+          description: `${result.created} members added successfully`,
+        });
+        setShowBulkUploadDialog(false);
+        setUploadPreview([]);
+        if (fileInputRef.current) fileInputRef.current.value = '';
+      } else {
+        throw new Error(result.error || 'Upload failed');
+      }
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -168,6 +303,38 @@ export default function SettingsTab() {
                     <BarChart3 className="mr-3 h-4 w-4" />
                     Export Monthly Report (CSV)
                   </Button>
+                </div>
+              </div>
+
+              <div className="border-t border-slate-200 pt-6">
+                <h4 className="font-medium text-slate-900 mb-3">Bulk Import Options</h4>
+                <div className="space-y-3">
+                  <Button 
+                    onClick={downloadTemplate}
+                    variant="outline" 
+                    className="w-full justify-start"
+                  >
+                    <Download className="mr-3 h-4 w-4" />
+                    Download CSV Template
+                  </Button>
+                  <div>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileUpload}
+                      className="hidden"
+                      id="bulk-upload"
+                    />
+                    <Button 
+                      onClick={() => fileInputRef.current?.click()}
+                      variant="outline" 
+                      className="w-full justify-start"
+                    >
+                      <Upload className="mr-3 h-4 w-4" />
+                      Upload Members (CSV)
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -341,6 +508,76 @@ export default function SettingsTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Bulk Upload Dialog */}
+      <Dialog open={showBulkUploadDialog} onOpenChange={setShowBulkUploadDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Bulk Member Upload Preview</DialogTitle>
+            <DialogDescription>
+              Review the data below before uploading. {uploadPreview.length} members ready to be added.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {uploadErrors.length > 0 && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center space-x-2 text-red-800 font-medium mb-2">
+                <AlertCircle className="h-4 w-4" />
+                <span>Validation Errors</span>
+              </div>
+              <ul className="text-sm text-red-700 space-y-1">
+                {uploadErrors.map((error, index) => (
+                  <li key={index}>• {error}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <div className="border rounded-lg">
+            <div className="max-h-96 overflow-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 sticky top-0">
+                  <tr>
+                    <th className="p-2 text-left border-b">Name</th>
+                    <th className="p-2 text-left border-b">Gender</th>
+                    <th className="p-2 text-left border-b">Age Group</th>
+                    <th className="p-2 text-left border-b">Phone</th>
+                    <th className="p-2 text-left border-b">Email</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {uploadPreview.map((row, index) => (
+                    <tr key={index} className="border-b">
+                      <td className="p-2">{row.firstName} {row.surname}</td>
+                      <td className="p-2">{row.gender}</td>
+                      <td className="p-2">{row.ageGroup}</td>
+                      <td className="p-2">{row.phone}</td>
+                      <td className="p-2">{row.email}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button 
+              variant="outline" 
+              onClick={() => setShowBulkUploadDialog(false)}
+              disabled={isProcessing}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={processBulkUpload}
+              disabled={isProcessing || uploadErrors.length > 0}
+              className="bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)]"
+            >
+              {isProcessing ? "Uploading..." : `Upload ${uploadPreview.length} Members`}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

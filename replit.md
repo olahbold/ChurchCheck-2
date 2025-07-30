@@ -142,6 +142,39 @@ Key features:
 
 ## Recent Changes
 
+### July 30, 2025 - Bulk Member Data Management Implementation
+- **Comprehensive Bulk Upload System**: Added full bulk upload functionality to Settings tab with:
+  - CSV template download with all 12 member fields and example data
+  - File upload interface with drag-and-drop support
+  - Real-time data preview and validation before processing
+  - Professional error reporting with specific row-level feedback
+  - Bulk processing API endpoint with individual error handling
+- **Enhanced Data Management**: Streamlined administrative workflows with:
+  - Template-based data entry to ensure consistent formatting
+  - Client-side validation for required fields, email formats, and enum values
+  - Server-side validation using existing Zod schemas for data integrity
+  - Progress tracking and detailed success/error reporting
+- **Professional Interface Design**: 
+  - Large modal dialog for data review with scrollable table
+  - Clear validation error display with specific row references
+  - Processing state management with disabled controls during upload
+  - Clean cancellation and retry workflows
+- **Technical Architecture**: 
+  - Reusable CSV parsing with proper quote handling
+  - Bulk API endpoint following existing single-member creation patterns
+  - Type-safe data processing with comprehensive error collection
+  - Integration with existing member management and database schemas
+
+### July 29, 2025 - Enhanced Export Functionality Implementation
+- **Fixed Export Attendance History (CSV)**: Now properly generating comprehensive attendance records with:
+  - Sequential numbering, member details, and comprehensive contact information
+  - Proper date range support (defaults to last 365 days)
+  - Enhanced CSV formatting with 10 fields of detailed member and attendance data
+- **Fixed Export Monthly Report (CSV)**: Now fully functional with:
+  - Monthly summary statistics, demographic breakdowns, and new member tracking
+  - Multi-section report format with attendance trends and analytics
+  - Professional CSV structure for external analysis and reporting
+
 ### July 29, 2025 - Enhanced Reporting Module with Comprehensive Member Details
 - **Full Member Details Integration**: Enhanced key reports with complete member information:
   - Missed 3+ Services Report: Now includes title, gender, age group, phone, email, WhatsApp number, address, date of birth, wedding anniversary, last attendance date, and member registration date

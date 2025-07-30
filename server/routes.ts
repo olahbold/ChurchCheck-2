@@ -75,6 +75,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk upload members
+  app.post("/api/members/bulk-upload", async (req, res) => {
+    try {
+      const { members } = req.body;
+      
+      if (!Array.isArray(members) || members.length === 0) {
+        return res.status(400).json({ error: "No members data provided" });
+      }
+
+      let created = 0;
+      const errors: string[] = [];
+
+      for (const memberData of members) {
+        try {
+          // Clean up the data like in single member creation
+          const cleanedData = { ...memberData };
+          Object.keys(cleanedData).forEach(key => {
+            if (cleanedData[key] === "" || cleanedData[key] === null) {
+              if (key === 'dateOfBirth' || key === 'weddingAnniversary') {
+                delete cleanedData[key];
+              } else if (key === 'parentId' && cleanedData[key] === "") {
+                cleanedData[key] = null;
+              } else {
+                cleanedData[key] = undefined;
+              }
+            }
+          });
+
+          // Convert boolean strings to actual booleans
+          if (typeof cleanedData.isCurrentMember === 'string') {
+            cleanedData.isCurrentMember = cleanedData.isCurrentMember.toLowerCase() === 'true';
+          }
+
+          // Remove the rowNumber field that was added for validation
+          delete cleanedData.rowNumber;
+
+          const validatedData = insertMemberSchema.parse(cleanedData);
+          await storage.createMember(validatedData);
+          created++;
+        } catch (error) {
+          errors.push(`Member ${memberData.firstName} ${memberData.surname}: ${error instanceof Error ? error.message : 'Invalid data'}`);
+        }
+      }
+
+      res.json({ 
+        created, 
+        total: members.length, 
+        errors: errors.length > 0 ? errors : undefined 
+      });
+    } catch (error) {
+      console.error('Bulk upload error:', error);
+      res.status(500).json({ error: "Bulk upload failed" });
+    }
+  });
+
   app.get("/api/members/:id/children", async (req, res) => {
     try {
       const children = await storage.getMembersByParent(req.params.id);
