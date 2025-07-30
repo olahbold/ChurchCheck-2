@@ -221,24 +221,27 @@ export default function HistoryTab() {
     const totalDays = rangeStats?.totalDays || 0;
     const avgAttendance = rangeStats?.averagePerDay || 0;
     const trendData = getAttendanceTrends();
-    const peakDay = trendData.reduce((max, current) => 
-      current.attendance > max.attendance ? current : max, { date: '', attendance: 0, fullDate: '' });
+    const peakDay = trendData.length > 0 
+      ? trendData.reduce((max, current) => 
+          current.attendance > max.attendance ? current : max, { date: 'No data', attendance: 0, fullDate: '' })
+      : { date: 'No data', attendance: 0, fullDate: '' };
     
-    const consistentMembers = getTopPerformers().filter(member => 
+    const topPerformers = getTopPerformers();
+    const consistentMembers = topPerformers.filter(member => 
       member.attendance >= Math.ceil(totalDays * 0.75)).length;
     
     const recentWeek = trendData.slice(-7);
     const earlierWeek = trendData.slice(0, 7);
-    const recentAvg = recentWeek.length > 0 ? recentWeek.reduce((sum, day) => sum + day.attendance, 0) / recentWeek.length : 0;
-    const earlierAvg = earlierWeek.length > 0 ? earlierWeek.reduce((sum, day) => sum + day.attendance, 0) / earlierWeek.length : 0;
+    const recentAvg = recentWeek.length > 0 ? recentWeek.reduce((sum, day) => sum + (day.attendance || 0), 0) / recentWeek.length : 0;
+    const earlierAvg = earlierWeek.length > 0 ? earlierWeek.reduce((sum, day) => sum + (day.attendance || 0), 0) / earlierWeek.length : 0;
     const growthRate = earlierAvg > 0 ? ((recentAvg - earlierAvg) / earlierAvg) * 100 : 0;
     
     return {
-      totalDays,
-      avgAttendance: Math.round(avgAttendance),
+      totalDays: Math.max(0, totalDays),
+      avgAttendance: Math.max(0, Math.round(avgAttendance)),
       peakDay,
-      consistentMembers,
-      growthRate: Math.round(growthRate * 10) / 10,
+      consistentMembers: Math.max(0, consistentMembers),
+      growthRate: isNaN(growthRate) ? 0 : Math.round(growthRate * 10) / 10,
       totalUnique: new Set(filteredHistory.map(r => r.member?.id).filter(Boolean)).size
     };
   };
@@ -1036,12 +1039,34 @@ export default function HistoryTab() {
                   </CardHeader>
                   <CardContent>
                     <ResponsiveContainer width="100%" height={400}>
-                      <BarChart data={topPerformers} layout="horizontal">
+                      <BarChart 
+                        data={topPerformers.filter(p => p.attendance > 0)} 
+                        layout="horizontal"
+                        margin={{ top: 20, right: 30, bottom: 20, left: 80 }}
+                      >
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" />
-                        <YAxis dataKey="name" type="category" width={100} />
-                        <Tooltip />
-                        <Bar dataKey="attendance" fill="#8884d8" />
+                        <XAxis 
+                          type="number" 
+                          domain={[0, 'dataMax + 1']}
+                          tick={{ fontSize: 12 }}
+                        />
+                        <YAxis 
+                          dataKey="name" 
+                          type="category" 
+                          width={120} 
+                          tick={{ fontSize: 11 }}
+                          interval={0}
+                        />
+                        <Tooltip 
+                          formatter={(value, name) => [value, 'Attendances']}
+                          labelFormatter={(label) => `Member: ${label}`}
+                        />
+                        <Bar 
+                          dataKey="attendance" 
+                          fill="#8884d8" 
+                          radius={[0, 4, 4, 0]}
+                          minPointSize={5}
+                        />
                       </BarChart>
                     </ResponsiveContainer>
                   </CardContent>
