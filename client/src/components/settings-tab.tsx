@@ -225,6 +225,39 @@ export default function SettingsTab() {
     }
   };
 
+  const handleExportActivityLog = () => {
+    // Create CSV content with activity log data
+    const headers = ['Timestamp', 'User', 'Action', 'Details'];
+    const csvRows = [
+      headers.join(','),
+      ...activityLogs.map(log => [
+        `"${new Date(log.timestamp).toLocaleString()}"`,
+        `"${log.user}"`,
+        `"${log.action}"`,
+        `"${log.details}"`
+      ].join(','))
+    ];
+    
+    const csvContent = csvRows.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `activity-log-${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Export Successful",
+        description: "Activity log has been exported to CSV file",
+      });
+    }
+  };
+
   const downloadTemplate = () => {
     const headers = [
       'firstName', 'surname', 'title', 'gender', 'ageGroup', 
@@ -781,7 +814,10 @@ export default function SettingsTab() {
             <Button variant="outline" onClick={() => setShowActivityLog(false)}>
               Close
             </Button>
-            <Button className="bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)]">
+            <Button 
+              className="bg-[hsl(142,76%,36%)] hover:bg-[hsl(142,76%,30%)]"
+              onClick={handleExportActivityLog}
+            >
               Export Log
             </Button>
           </div>
