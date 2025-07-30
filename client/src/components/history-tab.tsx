@@ -1041,31 +1041,28 @@ export default function HistoryTab() {
                     <ResponsiveContainer width="100%" height={400}>
                       <BarChart 
                         data={topPerformers.filter(p => p.attendance > 0)} 
-                        layout="horizontal"
-                        margin={{ top: 20, right: 30, bottom: 20, left: 80 }}
+                        margin={{ top: 20, right: 30, bottom: 60, left: 20 }}
                       >
                         <CartesianGrid strokeDasharray="3 3" />
                         <XAxis 
-                          type="number" 
-                          domain={[0, 'dataMax + 1']}
-                          tick={{ fontSize: 12 }}
-                        />
-                        <YAxis 
                           dataKey="name" 
-                          type="category" 
-                          width={120} 
-                          tick={{ fontSize: 11 }}
+                          tick={{ fontSize: 10, angle: -45, textAnchor: 'end' }}
+                          height={60}
                           interval={0}
                         />
+                        <YAxis 
+                          tick={{ fontSize: 12 }}
+                          label={{ value: 'Attendances', angle: -90, position: 'insideLeft' }}
+                        />
                         <Tooltip 
-                          formatter={(value, name) => [value, 'Attendances']}
+                          formatter={(value) => [value, 'Attendances']}
                           labelFormatter={(label) => `Member: ${label}`}
                         />
                         <Bar 
                           dataKey="attendance" 
                           fill="#8884d8" 
-                          radius={[0, 4, 4, 0]}
-                          minPointSize={5}
+                          radius={[4, 4, 0, 0]}
+                          minPointSize={2}
                         />
                       </BarChart>
                     </ResponsiveContainer>
