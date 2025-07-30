@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar as CalendarIcon, Download, Users, Filter, BarChart3, TrendingUp, Clock, Grid, List, User } from "lucide-react";
+import { Calendar as CalendarIcon, Download, Users, Filter, BarChart3, TrendingUp, Clock, Grid, List, User, Trophy, Target, Award, Star, Activity } from "lucide-react";
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO, isSameDay } from "date-fns";
@@ -51,8 +52,9 @@ export default function HistoryTab() {
   const [ageGroupFilter, setAgeGroupFilter] = useState<string>("all");
   const [memberTypeFilter, setMemberTypeFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
-  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [viewMode, setViewMode] = useState<"list" | "calendar" | "analytics">("list");
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
+  const [analyticsView, setAnalyticsView] = useState<"overview" | "trends" | "top-performers" | "insights">("overview");
 
   // Format dates for API calls
   const formatDateForAPI = (date: Date | undefined) => {
@@ -152,6 +154,102 @@ export default function HistoryTab() {
     document.body.removeChild(link);
   };
 
+  // Analytics Data Processing
+  const getTopPerformers = () => {
+    const attendanceCounts = new Map();
+    filteredHistory.forEach(record => {
+      if (record.member) {
+        const key = `${record.member.firstName} ${record.member.surname}`;
+        const memberData = {
+          name: key,
+          gender: record.member.gender,
+          ageGroup: record.member.ageGroup,
+          email: record.member.email,
+          phone: record.member.phone
+        };
+        if (attendanceCounts.has(key)) {
+          attendanceCounts.get(key).attendance++;
+        } else {
+          attendanceCounts.set(key, { ...memberData, attendance: 1 });
+        }
+      }
+    });
+    
+    return Array.from(attendanceCounts.values())
+      .sort((a, b) => b.attendance - a.attendance)
+      .slice(0, 10);
+  };
+
+  const getAttendanceTrends = () => {
+    const dailyAttendance = new Map();
+    filteredHistory.forEach(record => {
+      const date = record.attendanceDate;
+      dailyAttendance.set(date, (dailyAttendance.get(date) || 0) + 1);
+    });
+    
+    return Array.from(dailyAttendance.entries())
+      .map(([date, count]) => ({ date: format(parseISO(date), 'MMM dd'), fullDate: date, attendance: count }))
+      .sort((a, b) => a.fullDate.localeCompare(b.fullDate));
+  };
+
+  const getDemographicBreakdown = () => {
+    const genderData = { Male: 0, Female: 0 };
+    const ageData = { Child: 0, Adolescent: 0, Adult: 0 };
+    
+    filteredHistory.forEach(record => {
+      if (record.member?.gender) {
+        const gender = record.member.gender.charAt(0).toUpperCase() + record.member.gender.slice(1);
+        if (genderData[gender as keyof typeof genderData] !== undefined) {
+          genderData[gender as keyof typeof genderData]++;
+        }
+      }
+      if (record.member?.ageGroup) {
+        const age = record.member.ageGroup.charAt(0).toUpperCase() + record.member.ageGroup.slice(1);
+        if (ageData[age as keyof typeof ageData] !== undefined) {
+          ageData[age as keyof typeof ageData]++;
+        }
+      }
+    });
+    
+    return {
+      gender: Object.entries(genderData).map(([name, value]) => ({ name, value })),
+      age: Object.entries(ageData).map(([name, value]) => ({ name, value }))
+    };
+  };
+
+  const getAttendanceInsights = () => {
+    const totalDays = rangeStats?.totalDays || 0;
+    const avgAttendance = rangeStats?.averagePerDay || 0;
+    const trendData = getAttendanceTrends();
+    const peakDay = trendData.reduce((max, current) => 
+      current.attendance > max.attendance ? current : max, { date: '', attendance: 0, fullDate: '' });
+    
+    const consistentMembers = getTopPerformers().filter(member => 
+      member.attendance >= Math.ceil(totalDays * 0.75)).length;
+    
+    const recentWeek = trendData.slice(-7);
+    const earlierWeek = trendData.slice(0, 7);
+    const recentAvg = recentWeek.length > 0 ? recentWeek.reduce((sum, day) => sum + day.attendance, 0) / recentWeek.length : 0;
+    const earlierAvg = earlierWeek.length > 0 ? earlierWeek.reduce((sum, day) => sum + day.attendance, 0) / earlierWeek.length : 0;
+    const growthRate = earlierAvg > 0 ? ((recentAvg - earlierAvg) / earlierAvg) * 100 : 0;
+    
+    return {
+      totalDays,
+      avgAttendance: Math.round(avgAttendance),
+      peakDay,
+      consistentMembers,
+      growthRate: Math.round(growthRate * 10) / 10,
+      totalUnique: new Set(filteredHistory.map(r => r.member?.id).filter(Boolean)).size
+    };
+  };
+
+  const topPerformers = getTopPerformers();
+  const trendData = getAttendanceTrends();
+  const demographics = getDemographicBreakdown();
+  const insights = getAttendanceInsights();
+
+  const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff7c7c', '#8dd1e1'];
+
   const formatTime = (dateTimeString: string) => {
     return new Date(dateTimeString).toLocaleTimeString('en-US', { 
       hour: 'numeric', 
@@ -235,6 +333,15 @@ export default function HistoryTab() {
             >
               <Grid className="h-4 w-4 mr-1" />
               Calendar
+            </Button>
+            <Button
+              variant={viewMode === "analytics" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("analytics")}
+              className="h-8"
+            >
+              <BarChart3 className="h-4 w-4 mr-1" />
+              Analytics
             </Button>
           </div>
           {filteredHistory.length > 0 && (
@@ -538,7 +645,7 @@ export default function HistoryTab() {
             )}
           </CardContent>
         </Card>
-      ) : (
+      ) : viewMode === "calendar" ? (
         /* Calendar View */
         <Card className="church-card">
           <CardHeader>
@@ -637,6 +744,38 @@ export default function HistoryTab() {
             )}
           </CardContent>
         </Card>
+      ) : viewMode === "analytics" ? (
+        /* Analytics View - Coming Soon */
+        <Card className="church-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Advanced Analytics Dashboard
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="py-12">
+            <div className="text-center space-y-4">
+              <div className="w-16 h-16 bg-[hsl(258,90%,66%)]/10 rounded-full flex items-center justify-center mx-auto">
+                <Trophy className="h-8 w-8 text-[hsl(258,90%,66%)]" />
+              </div>
+              <h3 className="text-xl font-semibold text-slate-900">Comprehensive Analytics Coming Soon!</h3>
+              <div className="max-w-md mx-auto space-y-2 text-slate-600">
+                <p className="font-medium">🏆 Top Performing Members</p>
+                <p className="font-medium">📈 Attendance Trend Analysis</p>
+                <p className="font-medium">📊 Demographic Insights</p>
+                <p className="font-medium">⭐ Smart Recommendations</p>
+                <p className="font-medium">📋 Growth Metrics & Predictions</p>
+              </div>
+              <div className="pt-4">
+                <p className="text-sm text-slate-500">
+                  Advanced analytics with charts, leaderboards, and actionable insights to help you understand congregation patterns and engagement levels.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div>No view selected</div>
       )}
     </div>
   );
