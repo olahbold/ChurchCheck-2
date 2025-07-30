@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AttendanceStats, MemberWithChildren } from "@/lib/types";
-import { Users, Calendar, AlertTriangle, TrendingUp, Download, Search, MessageSquare, Mail, CheckCircle } from "lucide-react";
+import { Users, Calendar, AlertTriangle, TrendingUp, Download, Search, MessageSquare, Mail, CheckCircle, Phone } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function DashboardTab() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -15,6 +17,10 @@ export default function DashboardTab() {
   const [followUpTemplate, setFollowUpTemplate] = useState(
     "Hi [Name], we missed you at church today. Hope to see you next Sunday! - Grace Community Church"
   );
+  const [isSendingAll, setIsSendingAll] = useState(false);
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Get attendance stats
   const { data: attendanceStats } = useQuery<AttendanceStats>({
@@ -35,6 +41,66 @@ export default function DashboardTab() {
   const { data: followUpMembers = [] } = useQuery<any[]>({
     queryKey: ['/api/follow-up'],
   });
+
+  // Mutation for individual follow-up
+  const sendFollowUpMutation = useMutation({
+    mutationFn: async ({ memberId, method }: { memberId: string; method: 'sms' | 'email' }) => {
+      return await apiRequest(`/api/follow-up/${memberId}`, {
+        method: 'POST',
+        body: JSON.stringify({ method }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/follow-up'] });
+      toast({
+        title: "Follow-up sent",
+        description: "Contact has been recorded successfully",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to send follow-up",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Function to send individual follow-up
+  const handleSendFollowUp = async (memberId: string, method: 'sms' | 'email') => {
+    sendFollowUpMutation.mutate({ memberId, method });
+  };
+
+  // Function to send all follow-ups
+  const handleSendAll = async () => {
+    setIsSendingAll(true);
+    try {
+      const promises = followUpMembers.map(member => 
+        apiRequest(`/api/follow-up/${member.id}`, {
+          method: 'POST',
+          body: JSON.stringify({ method: member.phone ? 'sms' : 'email' }),
+          headers: { 'Content-Type': 'application/json' }
+        })
+      );
+      
+      await Promise.all(promises);
+      queryClient.invalidateQueries({ queryKey: ['/api/follow-up'] });
+      
+      toast({
+        title: "Bulk follow-up completed",
+        description: `Sent ${followUpMembers.length} follow-up messages successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Some follow-ups failed to send",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingAll(false);
+    }
+  };
 
   // Calculate comprehensive stats
   const totalRegisteredMembers = members.length;
@@ -271,9 +337,14 @@ export default function DashboardTab() {
         <Card className="church-card">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-lg font-semibold text-slate-900">Follow-up Queue</CardTitle>
-            <Button className="church-button-primary" size="sm">
+            <Button 
+              className="church-button-primary" 
+              size="sm"
+              onClick={handleSendAll}
+              disabled={followUpMembers.length === 0 || isSendingAll}
+            >
               <MessageSquare className="mr-2 h-4 w-4" />
-              Send All
+              {isSendingAll ? 'Sending...' : 'Send All'}
             </Button>
           </CardHeader>
           <CardContent>
@@ -297,17 +368,34 @@ export default function DashboardTab() {
                     Last attended: {new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toLocaleDateString()}
                   </p>
                   <div className="flex space-x-2">
-                    <Button size="sm" variant="outline" className="text-xs">
-                      <MessageSquare className="mr-1 h-3 w-3" />
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="text-xs"
+                      onClick={() => handleSendFollowUp(member.id, 'sms')}
+                      disabled={!member.phone || sendFollowUpMutation.isPending}
+                    >
+                      <Phone className="mr-1 h-3 w-3" />
                       SMS
                     </Button>
-                    <Button size="sm" variant="outline" className="text-xs">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="text-xs"
+                      onClick={() => handleSendFollowUp(member.id, 'email')}
+                      disabled={!member.email || sendFollowUpMutation.isPending}
+                    >
                       <Mail className="mr-1 h-3 w-3" />
                       Email
                     </Button>
-                    <Button size="sm" className="church-button-secondary text-xs">
+                    <Button 
+                      size="sm" 
+                      className="church-button-secondary text-xs"
+                      onClick={() => handleSendFollowUp(member.id, member.phone ? 'sms' : 'email')}
+                      disabled={sendFollowUpMutation.isPending}
+                    >
                       <CheckCircle className="mr-1 h-3 w-3" />
-                      Mark Contacted
+                      {sendFollowUpMutation.isPending ? 'Sending...' : 'Mark Contacted'}
                     </Button>
                   </div>
                 </div>
