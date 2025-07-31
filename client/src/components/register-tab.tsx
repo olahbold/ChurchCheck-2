@@ -212,35 +212,24 @@ export default function RegisterTab() {
   // Create member mutation
   const createMemberMutation = useMutation({
     mutationFn: async (data: InsertMember) => {
-      console.log('=== MUTATION FUNCTION CALLED ===');
-      console.log('Sending data to API:', data);
-      
       const response = await apiRequest('/api/members', {
         method: 'POST',
         body: JSON.stringify(data),
       });
-      console.log('API response received:', response);
       return response;
     },
     onSuccess: (result) => {
-      console.log('=== MEMBER CREATED SUCCESSFULLY ===');
-      console.log('Member creation result:', result);
       queryClient.invalidateQueries({ queryKey: ['/api/members'] });
       toast({
-        title: "Success! 🎉",
-        description: `Member registered successfully! ID: ${result?.id?.substring(0, 8)}...`,
+        title: "Success!",
+        description: `Member registered successfully! ${result?.firstName} ${result?.surname} has been added.`,
       });
       handleClearForm();
     },
     onError: (error: any) => {
-      console.log('=== MEMBER CREATION ERROR ===');
-      console.log('Full error object:', error);
-      console.log('Error message:', error?.message);
-      console.log('Error error:', error?.error);
-      
       const errorMessage = error?.message || error?.error || "Please check your information and try again.";
       toast({
-        title: "Registration Failed ❌",
+        title: "Registration Failed",
         description: errorMessage,
         variant: "destructive",
       });
@@ -286,14 +275,10 @@ export default function RegisterTab() {
   });
 
   const onSubmit = (data: InsertMember) => {
-    console.log('=== FORM SUBMISSION STARTED ===');
-    console.log('Form submitted with data:', data);
-    console.log('Form validation errors:', form.formState.errors);
-    
     const authToken = localStorage.getItem('auth_token');
-    console.log('Auth token present:', !!authToken);
+    const authData = localStorage.getItem('auth_data');
     
-    if (!authToken) {
+    if (!authToken || !authData) {
       toast({
         title: "Authentication Required",
         description: "Please log in to register members",
@@ -302,19 +287,27 @@ export default function RegisterTab() {
       return;
     }
     
+    const parsedAuthData = JSON.parse(authData);
+    const churchId = parsedAuthData?.churchId;
+    
+    if (!churchId) {
+      toast({
+        title: "Church Context Missing",
+        description: "Please log in again to register members",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const memberData = {
       ...data,
+      churchId: churchId,
       fingerprintId: enrolledFingerprintId || undefined,
     };
-    console.log('Processed member data:', memberData);
-    console.log('Is update mode?', isUpdateMode, 'Has selected member?', !!selectedMember);
     
     if (isUpdateMode && selectedMember) {
-      console.log('Setting update confirmation dialog...');
       setShowUpdateConfirmation(true);
     } else {
-      console.log('Creating member via mutation...');
-      console.log('Mutation pending status:', createMemberMutation.isPending);
       createMemberMutation.mutate(memberData);
     }
   };
@@ -456,14 +449,7 @@ export default function RegisterTab() {
           </CardHeader>
           <CardContent>
           <Form {...form}>
-            <form onSubmit={(e) => {
-              console.log('=== FORM ONSUBMIT EVENT TRIGGERED ===');
-              console.log('Native form event:', e);
-              return form.handleSubmit((data) => {
-                console.log('=== REACT HOOK FORM HANDLER CALLED ===');
-                return onSubmit(data);
-              })(e);
-            }} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
@@ -839,20 +825,7 @@ export default function RegisterTab() {
                   type="submit" 
                   disabled={createMemberMutation.isPending || updateMemberMutation.isPending}
                   className="church-button-primary flex-1"
-                  onClick={(e) => {
-                    console.log('=== REGISTER BUTTON CLICKED ===');
-                    console.log('Button click event:', e);
-                    console.log('Form state valid:', form.formState.isValid);
-                    console.log('Form errors:', form.formState.errors);
-                    console.log('Current form values:', form.getValues());
-                    
-                    // Force validation check to see detailed errors
-                    form.trigger().then((isValid) => {
-                      console.log('Manual validation result:', isValid);
-                      console.log('Detailed form errors after trigger:', form.formState.errors);
-                    });
-                    // Let the form handle the submission normally
-                  }}
+
                 >
                   <Save className="mr-2 h-4 w-4" />
                   {isUpdateMode
