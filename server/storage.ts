@@ -34,12 +34,12 @@ export interface IStorage {
 
   // Member methods
   createMember(member: InsertMember): Promise<Member>;
-  getMember(id: string): Promise<Member | undefined>;
-  getMemberByFingerprint(fingerprintId: string): Promise<Member | undefined>;
-  getAllMembers(): Promise<Member[]>;
-  getMembersByParent(parentId: string): Promise<Member[]>;
+  getMember(id: string, churchId?: string): Promise<Member | undefined>;
+  getMemberByFingerprint(fingerprintId: string, churchId?: string): Promise<Member | undefined>;
+  getAllMembers(churchId?: string): Promise<Member[]>;
+  getMembersByParent(parentId: string, churchId?: string): Promise<Member[]>;
   updateMember(id: string, member: Partial<InsertMember>): Promise<Member>;
-  searchMembers(query: string, group?: string): Promise<Member[]>;
+  searchMembers(query: string, group?: string, churchId?: string): Promise<Member[]>;
 
   // Attendance methods
   createAttendanceRecord(record: InsertAttendanceRecord): Promise<AttendanceRecord>;
@@ -128,18 +128,30 @@ export class DatabaseStorage implements IStorage {
     return newMember;
   }
 
-  async getMember(id: string): Promise<Member | undefined> {
-    const [member] = await db.select().from(members).where(eq(members.id, id));
+  async getMember(id: string, churchId?: string): Promise<Member | undefined> {
+    let query = db.select().from(members).where(eq(members.id, id));
+    if (churchId) {
+      query = query.where(eq(members.churchId, churchId));
+    }
+    const [member] = await query;
     return member || undefined;
   }
 
-  async getMemberByFingerprint(fingerprintId: string): Promise<Member | undefined> {
-    const [member] = await db.select().from(members).where(eq(members.fingerprintId, fingerprintId));
+  async getMemberByFingerprint(fingerprintId: string, churchId?: string): Promise<Member | undefined> {
+    let query = db.select().from(members).where(eq(members.fingerprintId, fingerprintId));
+    if (churchId) {
+      query = query.where(eq(members.churchId, churchId));
+    }
+    const [member] = await query;
     return member || undefined;
   }
 
-  async getAllMembers(): Promise<Member[]> {
-    return await db.select().from(members).orderBy(members.firstName, members.surname);
+  async getAllMembers(churchId?: string): Promise<Member[]> {
+    let query = db.select().from(members);
+    if (churchId) {
+      query = query.where(eq(members.churchId, churchId));
+    }
+    return await query.orderBy(members.firstName, members.surname);
   }
 
   async getMembersByParent(parentId: string): Promise<Member[]> {
@@ -158,8 +170,12 @@ export class DatabaseStorage implements IStorage {
     return updatedMember;
   }
 
-  async searchMembers(query: string, group?: string): Promise<Member[]> {
+  async searchMembers(query: string, group?: string, churchId?: string): Promise<Member[]> {
     let conditions = [];
+    
+    if (churchId) {
+      conditions.push(eq(members.churchId, churchId));
+    }
     
     if (query) {
       conditions.push(

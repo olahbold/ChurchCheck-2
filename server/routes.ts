@@ -76,10 +76,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (search || group) {
         members = await storage.searchMembers(
           search as string || "",
-          group as string
+          group as string,
+          req.churchId
         );
       } else {
-        members = await storage.getAllMembers();
+        members = await storage.getAllMembers(req.churchId);
       }
       
       res.json(members);
@@ -90,7 +91,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/members/:id", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
-      const member = await storage.getMember(req.params.id);
+      const member = await storage.getMember(req.params.id, req.churchId);
       if (!member) {
         return res.status(404).json({ error: "Member not found" });
       }

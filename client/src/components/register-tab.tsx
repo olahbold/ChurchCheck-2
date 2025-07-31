@@ -140,7 +140,7 @@ export default function RegisterTab() {
       dateOfBirth: member.dateOfBirth ?? "",
       weddingAnniversary: member.weddingAnniversary ?? "",
       isCurrentMember: member.isCurrentMember,
-      fingerprintId: member.fingerprintId || "",
+      fingerprintId: member.fingerprintId || undefined,
       parentId: member.parentId || "",
     });
     
