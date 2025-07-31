@@ -25,14 +25,31 @@ interface PlatformStats {
   activeChurches: number;
 }
 
-interface Church {
+interface ChurchWithStats {
   id: string;
   name: string;
+  subdomain: string;
+  logoUrl?: string;
+  bannerUrl?: string;
+  brandColor?: string;
   subscriptionTier: string;
+  trialStartDate?: string;
+  trialEndDate?: string;
+  maxMembers: number;
   totalMembers: number;
   activeMembers: number;
   totalAttendance: number;
   createdAt: string;
+  updatedAt: string;
+  users?: Array<{
+    id: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    role: string;
+    isActive: boolean;
+    lastLoginAt: string | null;
+  }>;
 }
 
 interface SuperAdminDashboardProps {
@@ -42,10 +59,10 @@ interface SuperAdminDashboardProps {
 
 export function SuperAdminDashboard({ admin, onLogout }: SuperAdminDashboardProps) {
   const [stats, setStats] = useState<PlatformStats | null>(null);
-  const [churches, setChurches] = useState<Church[]>([]);
-  const [filteredChurches, setFilteredChurches] = useState<Church[]>([]);
+  const [churches, setChurches] = useState<ChurchWithStats[]>([]);
+  const [filteredChurches, setFilteredChurches] = useState<ChurchWithStats[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedChurch, setSelectedChurch] = useState<Church | null>(null);
+  const [selectedChurch, setSelectedChurch] = useState<ChurchWithStats | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -100,18 +117,51 @@ export function SuperAdminDashboard({ admin, onLogout }: SuperAdminDashboardProp
       });
 
       if (response.ok) {
-        await loadDashboardData(); // Reload data
+        // Update the local state immediately for better UX
+        const updatedChurches = churches.map(church => 
+          church.id === churchId 
+            ? { ...church, subscriptionTier: isActive ? 'starter' : 'suspended' }
+            : church
+        );
+        setChurches(updatedChurches);
+        setFilteredChurches(updatedChurches.filter(church =>
+          church.name.toLowerCase().includes(searchTerm.toLowerCase())
+        ));
+        
         toast({
           title: "Success",
           description: `Church ${isActive ? 'activated' : 'suspended'} successfully`,
         });
       } else {
-        throw new Error('Failed to update church status');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update church status');
+      }
+    } catch (error) {
+      console.error('Church status toggle error:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to update church status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleViewChurch = async (churchId: string) => {
+    try {
+      const response = await fetch(`/api/super-admin/churches/${churchId}`, {
+        headers: getAuthHeaders(),
+      });
+
+      if (response.ok) {
+        const churchDetails = await response.json();
+        setSelectedChurch(churchDetails);
+      } else {
+        throw new Error('Failed to fetch church details');
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to update church status",
+        description: "Failed to load church details",
         variant: "destructive",
       });
     }
@@ -261,7 +311,11 @@ export function SuperAdminDashboard({ admin, onLogout }: SuperAdminDashboardProp
                     </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleViewChurch(church.id)}
+                    >
                       <Eye className="h-4 w-4 mr-1" />
                       View
                     </Button>
@@ -270,7 +324,7 @@ export function SuperAdminDashboard({ admin, onLogout }: SuperAdminDashboardProp
                         variant="outline"
                         size="sm"
                         onClick={() => handleChurchStatusToggle(church.id, true)}
-                        className="text-green-600 hover:text-green-700"
+                        className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
                       >
                         <CheckCircle className="h-4 w-4 mr-1" />
                         Activate
@@ -280,7 +334,7 @@ export function SuperAdminDashboard({ admin, onLogout }: SuperAdminDashboardProp
                         variant="outline"
                         size="sm"
                         onClick={() => handleChurchStatusToggle(church.id, false)}
-                        className="text-red-600 hover:text-red-700"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
                       >
                         <Ban className="h-4 w-4 mr-1" />
                         Suspend
@@ -290,8 +344,211 @@ export function SuperAdminDashboard({ admin, onLogout }: SuperAdminDashboardProp
                 </div>
               ))}
             </div>
+            {filteredChurches.length === 0 && searchTerm && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Search className="h-8 w-8 mx-auto mb-2" />
+                <p>No churches found matching "{searchTerm}"</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setFilteredChurches(churches);
+                  }}
+                  className="mt-2"
+                >
+                  Clear search
+                </Button>
+              </div>
+            )}
+
+            {filteredChurches.length === 0 && !searchTerm && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Building2 className="h-8 w-8 mx-auto mb-2" />
+                <p>No churches registered yet</p>
+              </div>
+            )}
           </CardContent>
         </Card>
+
+        {/* Church Details Modal */}
+        {selectedChurch && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle className="text-xl">{selectedChurch.name}</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Church Details & Statistics
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedChurch(null)}
+                >
+                  Close
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Basic Info */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <h3 className="font-semibold">Basic Information</h3>
+                    <div className="text-sm space-y-1">
+                      <p><strong>Name:</strong> {selectedChurch.name}</p>
+                      <p><strong>Subdomain:</strong> {selectedChurch.subdomain}</p>
+                      <p><strong>Subscription:</strong> 
+                        <Badge className={`ml-2 ${getSubscriptionColor(selectedChurch.subscriptionTier)}`}>
+                          {selectedChurch.subscriptionTier}
+                        </Badge>
+                      </p>
+                      <p><strong>Created:</strong> {new Date(selectedChurch.createdAt).toLocaleDateString()}</p>
+                      <p><strong>Max Members:</strong> {selectedChurch.maxMembers.toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <h3 className="font-semibold">Statistics</h3>
+                    <div className="text-sm space-y-1">
+                      <p><strong>Total Members:</strong> {selectedChurch.totalMembers}</p>
+                      <p><strong>Active Members:</strong> {selectedChurch.activeMembers}</p>
+                      <p><strong>Total Attendance:</strong> {selectedChurch.totalAttendance}</p>
+                      <p><strong>Member Utilization:</strong> {
+                        selectedChurch.maxMembers > 0 
+                          ? `${((selectedChurch.totalMembers / selectedChurch.maxMembers) * 100).toFixed(1)}%`
+                          : 'N/A'
+                      }</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Trial Information */}
+                {selectedChurch.subscriptionTier === 'trial' && selectedChurch.trialEndDate && (
+                  <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
+                    <h3 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">
+                      Trial Information
+                    </h3>
+                    <div className="text-sm text-yellow-700 dark:text-yellow-300 space-y-1">
+                      <p><strong>Trial Started:</strong> {new Date(selectedChurch.trialStartDate).toLocaleDateString()}</p>
+                      <p><strong>Trial Ends:</strong> {new Date(selectedChurch.trialEndDate).toLocaleDateString()}</p>
+                      <p><strong>Days Remaining:</strong> {
+                        Math.max(0, Math.ceil((new Date(selectedChurch.trialEndDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))
+                      } days</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Church Users */}
+                {selectedChurch.users && selectedChurch.users.length > 0 && (
+                  <div className="space-y-2">
+                    <h3 className="font-semibold">Church Users ({selectedChurch.users.length})</h3>
+                    <div className="border rounded-lg overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-gray-50 dark:bg-gray-800">
+                          <tr>
+                            <th className="text-left p-3">Name</th>
+                            <th className="text-left p-3">Email</th>
+                            <th className="text-left p-3">Role</th>
+                            <th className="text-left p-3">Status</th>
+                            <th className="text-left p-3">Last Login</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selectedChurch.users.map((user: any, index: number) => (
+                            <tr key={user.id} className={index % 2 === 0 ? 'bg-white dark:bg-gray-900' : 'bg-gray-50 dark:bg-gray-800'}>
+                              <td className="p-3">{user.firstName} {user.lastName}</td>
+                              <td className="p-3">{user.email}</td>
+                              <td className="p-3">
+                                <Badge variant="outline">{user.role}</Badge>
+                              </td>
+                              <td className="p-3">
+                                <Badge className={user.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}>
+                                  {user.isActive ? 'Active' : 'Inactive'}
+                                </Badge>
+                              </td>
+                              <td className="p-3">
+                                {user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Never'}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* Branding */}
+                {(selectedChurch.logoUrl || selectedChurch.bannerUrl || selectedChurch.brandColor) && (
+                  <div className="space-y-2">
+                    <h3 className="font-semibold">Branding</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {selectedChurch.logoUrl && (
+                        <div>
+                          <p className="text-sm font-medium mb-2">Logo</p>
+                          <img 
+                            src={selectedChurch.logoUrl} 
+                            alt="Church Logo" 
+                            className="h-16 w-16 object-contain border rounded"
+                          />
+                        </div>
+                      )}
+                      {selectedChurch.bannerUrl && (
+                        <div>
+                          <p className="text-sm font-medium mb-2">Banner</p>
+                          <img 
+                            src={selectedChurch.bannerUrl} 
+                            alt="Church Banner" 
+                            className="h-16 w-32 object-cover border rounded"
+                          />
+                        </div>
+                      )}
+                      {selectedChurch.brandColor && (
+                        <div>
+                          <p className="text-sm font-medium mb-2">Brand Color</p>
+                          <div className="flex items-center space-x-2">
+                            <div 
+                              className="w-8 h-8 rounded border"
+                              style={{ backgroundColor: selectedChurch.brandColor }}
+                            ></div>
+                            <span className="text-sm font-mono">{selectedChurch.brandColor}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex justify-end space-x-2 pt-4 border-t">
+                  {selectedChurch.subscriptionTier === 'suspended' ? (
+                    <Button
+                      onClick={() => {
+                        handleChurchStatusToggle(selectedChurch.id, true);
+                        setSelectedChurch(null);
+                      }}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-2" />
+                      Activate Church
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        handleChurchStatusToggle(selectedChurch.id, false);
+                        setSelectedChurch(null);
+                      }}
+                    >
+                      <Ban className="h-4 w-4 mr-2" />
+                      Suspend Church
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   );
