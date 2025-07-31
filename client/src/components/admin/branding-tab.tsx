@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, Palette, Image as ImageIcon, FileImage } from 'lucide-react';
+import { Upload, Palette, Image as ImageIcon, FileImage, Eye, Church, RotateCcw } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
 
 interface BrandingData {
@@ -159,6 +159,78 @@ export function BrandingTab() {
         </p>
       </div>
 
+      {/* Live Preview */}
+      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 border-blue-200 dark:border-gray-600">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-blue-900 dark:text-blue-100">
+            <Eye className="h-5 w-5" />
+            Live Preview
+          </CardTitle>
+          <CardDescription className="text-blue-700 dark:text-blue-200">
+            See how your branding will appear in the application header
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 overflow-hidden">
+            {/* Banner Preview */}
+            {branding.bannerUrl && (
+              <div 
+                className="h-16 bg-cover bg-center relative"
+                style={{ backgroundImage: `url(${branding.bannerUrl})` }}
+              >
+                <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+              </div>
+            )}
+            
+            {/* Header Preview */}
+            <div className="p-4 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                {branding.logoUrl ? (
+                  <img 
+                    src={branding.logoUrl} 
+                    alt="Preview Logo" 
+                    className="h-8 w-auto object-contain"
+                  />
+                ) : (
+                  <div 
+                    className="w-8 h-8 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: branding.brandColor || '#6366f1' }}
+                  >
+                    <Church className="text-white text-sm" />
+                  </div>
+                )}
+                <div>
+                  <h4 className="font-semibold text-gray-900 dark:text-white text-sm">
+                    ChurchConnect | Your Church
+                  </h4>
+                  <p className="text-xs text-gray-500">Biometric Attendance System</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Navigation Preview */}
+            <div className="border-t border-gray-200 dark:border-gray-600 px-4">
+              <div className="flex space-x-6">
+                {['Register', 'Check-In', 'Dashboard'].map((tab, index) => (
+                  <div
+                    key={tab}
+                    className={`py-3 px-1 border-b-2 text-sm font-medium ${
+                      index === 0 ? '' : 'border-transparent text-gray-500'
+                    }`}
+                    style={index === 0 ? { 
+                      borderBottomColor: branding.brandColor || '#6366f1',
+                      color: branding.brandColor || '#6366f1'
+                    } : {}}
+                  >
+                    {tab}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Logo Upload */}
       <Card>
         <CardHeader>
@@ -182,22 +254,35 @@ export function BrandingTab() {
           )}
           
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <input
-                type="file"
-                id="logo-upload"
-                accept="image/*"
-                onChange={(e) => handleFileUpload(e, 'logo')}
-                disabled={isUploading}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
-              <Button disabled={isUploading} className="relative">
-                <Upload className="h-4 w-4 mr-2" />
-                {isUploading ? 'Uploading...' : branding.logoUrl ? 'Replace Logo' : 'Upload Logo'}
-              </Button>
-            </div>
+            <input
+              type="file"
+              id="logo-upload"
+              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+              onChange={(e) => handleFileUpload(e, 'logo')}
+              disabled={isUploading}
+              className="hidden"
+            />
+            <Button 
+              onClick={() => document.getElementById('logo-upload')?.click()}
+              disabled={isUploading}
+              className="relative"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isUploading ? 'Uploading...' : branding.logoUrl ? 'Replace Logo' : 'Upload Logo'}
+            </Button>
             {branding.logoUrl && (
-              <p className="text-sm text-gray-500">Current logo uploaded</p>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  setBranding(prev => ({ ...prev, logoUrl: undefined }));
+                  // TODO: Add API call to remove logo
+                }}
+                className="text-red-600 hover:text-red-700"
+              >
+                <RotateCcw className="h-3 w-3 mr-1" />
+                Remove
+              </Button>
             )}
           </div>
         </CardContent>
@@ -226,22 +311,35 @@ export function BrandingTab() {
           )}
           
           <div className="flex items-center gap-4">
-            <div className="relative">
-              <input
-                type="file"
-                id="banner-upload"
-                accept="image/*"
-                onChange={(e) => handleFileUpload(e, 'banner')}
-                disabled={isUploading}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-              />
-              <Button disabled={isUploading} className="relative">
-                <Upload className="h-4 w-4 mr-2" />
-                {isUploading ? 'Uploading...' : branding.bannerUrl ? 'Replace Banner' : 'Upload Banner'}
-              </Button>
-            </div>
+            <input
+              type="file"
+              id="banner-upload"
+              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+              onChange={(e) => handleFileUpload(e, 'banner')}
+              disabled={isUploading}
+              className="hidden"
+            />
+            <Button 
+              onClick={() => document.getElementById('banner-upload')?.click()}
+              disabled={isUploading}
+              className="relative"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isUploading ? 'Uploading...' : branding.bannerUrl ? 'Replace Banner' : 'Upload Banner'}
+            </Button>
             {branding.bannerUrl && (
-              <p className="text-sm text-gray-500">Current banner uploaded</p>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  setBranding(prev => ({ ...prev, bannerUrl: undefined }));
+                  // TODO: Add API call to remove banner
+                }}
+                className="text-red-600 hover:text-red-700"
+              >
+                <RotateCcw className="h-3 w-3 mr-1" />
+                Remove
+              </Button>
             )}
           </div>
         </CardContent>
@@ -259,45 +357,94 @@ export function BrandingTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={branding.brandColor || '#6366f1'}
-                onChange={(e) => handleBrandColorChange(e.target.value)}
-                disabled={isUpdating}
-                className="w-12 h-12 rounded border-2 border-gray-300 cursor-pointer"
-              />
-              <div>
-                <Label>Brand Color</Label>
-                <Input
-                  type="text"
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <input
+                  type="color"
                   value={branding.brandColor || '#6366f1'}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
-                      handleBrandColorChange(value);
-                    }
-                  }}
+                  onChange={(e) => handleBrandColorChange(e.target.value)}
                   disabled={isUpdating}
-                  className="w-24 font-mono text-sm"
-                  placeholder="#6366f1"
+                  className="w-12 h-12 rounded-lg border-2 border-gray-300 cursor-pointer"
                 />
+                <div>
+                  <Label>Brand Color</Label>
+                  <Input
+                    type="text"
+                    value={branding.brandColor || '#6366f1'}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (/^#[0-9A-Fa-f]{6}$/.test(value)) {
+                        handleBrandColorChange(value);
+                      }
+                    }}
+                    disabled={isUpdating}
+                    className="w-24 font-mono text-sm"
+                    placeholder="#6366f1"
+                  />
+                </div>
               </div>
-            </div>
-            
-            {/* Color Preview */}
-            <div className="flex-1 flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Preview:</span>
-                <div 
-                  className="px-4 py-2 rounded text-white font-medium"
-                  style={{ backgroundColor: branding.brandColor || '#6366f1' }}
-                >
-                  Sample Button
+              
+              {/* Quick Color Presets */}
+              <div>
+                <Label className="text-xs text-gray-500">Quick presets:</Label>
+                <div className="flex flex-wrap gap-2 mt-1">
+                  {['#6366f1', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'].map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => handleBrandColorChange(color)}
+                      className="w-6 h-6 rounded border-2 border-gray-300 hover:border-gray-400 transition-colors"
+                      style={{ backgroundColor: color }}
+                      disabled={isUpdating}
+                      title={color}
+                    />
+                  ))}
                 </div>
               </div>
             </div>
+            
+            <div className="space-y-3">
+              <Label>Preview Elements:</Label>
+              <div className="space-y-2">
+                <button
+                  className="px-4 py-2 rounded-lg text-white font-medium text-sm w-full"
+                  style={{ backgroundColor: branding.brandColor || '#6366f1' }}
+                  disabled
+                >
+                  Sample Button
+                </button>
+                <div 
+                  className="w-full h-1 rounded"
+                  style={{ backgroundColor: branding.brandColor || '#6366f1' }}
+                ></div>
+                <div className="flex items-center space-x-2">
+                  <div 
+                    className="w-6 h-6 rounded-full"
+                    style={{ backgroundColor: branding.brandColor || '#6366f1' }}
+                  ></div>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">User Avatar</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {isUpdating && (
+            <div className="text-sm text-blue-600 dark:text-blue-400 flex items-center">
+              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-2"></div>
+              Updating brand color...
+            </div>
+          )}
+          
+          <div className="pt-2 border-t border-gray-200 dark:border-gray-600 flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleBrandColorChange('#6366f1')}
+              disabled={isUpdating}
+            >
+              <RotateCcw className="h-3 w-3 mr-1" />
+              Reset to Default
+            </Button>
           </div>
         </CardContent>
       </Card>
