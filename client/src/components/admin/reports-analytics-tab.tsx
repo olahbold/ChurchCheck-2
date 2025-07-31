@@ -97,7 +97,7 @@ const REPORT_CONFIGS = [
 export default function ReportsAnalyticsTab() {
   const [selectedReport, setSelectedReport] = useState<string>('weekly-attendance');
   const [dateRange, setDateRange] = useState({
-    startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]
   });
   const [reportParams, setReportParams] = useState<any>({});
