@@ -134,7 +134,7 @@ export default function RegisterTab() {
       gender: member.gender as "male" | "female",
       ageGroup: member.ageGroup as "child" | "adolescent" | "adult",
       phone: member.phone,
-      email: member.email ?? "",
+      email: member.email || "",
       whatsappNumber: member.whatsappNumber ?? "",
       address: member.address ?? "",
       dateOfBirth: member.dateOfBirth ?? "",
@@ -218,7 +218,8 @@ export default function RegisterTab() {
       });
       return response;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
+      console.log('Member created successfully:', result);
       queryClient.invalidateQueries({ queryKey: ['/api/members'] });
       toast({
         title: "Success",
@@ -227,9 +228,10 @@ export default function RegisterTab() {
       handleClearForm();
     },
     onError: (error) => {
+      console.log('Member creation error:', error);
       toast({
         title: "Registration Failed",
-        description: "Please check your information and try again.",
+        description: error.message || "Please check your information and try again.",
         variant: "destructive",
       });
     },
@@ -274,14 +276,17 @@ export default function RegisterTab() {
   });
 
   const onSubmit = (data: InsertMember) => {
+    console.log('Form submitted with data:', data);
     const memberData = {
       ...data,
       fingerprintId: enrolledFingerprintId || undefined,
     };
+    console.log('Processed member data:', memberData);
     
     if (isUpdateMode && selectedMember) {
       setShowUpdateConfirmation(true);
     } else {
+      console.log('Creating member via mutation...');
       createMemberMutation.mutate(memberData);
     }
   };

@@ -49,7 +49,10 @@ export default function DashboardTab() {
   // Mutation for individual follow-up
   const sendFollowUpMutation = useMutation({
     mutationFn: async ({ memberId, method }: { memberId: string; method: 'sms' | 'email' }) => {
-      return await apiRequest('POST', `/api/follow-up/${memberId}`, { method });
+      return await apiRequest(`/api/follow-up/${memberId}`, {
+        method: 'POST',
+        body: JSON.stringify({ method }),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/follow-up'] });
@@ -77,8 +80,11 @@ export default function DashboardTab() {
     setIsSendingAll(true);
     try {
       const promises = followUpMembers.map(member => 
-        apiRequest('POST', `/api/follow-up/${member.id}`, {
-          method: member.phone ? 'sms' : 'email'
+        apiRequest(`/api/follow-up/${member.id}`, {
+          method: 'POST',
+          body: JSON.stringify({
+            method: member.phone ? 'sms' : 'email'
+          }),
         })
       );
       
