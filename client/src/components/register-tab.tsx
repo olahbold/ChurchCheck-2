@@ -276,9 +276,9 @@ export default function RegisterTab() {
 
   const onSubmit = (data: InsertMember) => {
     const authToken = localStorage.getItem('auth_token');
-    const authData = localStorage.getItem('auth_data');
+    const churchData = localStorage.getItem('church_data');
     
-    if (!authToken || !authData) {
+    if (!authToken || !churchData) {
       toast({
         title: "Authentication Required",
         description: "Please log in to register members",
@@ -287,8 +287,8 @@ export default function RegisterTab() {
       return;
     }
     
-    const parsedAuthData = JSON.parse(authData);
-    const churchId = parsedAuthData?.churchId;
+    const parsedChurchData = JSON.parse(churchData);
+    const churchId = parsedChurchData?.id;
     
     if (!churchId) {
       toast({
