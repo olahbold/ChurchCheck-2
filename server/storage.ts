@@ -686,12 +686,12 @@ export class DatabaseStorage implements IStorage {
         dateOfBirth: sql`TO_CHAR(${members.dateOfBirth}, 'YYYY-MM-DD')`,
         weddingAnniversary: sql`TO_CHAR(${members.weddingAnniversary}, 'YYYY-MM-DD')`,
         isCurrentMember: members.isCurrentMember,
-        createdAt: sql`TO_CHAR(${members.createdAt}, 'YYYY-MM-DD HH24:MI:SS')`,
-        updatedAt: sql`TO_CHAR(${members.updatedAt}, 'YYYY-MM-DD HH24:MI:SS')`,
+        lastAttendance: sql`TO_CHAR(${members.createdAt}, 'YYYY-MM-DD')`,
       })
       .from(members)
       .where(
         and(
+          eq(members.churchId, this.churchId),
           gte(members.createdAt, new Date(startDate)),
           lte(members.createdAt, new Date(endDate))
         )
@@ -715,12 +715,15 @@ export class DatabaseStorage implements IStorage {
         address: members.address,
         dateOfBirth: sql`TO_CHAR(${members.dateOfBirth}, 'YYYY-MM-DD')`,
         weddingAnniversary: sql`TO_CHAR(${members.weddingAnniversary}, 'YYYY-MM-DD')`,
-        lastAttendance: sql`MAX(${attendanceRecords.attendanceDate})`,
-        createdAt: sql`TO_CHAR(${members.createdAt}, 'YYYY-MM-DD HH24:MI:SS')`,
+        lastAttendance: sql`COALESCE(TO_CHAR(MAX(${attendanceRecords.attendanceDate}), 'YYYY-MM-DD'), 'Never')`,
       })
       .from(members)
-      .leftJoin(attendanceRecords, eq(members.id, attendanceRecords.memberId))
-      .groupBy(members.id, members.title, members.firstName, members.surname, members.gender, members.ageGroup, members.phone, members.email, members.whatsappNumber, members.address, members.dateOfBirth, members.weddingAnniversary, members.createdAt)
+      .leftJoin(attendanceRecords, and(
+        eq(members.id, attendanceRecords.memberId),
+        eq(attendanceRecords.churchId, this.churchId)
+      ))
+      .where(eq(members.churchId, this.churchId))
+      .groupBy(members.id, members.title, members.firstName, members.surname, members.gender, members.ageGroup, members.phone, members.email, members.whatsappNumber, members.address, members.dateOfBirth, members.weddingAnniversary)
       .having(
         sql`MAX(${attendanceRecords.attendanceDate}) < ${weeksAgo.toISOString().split('T')[0]} OR MAX(${attendanceRecords.attendanceDate}) IS NULL`
       );

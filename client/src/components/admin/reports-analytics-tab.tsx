@@ -162,23 +162,24 @@ export default function ReportsAnalyticsTab() {
         const csvData = data.map((row, index) => {
           const rowData = [`"${index + 1}"`]; // Sequential number
           headers.forEach(header => {
-            if (header !== 'memberId') { // Exclude memberId
+            if (header !== 'memberId' && header !== 'createdAt' && header !== 'updatedAt') { // Exclude memberId and timestamp fields
               rowData.push(`"${row[header] || ''}"`);
             }
           });
           return rowData.join(',');
         }).join('\n');
         
-        const csvHeaders = ['No.', ...headers.filter(h => h !== 'memberId')];
+        const csvHeaders = ['No.', ...headers.filter(h => h !== 'memberId' && h !== 'createdAt' && h !== 'updatedAt')];
         return `${csvHeaders.join(',')}\n${csvData}`;
       }
       
-      // Regular CSV generation for other reports
+      // Regular CSV generation for other reports - exclude timestamp fields
+      const filteredHeaders = headers.filter(h => h !== 'createdAt' && h !== 'updatedAt');
       const csvData = data.map(row => 
-        headers.map(header => `"${row[header] || ''}"`).join(',')
+        filteredHeaders.map(header => `"${row[header] || ''}"`).join(',')
       ).join('\n');
       
-      return `${headers.join(',')}\n${csvData}`;
+      return `${filteredHeaders.join(',')}\n${csvData}`;
     }
     
     // Handle object data - convert to JSON string

@@ -1105,7 +1105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'ID', 'Title', 'First Name', 'Surname', 'Gender', 'Age Group', 
         'Phone', 'Email', 'WhatsApp', 'Address', 'Date of Birth', 
         'Wedding Anniversary', 'Current Member', 'Fingerprint ID', 
-        'Parent ID', 'Created At', 'Updated At'
+        'Parent ID'
       ];
       
       const csvRows = [headers.join(',')];
@@ -1127,8 +1127,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           member.isCurrentMember,
           `"${member.fingerprintId || ''}"`,
           `"${member.parentId || ''}"`,
-          member.createdAt,
-          member.updatedAt
         ];
         csvRows.push(row.join(','));
       });
