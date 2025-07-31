@@ -142,7 +142,15 @@ Key features:
 
 ## Recent Changes
 
-### July 31, 2025 - Multi-Tenant SaaS System Fully Operational & Production Ready
+### July 31, 2025 - Enhanced Member Search & Multi-Tenant SaaS System Fully Operational
+- **Enhanced Member Search Functionality**: Fixed case-sensitivity and partial matching issues in member search:
+  - Improved search algorithm to handle firstName, surname, and full name combinations
+  - Added lowercase matching and concatenated name searching using PostgreSQL string operations
+  - Fixed TypeScript import errors with proper drizzle-orm imports (added `or` function)
+  - Search now works for partial matches like "oginni" finding "Sobowole-Oginni"
+  - Full name searches like "adele sobowole" now work across first and last name fields
+  - Case-insensitive matching ensures "ADELE" finds "adele" entries
+- **Multi-Tenant SaaS System Fully Operational & Production Ready
 - **Complete System Restoration**: Successfully debugged and fixed all critical issues with the multi-tenant SaaS transformation:
   - Fixed duplicate QueryClient instances causing React Query malfunction
   - Resolved authentication token storage and retrieval issues

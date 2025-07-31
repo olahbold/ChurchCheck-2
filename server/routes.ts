@@ -27,7 +27,6 @@ import {
   insertVisitorSchema
 } from "@shared/schema";
 import { z } from "zod";
-import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply trial status checking to all routes

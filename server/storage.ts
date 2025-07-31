@@ -24,7 +24,7 @@ import {
   type InsertUser 
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, sql, gte, lte, count, isNotNull } from "drizzle-orm";
+import { eq, desc, and, or, sql, gte, lte, count, isNotNull } from "drizzle-orm";
 
 export interface IStorage {
   // Legacy user methods
@@ -178,8 +178,15 @@ export class DatabaseStorage implements IStorage {
     }
     
     if (query) {
+      // Enhanced search: search in firstName, surname, and full name combinations
+      const searchQuery = `%${query.toLowerCase().trim()}%`;
       conditions.push(
-        sql`${members.firstName} ILIKE ${`%${query}%`} OR ${members.surname} ILIKE ${`%${query}%`}`
+        or(
+          sql`LOWER(${members.firstName}) LIKE ${searchQuery}`,
+          sql`LOWER(${members.surname}) LIKE ${searchQuery}`,
+          sql`LOWER(${members.firstName} || ' ' || ${members.surname}) LIKE ${searchQuery}`,
+          sql`LOWER(${members.surname} || ' ' || ${members.firstName}) LIKE ${searchQuery}`
+        )
       );
     }
     
