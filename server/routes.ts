@@ -1,4 +1,5 @@
 import type { Express } from "express";
+import express from "express";
 import { createServer, type Server } from "http";
 import { DatabaseStorage } from "./storage";
 import { churchStorage } from "./church-storage.js";
@@ -24,9 +25,49 @@ import {
   insertChurchUserSchema,
   insertReportConfigSchema,
   insertReportRunSchema,
-  insertVisitorSchema
+  insertVisitorSchema,
+  updateChurchBrandingSchema
 } from "@shared/schema";
+import multer from 'multer';
+import sharp from 'sharp';
+import path from 'path';
+import fs from 'fs/promises';
 import { z } from "zod";
+
+// Configure multer for file uploads
+const storage = multer.diskStorage({
+  destination: async (req, file, cb) => {
+    const uploadDir = 'uploads/church-branding';
+    await fs.mkdir(uploadDir, { recursive: true });
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const authReq = req as AuthenticatedRequest;
+    const churchId = authReq.churchId || authReq.user?.churchId;
+    const timestamp = Date.now();
+    const ext = path.extname(file.originalname);
+    const type = file.fieldname; // 'logo' or 'banner'
+    cb(null, `${churchId}-${type}-${timestamp}${ext}`);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const mimetype = allowedTypes.test(file.mimetype);
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only JPEG, PNG, GIF, and WebP images are allowed.'));
+    }
+  }
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Helper function to get storage instance for request context
@@ -1291,6 +1332,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Subscription management routes
   app.use('/api/subscriptions', subscriptionRoutes);
+
+  // Church Branding Routes
+  app.post("/api/churches/upload-branding", authenticateToken, ensureChurchContext, upload.fields([
+    { name: 'logo', maxCount: 1 },
+    { name: 'banner', maxCount: 1 }
+  ]), async (req: AuthenticatedRequest, res) => {
+    try {
+      const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+      const logoFile = files.logo?.[0];
+      const bannerFile = files.banner?.[0];
+      
+      let logoUrl = '';
+      let bannerUrl = '';
+      
+      // Process logo if uploaded
+      if (logoFile) {
+        const optimizedLogoPath = logoFile.path.replace(/\.[^/.]+$/, '_optimized.webp');
+        await sharp(logoFile.path)
+          .resize(200, 80, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 0 } })
+          .webp({ quality: 90 })
+          .toFile(optimizedLogoPath);
+        
+        // Clean up original file
+        await fs.unlink(logoFile.path);
+        logoUrl = `/uploads/church-branding/${path.basename(optimizedLogoPath)}`;
+      }
+      
+      // Process banner if uploaded
+      if (bannerFile) {
+        const optimizedBannerPath = bannerFile.path.replace(/\.[^/.]+$/, '_optimized.webp');
+        await sharp(bannerFile.path)
+          .resize(1200, 400, { fit: 'cover' })
+          .webp({ quality: 85 })
+          .toFile(optimizedBannerPath);
+        
+        // Clean up original file
+        await fs.unlink(bannerFile.path);
+        bannerUrl = `/uploads/church-branding/${path.basename(optimizedBannerPath)}`;
+      }
+      
+      // Update church branding in database
+      const updateData: any = {};
+      if (logoUrl) updateData.logoUrl = logoUrl;
+      if (bannerUrl) updateData.bannerUrl = bannerUrl;
+      
+      if (Object.keys(updateData).length > 0) {
+        await churchStorage.updateChurchBranding(req.churchId!, updateData);
+      }
+      
+      res.json({ 
+        success: true, 
+        logoUrl: logoUrl || undefined,
+        bannerUrl: bannerUrl || undefined,
+        message: 'Branding assets uploaded successfully'
+      });
+    } catch (error) {
+      console.error('Branding upload error:', error);
+      res.status(500).json({ error: 'Failed to upload branding assets' });
+    }
+  });
+
+  app.put("/api/churches/branding", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
+    try {
+      const brandingData = updateChurchBrandingSchema.parse(req.body);
+      await churchStorage.updateChurchBranding(req.churchId!, brandingData);
+      
+      res.json({ 
+        success: true, 
+        message: 'Church branding updated successfully'
+      });
+    } catch (error) {
+      console.error('Update branding error:', error);
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid branding data' });
+    }
+  });
+
+  app.get("/api/churches/branding", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
+    try {
+      const church = await churchStorage.getChurch(req.churchId!);
+      if (!church) {
+        return res.status(404).json({ error: 'Church not found' });
+      }
+      
+      res.json({
+        logoUrl: church.logoUrl,
+        bannerUrl: church.bannerUrl,
+        brandColor: church.brandColor
+      });
+    } catch (error) {
+      console.error('Get branding error:', error);
+      res.status(500).json({ error: 'Failed to get church branding' });
+    }
+  });
+
+  // Serve uploaded files
+  app.use('/uploads', express.static('uploads'));
 
   const httpServer = createServer(app);
   return httpServer;

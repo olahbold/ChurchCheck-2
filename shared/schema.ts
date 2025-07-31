@@ -9,6 +9,7 @@ export const churches = pgTable("churches", {
   name: text("name").notNull(),
   subdomain: varchar("subdomain", { length: 50 }).unique(),
   logoUrl: text("logo_url"),
+  bannerUrl: text("banner_url"),
   brandColor: varchar("brand_color", { length: 7 }).default("#6366f1"), // Hex color
   subscriptionTier: varchar("subscription_tier", { length: 20 }).notNull().default("trial"), // trial, starter, growth, enterprise
   trialStartDate: timestamp("trial_start_date").defaultNow(),
@@ -482,6 +483,12 @@ export const insertSubscriptionSchema = createInsertSchema(subscriptions, {
   id: true,
   createdAt: true,
   updatedAt: true,
+});
+
+export const updateChurchBrandingSchema = z.object({
+  logoUrl: z.string().url("Invalid logo URL").optional().or(z.literal("")),
+  bannerUrl: z.string().url("Invalid banner URL").optional().or(z.literal("")),
+  brandColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Brand color must be a valid hex color").optional(),
 });
 
 // Multi-tenant types

@@ -5,8 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import UserManagementTab from "@/components/admin/user-management-tab";
 import ReportsAnalyticsTab from "@/components/admin/reports-analytics-tab";
 import SettingsTab from "@/components/settings-tab";
+import { BrandingTab } from "@/components/admin/branding-tab";
 import { AuthState } from "@/lib/types";
-import { Shield, Users, BarChart3, Settings, LogOut } from "lucide-react";
+import { Shield, Users, BarChart3, Settings, LogOut, Palette } from "lucide-react";
 
 interface AdminTabProps {
   authState: AuthState;
@@ -50,7 +51,7 @@ export default function AdminTab({ authState, onLogout }: AdminTabProps) {
   };
 
   const getTabsGridClass = () => {
-    if (authState.user?.role === 'admin') return 'grid-cols-3';
+    if (authState.user?.role === 'admin') return 'grid-cols-4';
     if (authState.user?.role === 'data_viewer') return 'grid-cols-1';
     return 'grid-cols-1';
   };
@@ -100,6 +101,12 @@ export default function AdminTab({ authState, onLogout }: AdminTabProps) {
             </TabsTrigger>
           )}
           {authState.user.role === 'admin' && (
+            <TabsTrigger value="branding" className="flex items-center space-x-2">
+              <Palette className="h-4 w-4" />
+              <span>Branding</span>
+            </TabsTrigger>
+          )}
+          {authState.user.role === 'admin' && (
             <TabsTrigger value="settings" className="flex items-center space-x-2">
               <Settings className="h-4 w-4" />
               <span>Settings</span>
@@ -116,6 +123,12 @@ export default function AdminTab({ authState, onLogout }: AdminTabProps) {
         {(authState.user.role === 'admin' || authState.user.role === 'data_viewer') && (
           <TabsContent value="reports" className="space-y-6">
             <ReportsAnalyticsTab />
+          </TabsContent>
+        )}
+
+        {authState.user.role === 'admin' && (
+          <TabsContent value="branding" className="space-y-6">
+            <BrandingTab />
           </TabsContent>
         )}
 

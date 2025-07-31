@@ -1,6 +1,13 @@
 import { useState, useEffect } from "react";
 import { TabType, AuthState, AdminUser } from "@/lib/types";
 import { Church, User, LogIn } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+
+interface ChurchBranding {
+  logoUrl?: string;
+  bannerUrl?: string;
+  brandColor?: string;
+}
 import RegisterTab from "@/components/register-tab";
 import CheckInTab from "@/components/checkin-tab";
 import DashboardTab from "@/components/dashboard-tab";
@@ -21,6 +28,7 @@ export default function Home() {
   // Get church and user data from localStorage (SaaS authentication)
   const [churchData, setChurchData] = useState<any>(null);
   const [userData, setUserData] = useState<any>(null);
+  const [churchBranding, setChurchBranding] = useState<ChurchBranding>({});
   
   // Load authentication data on component mount
   useEffect(() => {
@@ -36,8 +44,23 @@ export default function Home() {
         user: JSON.parse(storedUserData),
         isLoading: false
       });
+      
+      // Load church branding if authenticated
+      loadChurchBranding();
     }
   }, []);
+
+  // Load church branding data
+  const loadChurchBranding = async () => {
+    try {
+      const branding = await apiRequest('/api/churches/branding');
+      setChurchBranding(branding);
+    } catch (error) {
+      console.error('Failed to load church branding:', error);
+      // Use defaults if loading fails
+      setChurchBranding({});
+    }
+  };
   
   const currentDate = new Date().toLocaleDateString('en-US', {
     weekday: 'long',
@@ -96,12 +119,35 @@ export default function Home() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       {/* Header */}
       <header className="bg-white shadow-sm border-b border-slate-200">
+        {/* Banner Image */}
+        {churchBranding.bannerUrl && (
+          <div 
+            className="h-24 bg-cover bg-center relative"
+            style={{ backgroundImage: `url(${churchBranding.bannerUrl})` }}
+          >
+            <div className="absolute inset-0 bg-black bg-opacity-20"></div>
+          </div>
+        )}
+        
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-[hsl(258,90%,66%)] rounded-lg flex items-center justify-center">
-                <Church className="text-white text-lg" />
-              </div>
+              {/* Church Logo or Default Icon */}
+              {churchBranding.logoUrl ? (
+                <img 
+                  src={churchBranding.logoUrl} 
+                  alt="Church Logo" 
+                  className="h-10 w-auto object-contain"
+                />
+              ) : (
+                <div 
+                  className="w-10 h-10 rounded-lg flex items-center justify-center"
+                  style={{ backgroundColor: churchBranding.brandColor || '#6366f1' }}
+                >
+                  <Church className="text-white text-lg" />
+                </div>
+              )}
+              
               <div>
                 <h1 className="text-xl font-semibold text-slate-900">
                   ChurchConnect
@@ -153,7 +199,10 @@ export default function Home() {
               </div>
               {authState.user ? (
                 <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 bg-[hsl(258,90%,66%)] rounded-full flex items-center justify-center">
+                  <div 
+                    className="w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: churchBranding.brandColor || '#6366f1' }}
+                  >
                     <span className="text-white text-xs font-medium">
                       {userData && userData.firstName && userData.lastName ? 
                         `${userData.firstName[0]}${userData.lastName[0]}` : 
@@ -182,23 +231,29 @@ export default function Home() {
       <nav className="bg-white border-b border-slate-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex space-x-8">
-            {tabConfig.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => tab.id === 'admin' ? handleAdminTabClick() : setActiveTab(tab.id as TabType)}
-                className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-medium text-sm transition-colors ${
-                  activeTab === tab.id
-                    ? 'border-[hsl(258,90%,66%)] text-[hsl(258,90%,66%)]'
-                    : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
-                }`}
-              >
-                <i className={`fas ${tab.icon}`}></i>
-                <span>{tab.label}</span>
-                {tab.id === 'admin' && !authState.isAuthenticated && (
-                  <LogIn className="h-3 w-3 ml-1" />
-                )}
-              </button>
-            ))}
+            {tabConfig.map((tab) => {
+              const isActive = activeTab === tab.id;
+              const brandColor = churchBranding.brandColor || '#6366f1';
+              
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => tab.id === 'admin' ? handleAdminTabClick() : setActiveTab(tab.id as TabType)}
+                  className={`flex items-center space-x-2 px-4 py-3 border-b-2 font-medium text-sm transition-colors ${
+                    isActive
+                      ? ''
+                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+                  }`}
+                  style={isActive ? { borderBottomColor: brandColor, color: brandColor } : {}}
+                >
+                  <i className={`fas ${tab.icon}`}></i>
+                  <span>{tab.label}</span>
+                  {tab.id === 'admin' && !authState.isAuthenticated && (
+                    <LogIn className="h-3 w-3 ml-1" />
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       </nav>

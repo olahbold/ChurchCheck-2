@@ -79,6 +79,21 @@ export class ChurchStorage {
       .where(eq(churchUsers.id, userId));
   }
 
+  // Get church by ID (alias for getChurchById for consistency)
+  async getChurch(id: string): Promise<Church | null> {
+    return this.getChurchById(id);
+  }
+
+  // Update church branding
+  async updateChurchBranding(churchId: string, brandingData: { logoUrl?: string; bannerUrl?: string; brandColor?: string }): Promise<Church | null> {
+    const [church] = await db
+      .update(churches)
+      .set({ ...brandingData, updatedAt: new Date() })
+      .where(eq(churches.id, churchId))
+      .returning();
+    return church || null;
+  }
+
   async deleteChurchUser(id: string): Promise<boolean> {
     const result = await db.delete(churchUsers).where(eq(churchUsers.id, id));
     return result.count > 0;
