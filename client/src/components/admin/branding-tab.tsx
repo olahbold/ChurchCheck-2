@@ -123,7 +123,7 @@ export function BrandingTab() {
       const response = await apiRequest('/api/churches/branding', {
         method: 'PUT',
         body: JSON.stringify({ 
-          [type === 'logo' ? 'logoUrl' : 'bannerUrl']: null 
+          [type === 'logo' ? 'logoUrl' : 'bannerUrl']: "" 
         }),
         headers: {
           'Content-Type': 'application/json',

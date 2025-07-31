@@ -86,9 +86,21 @@ export class ChurchStorage {
 
   // Update church branding
   async updateChurchBranding(churchId: string, brandingData: { logoUrl?: string; bannerUrl?: string; brandColor?: string }): Promise<Church | null> {
+    // Convert empty strings to null for database storage
+    const processedData: any = { updatedAt: new Date() };
+    if (brandingData.logoUrl !== undefined) {
+      processedData.logoUrl = brandingData.logoUrl === "" ? null : brandingData.logoUrl;
+    }
+    if (brandingData.bannerUrl !== undefined) {
+      processedData.bannerUrl = brandingData.bannerUrl === "" ? null : brandingData.bannerUrl;
+    }
+    if (brandingData.brandColor !== undefined) {
+      processedData.brandColor = brandingData.brandColor === "" ? null : brandingData.brandColor;
+    }
+    
     const [church] = await db
       .update(churches)
-      .set({ ...brandingData, updatedAt: new Date() })
+      .set(processedData)
       .where(eq(churches.id, churchId))
       .returning();
     return church || null;
