@@ -237,7 +237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Auto check-in the member
         await storage.createAttendanceRecord({
-          churchId: req.churchId!,
+          churchId: member.churchId,
           memberId: member.id,
           attendanceDate: today,
           checkInMethod: "fingerprint",
@@ -438,6 +438,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Update follow-up record
       await storage.updateFollowUpRecord({
+        churchId: member.churchId,
         memberId: req.params.memberId,
         lastContactDate: new Date(),
         contactMethod: method,
@@ -489,6 +490,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check in parent
       await storage.createAttendanceRecord({
+        churchId: req.churchId || req.user?.churchId || parent.churchId,
         memberId: parentId,
         attendanceDate: today,
         checkInMethod: "family",
@@ -503,6 +505,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const child = await storage.getMember(childId);
         if (child) {
           const childRecord = await storage.createAttendanceRecord({
+            churchId: req.churchId || req.user?.churchId || child.churchId,
             memberId: childId,
             attendanceDate: today,
             checkInMethod: "family",
@@ -540,6 +543,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check in parent
       await storage.createAttendanceRecord({
+        churchId: req.churchId || req.user?.churchId || parent.churchId,
         memberId: parentId,
         attendanceDate: today,
         checkInMethod: "family",
@@ -550,6 +554,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const childRecords = [];
       for (const child of children) {
         const childRecord = await storage.createAttendanceRecord({
+          churchId: req.churchId || req.user?.churchId || child.churchId,
           memberId: child.id,
           attendanceDate: today,
           checkInMethod: "family",
@@ -573,8 +578,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/attendance/fix-visitor-member-records", async (req, res) => {
     try {
       // Find all visitors who became members (same name)
-      const visitors = await storage.getAllVisitors();
-      const members = await storage.getAllMembers();
+      const visitors = await storage.getAllVisitors("");
+      const members = await storage.getAllMembers("");
       
       let updatedCount = 0;
       
@@ -753,7 +758,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: z.string().email("Invalid email format"),
         password: z.string().min(6, "Password must be at least 6 characters"),
         role: z.enum(['admin', 'volunteer', 'data_viewer']),
-        region: z.string().optional(),
         isActive: z.boolean().default(true)
       }).parse(req.body);
 
@@ -772,8 +776,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName: churchUserData.fullName.split(' ')[0] || churchUserData.fullName,
         lastName: churchUserData.fullName.split(' ').slice(1).join(' ') || '',
         role: churchUserData.role,
-        isActive: churchUserData.isActive,
-        region: churchUserData.region || null
+        isActive: churchUserData.isActive
       });
 
       // Convert to admin user format for compatibility
@@ -783,7 +786,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fullName: `${user.firstName} ${user.lastName}`.trim(),
         email: user.email,
         role: user.role,
-        region: user.region,
         isActive: user.isActive,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
@@ -807,7 +809,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fullName: `${user.firstName} ${user.lastName}`.trim(),
         email: user.email,
         role: user.role,
-        region: user.region,
         isActive: user.isActive,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
@@ -836,7 +837,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fullName: `${user.firstName} ${user.lastName}`.trim(),
         email: user.email,
         role: user.role,
-        region: user.region,
         isActive: user.isActive,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
@@ -857,7 +857,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         email: z.string().email().optional(),
         password: z.string().optional(),
         role: z.enum(['admin', 'volunteer', 'data_viewer']).optional(),
-        region: z.string().optional(),
         isActive: z.boolean().optional()
       }).parse(req.body);
 
@@ -871,7 +870,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       if (updateData.password) updatePayload.passwordHash = await hashPassword(updateData.password);
       if (updateData.role) updatePayload.role = updateData.role;
-      if (updateData.region !== undefined) updatePayload.region = updateData.region || null;
       if (updateData.isActive !== undefined) updatePayload.isActive = updateData.isActive;
 
       const user = await churchStorage.updateChurchUser(req.params.id, updatePayload);
@@ -887,7 +885,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         fullName: `${user.firstName} ${user.lastName}`.trim(),
         email: user.email,
         role: user.role,
-        region: user.region,
         isActive: user.isActive,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
@@ -1109,7 +1106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/export/visitors", async (req, res) => {
     try {
-      const visitors = await storage.getAllVisitors();
+      const visitors = await storage.getAllVisitors("");
       
       // Convert to CSV format
       const headers = [
