@@ -1,6 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { DatabaseStorage } from "./storage";
 import { churchStorage } from "./church-storage.js";
 import churchRoutes from "./church-routes.js";
 import subscriptionRoutes from "./subscription-routes.js";
@@ -29,6 +29,9 @@ import {
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Helper function to get storage instance for request context
+  const getStorage = (req: AuthenticatedRequest) => new DatabaseStorage(req.churchId || req.user?.churchId!);
+  
   // Apply trial status checking to all routes
   app.use('/api', checkTrialStatus);
 
@@ -56,6 +59,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const memberData = insertMemberSchema.parse(memberDataWithChurch);
+      const storage = getStorage(req);
       const member = await storage.createMember(memberData);
       res.json(member);
     } catch (error) {
@@ -68,6 +72,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { search, group } = req.query;
       let members;
+      
+      const storage = getStorage(req);
       
       if (search || group) {
         members = await storage.searchMembers(
@@ -87,6 +93,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/members/:id", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const member = await storage.getMember(req.params.id, req.churchId);
       if (!member) {
         return res.status(404).json({ error: "Member not found" });
@@ -108,6 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       let created = 0;
       const errors: string[] = [];
+      const storage = getStorage(req);
 
       for (const memberData of members) {
         try {
@@ -158,8 +166,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/members/:id/children", async (req, res) => {
+  app.get("/api/members/:id/children", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const children = await storage.getMembersByParent(req.params.id);
       res.json(children);
     } catch (error) {
@@ -167,8 +176,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/members/:id", async (req, res) => {
+  app.put("/api/members/:id", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       console.log('Update request body:', JSON.stringify(req.body, null, 2));
       
       // Clean up the data before validation
@@ -197,8 +207,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Fingerprint simulation routes
-  app.post("/api/fingerprint/enroll", async (req, res) => {
+  app.post("/api/fingerprint/enroll", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const { memberId, fingerprintId } = req.body;
       // Use provided fingerprintId or generate new one
       const enrollFingerprintId = fingerprintId || `fp_${memberId}_${Date.now()}`;
@@ -210,8 +221,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/fingerprint/scan", async (req, res) => {
+  app.post("/api/fingerprint/scan", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       // Simulate fingerprint scanning - in real app this would interface with hardware
       const { fingerprintId, deviceId } = req.body;
       
@@ -266,6 +278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Attendance routes with authentication
   app.post("/api/attendance", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const attendanceData = insertAttendanceRecordSchema.parse({
         ...req.body,
         churchId: req.churchId
@@ -299,6 +312,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Delete attendance record
   app.delete("/api/attendance/:recordId", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const recordId = req.params.recordId;
       const success = await storage.deleteAttendanceRecord(recordId);
       if (success) {
@@ -312,8 +326,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/attendance/today", async (req, res) => {
+  app.get("/api/attendance/today", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const today = new Date().toISOString().split('T')[0];
       const attendance = await storage.getAttendanceForDate(today);
       res.json(attendance);
@@ -322,8 +337,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/attendance/stats", async (req, res) => {
+  app.get("/api/attendance/stats", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const { date } = req.query;
       const attendanceDate = date as string || new Date().toISOString().split('T')[0];
       const stats = await storage.getAttendanceStats(attendanceDate);
@@ -333,8 +349,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/members/:id/attendance", async (req, res) => {
+  app.get("/api/members/:id/attendance", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const { limit } = req.query;
       const history = await storage.getMemberAttendanceHistory(
         req.params.id,
@@ -347,8 +364,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get attendance history with date range and filters
-  app.get("/api/attendance/history", async (req, res) => {
+  app.get("/api/attendance/history", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const { startDate, endDate, memberId, gender, ageGroup, isCurrentMember } = req.query;
       
       if (!startDate || !endDate) {
@@ -375,8 +393,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get attendance date range (earliest and latest dates)
-  app.get("/api/attendance/date-range", async (req, res) => {
+  app.get("/api/attendance/date-range", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const dateRange = await storage.getAttendanceDateRange();
       res.json(dateRange);
     } catch (error) {
@@ -385,8 +404,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get attendance statistics for date range
-  app.get("/api/attendance/stats-range", async (req, res) => {
+  app.get("/api/attendance/stats-range", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const { startDate, endDate } = req.query;
       
       if (!startDate || !endDate) {
@@ -406,8 +426,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Follow-up routes
-  app.get("/api/follow-up", async (req, res) => {
+  app.get("/api/follow-up", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const members = await storage.getMembersNeedingFollowUp();
       res.json(members);
     } catch (error) {
@@ -416,8 +437,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Specific route must come before parameterized route
-  app.post("/api/follow-up/update-absences", async (req, res) => {
+  app.post("/api/follow-up/update-absences", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       await storage.updateConsecutiveAbsences();
       res.json({ success: true });
     } catch (error) {
@@ -426,8 +448,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/follow-up/:memberId", async (req, res) => {
+  app.post("/api/follow-up/:memberId", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const { method } = req.body; // "sms" or "email"
       
       // Get member details for notifications
@@ -467,8 +490,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get children for a specific parent
-  app.get("/api/members/children/:parentId", async (req, res) => {
+  app.get("/api/members/children/:parentId", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const children = await storage.getMembersByParent(req.params.parentId);
       res.json(children);
     } catch (error) {
@@ -479,6 +503,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Selective family check-in route
   app.post("/api/attendance/selective-family-checkin", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const { parentId, childrenIds } = req.body;
       const today = new Date().toISOString().split('T')[0];
       
@@ -530,6 +555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Original family check-in route (for backward compatibility)
   app.post("/api/attendance/family-checkin", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const { parentId } = req.body;
       const today = new Date().toISOString().split('T')[0];
       
@@ -575,11 +601,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Fix visitor-to-member attendance records
-  app.post("/api/attendance/fix-visitor-member-records", async (req, res) => {
+  app.post("/api/attendance/fix-visitor-member-records", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       // Find all visitors who became members (same name)
-      const visitors = await storage.getAllVisitors("");
-      const members = await storage.getAllMembers("");
+      const visitors = await storage.getAllVisitors(req.churchId!);
+      const members = await storage.getAllMembers(req.churchId!);
       
       let updatedCount = 0;
       
@@ -917,8 +944,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Analytics and reports routes
-  app.get("/api/reports/weekly-attendance", async (req, res) => {
+  app.get("/api/reports/weekly-attendance", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const { startDate, endDate } = req.query;
       const report = await storage.getWeeklyAttendanceSummary(
         startDate as string || new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -930,8 +958,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/reports/member-attendance-log", async (req, res) => {
+  app.get("/api/reports/member-attendance-log", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const { memberId, startDate, endDate } = req.query;
       const report = await storage.getMemberAttendanceLog(
         memberId as string,
@@ -944,8 +973,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/reports/missed-services", async (req, res) => {
+  app.get("/api/reports/missed-services", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const { weeks } = req.query;
       const report = await storage.getMissedServicesReport(
         weeks ? parseInt(weeks as string) : 3
@@ -956,8 +986,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/reports/new-members", async (req, res) => {
+  app.get("/api/reports/new-members", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const { startDate, endDate } = req.query;
       const report = await storage.getNewMembersReport(
         startDate as string || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -969,8 +1000,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/reports/inactive-members", async (req, res) => {
+  app.get("/api/reports/inactive-members", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const { weeks } = req.query;
       const report = await storage.getInactiveMembersReport(
         weeks ? parseInt(weeks as string) : 4
@@ -981,8 +1013,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/reports/group-attendance-trend", async (req, res) => {
+  app.get("/api/reports/group-attendance-trend", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const { startDate, endDate } = req.query;
       const report = await storage.getGroupAttendanceTrend(
         startDate as string || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -994,8 +1027,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/reports/family-checkin-summary", async (req, res) => {
+  app.get("/api/reports/family-checkin-summary", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const { date } = req.query;
       const report = await storage.getFamilyCheckInSummary(
         date as string || new Date().toISOString().split('T')[0]
@@ -1006,8 +1040,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/reports/followup-action-tracker", async (req, res) => {
+  app.get("/api/reports/followup-action-tracker", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const report = await storage.getFollowUpActionTracker();
       res.json(report);
     } catch (error) {
@@ -1016,8 +1051,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Report configuration routes
-  app.post("/api/admin/report-configs", async (req, res) => {
+  app.post("/api/admin/report-configs", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const configData = insertReportConfigSchema.parse(req.body);
       const config = await storage.createReportConfig(configData);
       res.json(config);
@@ -1026,8 +1062,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/report-configs", async (req, res) => {
+  app.get("/api/admin/report-configs", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const configs = await storage.getAllReportConfigs();
       res.json(configs);
     } catch (error) {
@@ -1035,8 +1072,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/report-runs", async (req, res) => {
+  app.post("/api/admin/report-runs", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const runData = insertReportRunSchema.parse(req.body);
       const run = await storage.createReportRun(runData);
       res.json(run);
@@ -1045,8 +1083,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/report-runs", async (req, res) => {
+  app.get("/api/admin/report-runs", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const { configId } = req.query;
       const runs = await storage.getReportRuns(configId as string);
       res.json(runs);
@@ -1056,9 +1095,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export routes
-  app.get("/api/export/members", async (req, res) => {
+  app.get("/api/export/members", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const members = await storage.getAllMembers();
+      const storage = getStorage(req);
+      const members = await storage.getAllMembers(req.churchId!);
       
       // Convert to CSV format
       const headers = [
@@ -1104,9 +1144,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/export/visitors", async (req, res) => {
+  app.get("/api/export/visitors", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const visitors = await storage.getAllVisitors("");
+      const storage = getStorage(req);
+      const visitors = await storage.getAllVisitors(req.churchId!);
       
       // Convert to CSV format
       const headers = [
@@ -1155,8 +1196,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Visitor routes
-  app.post("/api/visitors", async (req, res) => {
+  app.post("/api/visitors", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const visitorData = insertVisitorSchema.parse(req.body);
       const visitor = await storage.createVisitor(visitorData);
       res.json(visitor);
@@ -1181,6 +1223,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const visitorData = serverVisitorSchema.parse(visitorDataWithChurch);
       
       // Create visitor record
+      const storage = getStorage(req);
       const visitor = await storage.createVisitor(visitorData);
       
       // Create attendance record for the visitor
@@ -1205,6 +1248,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/visitors", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const { status } = req.query;
       let visitors;
       
@@ -1220,8 +1264,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/visitors/:id", async (req, res) => {
+  app.get("/api/visitors/:id", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const visitor = await storage.getVisitor(req.params.id);
       if (!visitor) {
         return res.status(404).json({ error: "Visitor not found" });
@@ -1232,8 +1277,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/visitors/:id", async (req, res) => {
+  app.patch("/api/visitors/:id", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
+      const storage = getStorage(req);
       const visitorUpdate = insertVisitorSchema.partial().parse(req.body);
       const visitor = await storage.updateVisitor(req.params.id, visitorUpdate);
       res.json(visitor);

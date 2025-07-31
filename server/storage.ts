@@ -92,6 +92,11 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  private churchId: string;
+
+  constructor(churchId: string) {
+    this.churchId = churchId;
+  }
   // Legacy user methods
   async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(members).where(eq(members.id, id));
@@ -107,6 +112,7 @@ export class DatabaseStorage implements IStorage {
     const [member] = await db
       .insert(members)
       .values({
+        churchId: this.churchId,
         firstName: insertUser.username,
         surname: 'Admin',
         gender: 'male',
@@ -129,20 +135,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMember(id: string, churchId?: string): Promise<Member | undefined> {
-    let query = db.select().from(members).where(eq(members.id, id));
+    let conditions = [eq(members.id, id)];
     if (churchId) {
-      query = query.where(eq(members.churchId, churchId));
+      conditions.push(eq(members.churchId, churchId));
     }
-    const [member] = await query;
+    const [member] = await db.select().from(members).where(and(...conditions));
     return member || undefined;
   }
 
   async getMemberByFingerprint(fingerprintId: string, churchId?: string): Promise<Member | undefined> {
-    let query = db.select().from(members).where(eq(members.fingerprintId, fingerprintId));
+    let conditions = [eq(members.fingerprintId, fingerprintId)];
     if (churchId) {
-      query = query.where(eq(members.churchId, churchId));
+      conditions.push(eq(members.churchId, churchId));
     }
-    const [member] = await query;
+    const [member] = await db.select().from(members).where(and(...conditions));
     return member || undefined;
   }
 
@@ -408,6 +414,7 @@ export class DatabaseStorage implements IStorage {
 
       for (const member of membersWithoutRecentAttendance) {
         await this.updateFollowUpRecord({
+          churchId: this.churchId,
           memberId: member.id,
           consecutiveAbsences: 3,
           needsFollowUp: true,
@@ -609,9 +616,12 @@ export class DatabaseStorage implements IStorage {
   async getMissedServicesReport(weeks: number): Promise<any> {
     const weeksAgo = new Date();
     weeksAgo.setDate(weeksAgo.getDate() - (weeks * 7));
+    const cutoffDate = weeksAgo.toISOString().split('T')[0];
 
-    const membersWithoutRecentAttendance = await db
+    // First get all members with their most recent attendance date (if any)
+    const membersWithLastAttendance = await db
       .select({
+        memberId: members.id,
         memberName: sql`${members.firstName} || ' ' || ${members.surname}`,
         title: members.title,
         gender: members.gender,
@@ -628,15 +638,38 @@ export class DatabaseStorage implements IStorage {
       .from(members)
       .leftJoin(
         attendanceRecords,
-        and(
-          eq(members.id, attendanceRecords.memberId),
-          gte(attendanceRecords.attendanceDate, weeksAgo.toISOString().split('T')[0])
-        )
+        eq(members.id, attendanceRecords.memberId)
       )
-      .where(sql`${attendanceRecords.id} IS NULL`)
-      .groupBy(members.id, members.title, members.firstName, members.surname, members.gender, members.ageGroup, members.phone, members.email, members.whatsappNumber, members.address, members.dateOfBirth, members.weddingAnniversary, members.createdAt);
+      .where(eq(members.churchId, this.churchId))
+      .groupBy(
+        members.id, 
+        members.title, 
+        members.firstName, 
+        members.surname, 
+        members.gender, 
+        members.ageGroup, 
+        members.phone, 
+        members.email, 
+        members.whatsappNumber, 
+        members.address, 
+        members.dateOfBirth, 
+        members.weddingAnniversary, 
+        members.createdAt
+      );
 
-    return membersWithoutRecentAttendance;
+    // Filter to only include members who either:
+    // 1. Have never attended (lastAttendance is null)
+    // 2. Their last attendance was more than X weeks ago
+    const missedServicesMembers = membersWithLastAttendance.filter(member => {
+      if (!member.lastAttendance) {
+        // Never attended
+        return true;
+      }
+      // Last attendance was before the cutoff date
+      return member.lastAttendance < cutoffDate;
+    });
+
+    return missedServicesMembers;
   }
 
   async getNewMembersReport(startDate: string, endDate: string): Promise<any> {
@@ -805,6 +838,7 @@ export class DatabaseStorage implements IStorage {
         
         if (existingMembers.length === 0) {
           const memberData: any = {
+            churchId: this.churchId,
             firstName,
             surname,
             gender: visitor.gender || 'male',
@@ -986,5 +1020,3 @@ export class DatabaseStorage implements IStorage {
     };
   }
 }
-
-export const storage = new DatabaseStorage();
