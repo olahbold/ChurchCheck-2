@@ -9,6 +9,8 @@ import { Search, Users, UserPlus, Download, Edit, Calendar, Phone, Mail, MapPin 
 import { apiRequest } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { EditMemberForm } from "./edit-member-form";
+import { queryClient } from "@/lib/queryClient";
 
 interface Member {
   id: string;
@@ -126,6 +128,18 @@ export function MembersTab() {
   const handleEditMember = (member: Member) => {
     setSelectedMember(member);
     setIsEditDialogOpen(true);
+  };
+
+  const handleSaveMember = () => {
+    setIsEditDialogOpen(false);
+    setSelectedMember(null);
+    loadMembers(); // Reload the members list
+    queryClient.invalidateQueries({ queryKey: ['/api/members'] });
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditDialogOpen(false);
+    setSelectedMember(null);
   };
 
   const handleExportMembers = async () => {
@@ -427,15 +441,11 @@ export function MembersTab() {
             </DialogDescription>
           </DialogHeader>
           {selectedMember && (
-            <div className="grid gap-4 py-4">
-              {/* TODO: Implement edit form similar to registration form */}
-              <div className="text-center py-8">
-                <p className="text-gray-500">Member editing form will be implemented here</p>
-                <p className="text-sm text-gray-400 mt-1">
-                  Editing: {selectedMember.firstName} {selectedMember.surname}
-                </p>
-              </div>
-            </div>
+            <EditMemberForm
+              member={selectedMember}
+              onSave={handleSaveMember}
+              onCancel={handleCancelEdit}
+            />
           )}
         </DialogContent>
       </Dialog>

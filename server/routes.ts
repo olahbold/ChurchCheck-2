@@ -217,7 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/members/:id", authenticateToken, async (req: AuthenticatedRequest, res) => {
+  app.put("/api/members/:id", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
       const storage = getStorage(req);
       console.log('Update request body:', JSON.stringify(req.body, null, 2));
@@ -235,7 +235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const memberData = updateMemberSchema.parse(cleanedData);
       console.log('Parsed member data:', JSON.stringify(memberData, null, 2));
       
-      const member = await storage.updateMember(req.params.id, memberData);
+      const member = await storage.updateMember(req.params.id, memberData, req.churchId!);
       res.json(member);
     } catch (error) {
       console.error('Update member error:', error);
@@ -682,9 +682,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export data route
-  app.get("/api/export/members", async (req, res) => {
+  app.get("/api/export/members", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
-      const members = await storage.getAllMembers();
+      const storage = getStorage(req);
+      const members = await storage.getAllMembers(req.churchId!);
       
       // Convert to CSV format with full member details
       const csvHeader = "Member Name,Title,Gender,Age Group,Phone,Email,WhatsApp Number,Address,Date of Birth,Wedding Anniversary,Current Member,Fingerprint ID,Parent ID,Created At,Updated At\n";
@@ -703,6 +704,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Disposition', `attachment; filename="church_members_full_${date}.csv"`);
       res.send(csvHeader + csvData);
     } catch (error) {
+      console.error('Members export error:', error);
       res.status(500).json({ error: "Export failed" });
     }
   });
