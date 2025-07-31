@@ -64,8 +64,11 @@ export default function RegisterTab() {
     }
   };
 
+  // Create client-side schema without churchId validation
+  const clientMemberSchema = insertMemberSchema.omit({ churchId: true });
+  
   const form = useForm<InsertMember>({
-    resolver: zodResolver(insertMemberSchema),
+    resolver: zodResolver(clientMemberSchema),
     defaultValues: {
       title: "",
       firstName: "",
@@ -83,6 +86,11 @@ export default function RegisterTab() {
       parentId: "",
     },
   });
+
+  // Add debugging for form state
+  console.log('Form errors:', form.formState.errors);
+  console.log('Form isValid:', form.formState.isValid);
+  console.log('Form isSubmitting:', form.formState.isSubmitting);
 
   // Fetch all members for family linking
   const { data: members = [] } = useQuery<Member[]>({
@@ -476,7 +484,13 @@ export default function RegisterTab() {
           </CardHeader>
           <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={(e) => {
+              console.log('=== FORM SUBMIT EVENT ===');
+              console.log('Event:', e);
+              console.log('Form state:', form.formState);
+              console.log('Form values:', form.getValues());
+              form.handleSubmit(onSubmit)(e);
+            }} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
@@ -860,6 +874,33 @@ export default function RegisterTab() {
                     : (createMemberMutation.isPending ? "Registering..." : "Register Member")
                   }
                 </Button>
+                
+                {/* Debug Test Button */}
+                <Button
+                  type="button"
+                  onClick={() => {
+                    console.log('=== DIRECT TEST BUTTON CLICKED ===');
+                    const testData = {
+                      firstName: "Direct",
+                      surname: "Test",
+                      gender: "male" as const,
+                      ageGroup: "adult" as const,
+                      phone: "+447456186000",
+                      email: "directtest@example.com",
+                      isCurrentMember: true,
+                      title: "",
+                      whatsappNumber: "",
+                      address: "",
+                      parentId: "",
+                    };
+                    console.log('Calling onSubmit directly with test data:', testData);
+                    onSubmit(testData);
+                  }}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  🧪 Test
+                </Button>
+                
                 <Button 
                   type="button" 
                   onClick={handleClearForm}
