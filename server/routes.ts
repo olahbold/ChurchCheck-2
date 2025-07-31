@@ -33,6 +33,8 @@ import sharp from 'sharp';
 import path from 'path';
 import fs from 'fs/promises';
 import { z } from "zod";
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -1430,6 +1432,176 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Serve uploaded files
   app.use('/uploads', express.static('uploads'));
+
+  // Super Admin Routes - Phase 1 Implementation
+  // Super admin authentication
+  app.post("/api/super-admin/login", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      
+      if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+      }
+
+      const superAdmin = await churchStorage.getSuperAdminByEmail(email);
+      if (!superAdmin) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      const isValidPassword = await bcrypt.compare(password, superAdmin.passwordHash);
+      if (!isValidPassword) {
+        return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      if (!superAdmin.isActive) {
+        return res.status(401).json({ error: "Account is disabled" });
+      }
+
+      await churchStorage.updateSuperAdminLastLogin(superAdmin.id);
+
+      const JWT_SECRET = process.env.JWT_SECRET || 'fallback-super-secret-key';
+      const token = jwt.sign(
+        { 
+          id: superAdmin.id, 
+          email: superAdmin.email,
+          role: 'super_admin',
+          type: 'super_admin' 
+        },
+        JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+
+      res.json({
+        success: true,
+        token,
+        admin: {
+          id: superAdmin.id,
+          email: superAdmin.email,
+          firstName: superAdmin.firstName,
+          lastName: superAdmin.lastName,
+          role: superAdmin.role
+        }
+      });
+    } catch (error) {
+      console.error('Super admin login error:', error);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  // Super admin middleware
+  const authenticateSuperAdmin = async (req: any, res: any, next: any) => {
+    try {
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return res.status(401).json({ error: "No token provided" });
+      }
+
+      const JWT_SECRET = process.env.JWT_SECRET || 'fallback-super-secret-key';
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      
+      if (decoded.type !== 'super_admin') {
+        return res.status(403).json({ error: "Super admin access required" });
+      }
+
+      const superAdmin = await churchStorage.getSuperAdminById(decoded.id);
+      if (!superAdmin || !superAdmin.isActive) {
+        return res.status(401).json({ error: "Invalid or inactive admin" });
+      }
+
+      req.superAdmin = superAdmin;
+      next();
+    } catch (error) {
+      res.status(401).json({ error: "Invalid token" });
+    }
+  };
+
+  // Platform overview dashboard
+  app.get("/api/super-admin/dashboard", authenticateSuperAdmin, async (req, res) => {
+    try {
+      const stats = await churchStorage.getPlatformStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('Dashboard stats error:', error);
+      res.status(500).json({ error: "Failed to fetch dashboard stats" });
+    }
+  });
+
+  // Churches management
+  app.get("/api/super-admin/churches", authenticateSuperAdmin, async (req, res) => {
+    try {
+      const churches = await churchStorage.getAllChurches();
+      
+      // Get stats for each church
+      const churchesWithStats = await Promise.all(
+        churches.map(async (church) => {
+          try {
+            const stats = await churchStorage.getChurchStats(church.id);
+            return { ...church, ...stats };
+          } catch (error) {
+            console.error(`Error getting stats for church ${church.id}:`, error);
+            return { 
+              ...church, 
+              totalMembers: 0, 
+              activeMembers: 0, 
+              totalAttendance: 0 
+            };
+          }
+        })
+      );
+
+      res.json(churchesWithStats);
+    } catch (error) {
+      console.error('Churches fetch error:', error);
+      res.status(500).json({ error: "Failed to fetch churches" });
+    }
+  });
+
+  // Church details
+  app.get("/api/super-admin/churches/:id", authenticateSuperAdmin, async (req, res) => {
+    try {
+      const church = await churchStorage.getChurchById(req.params.id);
+      if (!church) {
+        return res.status(404).json({ error: "Church not found" });
+      }
+
+      const stats = await churchStorage.getChurchStats(church.id);
+      const churchUsers = await churchStorage.getChurchUsers(church.id);
+
+      res.json({
+        ...church,
+        ...stats,
+        users: churchUsers
+      });
+    } catch (error) {
+      console.error('Church details error:', error);
+      res.status(500).json({ error: "Failed to fetch church details" });
+    }
+  });
+
+  // Church status management (suspend/activate)
+  app.patch("/api/super-admin/churches/:id/status", authenticateSuperAdmin, async (req, res) => {
+    try {
+      const { isActive } = req.body;
+      
+      if (typeof isActive !== 'boolean') {
+        return res.status(400).json({ error: "isActive must be a boolean" });
+      }
+
+      // For now, we'll use subscription tier to handle this
+      const church = await churchStorage.updateChurch(req.params.id, {
+        subscriptionTier: isActive ? 'starter' : 'suspended'
+      });
+
+      if (!church) {
+        return res.status(404).json({ error: "Church not found" });
+      }
+
+      res.json(church);
+    } catch (error) {
+      console.error('Church status update error:', error);
+      res.status(500).json({ error: "Failed to update church status" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

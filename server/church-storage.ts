@@ -4,6 +4,7 @@ import {
   churches, 
   churchUsers, 
   subscriptions, 
+  superAdmins,
   members,
   attendanceRecords,
   followUpRecords,
@@ -12,6 +13,8 @@ import {
   type InsertChurch,
   type ChurchUser,
   type InsertChurchUser,
+  type SuperAdmin,
+  type InsertSuperAdmin,
   type Subscription,
   type InsertSubscription
 } from '../shared/schema.js';
@@ -77,6 +80,108 @@ export class ChurchStorage {
       .update(churchUsers)
       .set({ lastLoginAt: new Date() })
       .where(eq(churchUsers.id, userId));
+  }
+
+  // Super Admin management
+  async createSuperAdmin(adminData: InsertSuperAdmin): Promise<SuperAdmin> {
+    const [admin] = await db.insert(superAdmins).values(adminData).returning();
+    return admin;
+  }
+
+  async getSuperAdminByEmail(email: string): Promise<SuperAdmin | null> {
+    const [admin] = await db.select().from(superAdmins).where(eq(superAdmins.email, email));
+    return admin || null;
+  }
+
+  async getSuperAdminById(id: string): Promise<SuperAdmin | null> {
+    const [admin] = await db.select().from(superAdmins).where(eq(superAdmins.id, id));
+    return admin || null;
+  }
+
+  async updateSuperAdminLastLogin(adminId: string): Promise<void> {
+    await db
+      .update(superAdmins)
+      .set({ lastLoginAt: new Date() })
+      .where(eq(superAdmins.id, adminId));
+  }
+
+  // Platform management methods
+  async getAllChurches(): Promise<Church[]> {
+    return await db.select().from(churches).orderBy(churches.createdAt);
+  }
+
+  async getChurchStats(churchId: string): Promise<{
+    totalMembers: number;
+    activeMembers: number;
+    totalAttendance: number;
+    subscriptionTier: string;
+  }> {
+    const church = await this.getChurchById(churchId);
+    if (!church) {
+      throw new Error('Church not found');
+    }
+
+    const [memberStats] = await db
+      .select({
+        totalMembers: sql<number>`count(*)`,
+        activeMembers: sql<number>`count(*) filter (where ${members.isCurrentMember} = true)`,
+      })
+      .from(members)
+      .where(eq(members.churchId, churchId));
+
+    const [attendanceStats] = await db
+      .select({
+        totalAttendance: sql<number>`count(*)`,
+      })
+      .from(attendanceRecords)
+      .where(eq(attendanceRecords.churchId, churchId));
+
+    return {
+      totalMembers: memberStats.totalMembers,
+      activeMembers: memberStats.activeMembers,
+      totalAttendance: attendanceStats.totalAttendance,
+      subscriptionTier: church.subscriptionTier,
+    };
+  }
+
+  async getPlatformStats(): Promise<{
+    totalChurches: number;
+    totalMembers: number;
+    totalAttendance: number;
+    activeChurches: number;
+  }> {
+    const [churchStats] = await db
+      .select({
+        totalChurches: sql<number>`count(*)`,
+      })
+      .from(churches);
+
+    const [memberStats] = await db
+      .select({
+        totalMembers: sql<number>`count(*)`,
+      })
+      .from(members);
+
+    const [attendanceStats] = await db
+      .select({
+        totalAttendance: sql<number>`count(*)`,
+      })
+      .from(attendanceRecords);
+
+    // Active churches = churches with activity in last 30 days
+    const [activeStats] = await db
+      .select({
+        activeChurches: sql<number>`count(distinct ${attendanceRecords.churchId})`,
+      })
+      .from(attendanceRecords)
+      .where(sql`${attendanceRecords.checkInTime} >= NOW() - INTERVAL '30 days'`);
+
+    return {
+      totalChurches: churchStats.totalChurches,
+      totalMembers: memberStats.totalMembers,
+      totalAttendance: attendanceStats.totalAttendance,
+      activeChurches: activeStats.activeChurches,
+    };
   }
 
   // Get church by ID (alias for getChurchById for consistency)

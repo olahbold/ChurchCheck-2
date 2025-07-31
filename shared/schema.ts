@@ -35,6 +35,20 @@ export const churchUsers = pgTable("church_users", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Super Admin table for platform management
+export const superAdmins = pgTable("super_admins", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: varchar("email", { length: 255 }).unique().notNull(),
+  passwordHash: text("password_hash").notNull(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  role: varchar("role", { length: 20 }).notNull().default("super_admin"), // super_admin, support_admin
+  isActive: boolean("is_active").default(true),
+  lastLoginAt: timestamp("last_login_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Subscription tracking
 export const subscriptions = pgTable("subscriptions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -496,5 +510,7 @@ export type Church = typeof churches.$inferSelect;
 export type InsertChurch = z.infer<typeof insertChurchSchema>;
 export type ChurchUser = typeof churchUsers.$inferSelect;
 export type InsertChurchUser = z.infer<typeof insertChurchUserSchema>;
+export type SuperAdmin = typeof superAdmins.$inferSelect;
+export type InsertSuperAdmin = typeof superAdmins.$inferInsert;
 export type Subscription = typeof subscriptions.$inferSelect;
 export type InsertSubscription = z.infer<typeof insertSubscriptionSchema>;

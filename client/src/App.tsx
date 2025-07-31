@@ -10,6 +10,7 @@ import LoginPage from '@/pages/login';
 import SubscriptionPage from '@/pages/subscription';
 import Home from '@/pages/home';
 import UserManagementDemo from '@/pages/user-management-demo';
+import { SuperAdminPage } from '@/pages/super-admin';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
             
             {/* SaaS management routes */}
             <Route path="/subscription" component={SubscriptionPage} />
+            <Route path="/super-admin" component={SuperAdminPage} />
             
             {/* Demo pages */}
             <Route path="/user-management-demo" component={UserManagementDemo} />
