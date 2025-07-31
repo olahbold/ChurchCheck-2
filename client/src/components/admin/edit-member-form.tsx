@@ -37,7 +37,7 @@ interface EditMemberFormProps {
 
 export function EditMemberForm({ member, onSave, onCancel }: EditMemberFormProps) {
   const [formData, setFormData] = useState({
-    title: member.title || '',
+    title: member.title || 'none',
     firstName: member.firstName,
     surname: member.surname,
     gender: member.gender,
@@ -69,9 +69,11 @@ export function EditMemberForm({ member, onSave, onCancel }: EditMemberFormProps
       // Clean up empty strings to undefined for optional fields
       const cleanedData = { ...formData };
       Object.keys(cleanedData).forEach(key => {
-        if (cleanedData[key as keyof typeof cleanedData] === "") {
+        if (cleanedData[key as keyof typeof cleanedData] === "" || cleanedData[key as keyof typeof cleanedData] === "none") {
           if (key === 'dateOfBirth' || key === 'weddingAnniversary') {
             delete cleanedData[key as keyof typeof cleanedData];
+          } else if (key === 'title' && cleanedData[key as keyof typeof cleanedData] === "none") {
+            (cleanedData as any)[key] = undefined;
           } else {
             (cleanedData as any)[key] = undefined;
           }
@@ -111,7 +113,7 @@ export function EditMemberForm({ member, onSave, onCancel }: EditMemberFormProps
               <SelectValue placeholder="Select title" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">No Title</SelectItem>
+              <SelectItem value="none">No Title</SelectItem>
               <SelectItem value="Mr">Mr</SelectItem>
               <SelectItem value="Mrs">Mrs</SelectItem>
               <SelectItem value="Miss">Miss</SelectItem>
