@@ -147,8 +147,8 @@ export function SuperAdminBusinessOps({ onBack }: SuperAdminBusinessOpsProps) {
       if (response.ok) {
         const reportData = await response.json();
         toast({
-          title: "Success",
-          description: `${reportType} report generation started`,
+          title: "Success", 
+          description: `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} report generation started. It will be ready in a few seconds.`,
         });
         
         // Reload reports to show the new generating report
@@ -215,6 +215,13 @@ export function SuperAdminBusinessOps({ onBack }: SuperAdminBusinessOpsProps) {
 
   useEffect(() => {
     loadBusinessData();
+    
+    // Auto-refresh reports every 5 seconds to check for status updates
+    const interval = setInterval(() => {
+      loadBusinessData();
+    }, 5000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   if (isLoading) {
