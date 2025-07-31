@@ -41,6 +41,7 @@ export default function SettingsTab() {
   const [showActivityLog, setShowActivityLog] = useState(false);
   const [adminUsers, setAdminUsers] = useState<any[]>([]);
   const [activityLogs, setActivityLogs] = useState<any[]>([]);
+  const [isLoadingAdminUsers, setIsLoadingAdminUsers] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -171,16 +172,37 @@ export default function SettingsTab() {
         case "Manage Admin Users":
           // Fetch admin users and show management interface
           try {
-            const response = await fetch('/api/admin/users');
+            setIsLoadingAdminUsers(true);
+            const authToken = localStorage.getItem('auth_token');
+            
+            if (!authToken) {
+              throw new Error('Authentication required');
+            }
+            
+            const response = await fetch('/api/admin/users', {
+              headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (!response.ok) {
+              throw new Error(`Failed to fetch admin users: ${response.status}`);
+            }
+            
             const users = await response.json();
-            setAdminUsers(users);
+            setAdminUsers(Array.isArray(users) ? users : []);
             setShowAdminManagement(true);
           } catch (error) {
+            console.error('Admin users fetch error:', error);
+            setAdminUsers([]); // Ensure it's always an array
             toast({
               title: "Failed to Load",
-              description: "Could not load admin users",
+              description: "Could not load admin users. Please check your authentication.",
               variant: "destructive",
             });
+          } finally {
+            setIsLoadingAdminUsers(false);
           }
           break;
         case "View Activity Log":
@@ -744,7 +766,19 @@ export default function SettingsTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(adminUsers || []).map((user) => (
+                  {isLoadingAdminUsers ? (
+                    <tr>
+                      <td colSpan={6} className="p-8 text-center text-gray-500">
+                        Loading admin users...
+                      </td>
+                    </tr>
+                  ) : (adminUsers || []).length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="p-8 text-center text-gray-500">
+                        No admin users found. Please check your authentication.
+                      </td>
+                    </tr>
+                  ) : (adminUsers || []).map((user) => (
                     <tr key={user.id} className="border-b hover:bg-slate-50">
                       <td className="p-3 font-medium">{user.fullName}</td>
                       <td className="p-3">{user.email}</td>
