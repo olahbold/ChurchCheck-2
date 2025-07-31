@@ -20,6 +20,9 @@ The system employs a monorepo structure, separating client and server concerns:
 - `shared/`: Shared TypeScript types and database schema definitions, including Zod schemas.
 - `migrations/`: Database migration files.
 
+### Recent Changes (January 2025)
+- **Super Admin Dashboard Phase 1 Complete**: Fully functional Super Admin authentication and church management system with working View, Suspend/Activate, and Search functionality. Fixed runtime errors and enhanced UI with comprehensive church details modals.
+
 ### Key Features and Design Decisions
 - **Biometric Integration**: Simulated and real WebAuthn biometric authentication (fingerprint, face, PIN) for registration and check-in, with support for external USB/Bluetooth scanners.
 - **Multi-Tenancy (SaaS Model)**: Designed as a SaaS platform with a freemium model. Features include:
