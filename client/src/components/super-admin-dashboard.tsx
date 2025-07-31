@@ -63,9 +63,10 @@ interface SuperAdminDashboardProps {
   } | null;
   onLogout: () => void;
   onNavigateToBusinessOps?: () => void;
+  onNavigateToPlatformOps?: () => void;
 }
 
-export function SuperAdminDashboard({ admin, onLogout, onNavigateToBusinessOps }: SuperAdminDashboardProps) {
+export function SuperAdminDashboard({ admin, onLogout, onNavigateToBusinessOps, onNavigateToPlatformOps }: SuperAdminDashboardProps) {
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [churches, setChurches] = useState<ChurchWithStats[]>([]);
   const [filteredChurches, setFilteredChurches] = useState<ChurchWithStats[]>([]);
@@ -224,6 +225,12 @@ export function SuperAdminDashboard({ admin, onLogout, onNavigateToBusinessOps }
                 <Button variant="outline" size="sm" onClick={onNavigateToBusinessOps}>
                   <TrendingUp className="h-4 w-4 mr-2" />
                   Business Ops
+                </Button>
+              )}
+              {onNavigateToPlatformOps && (
+                <Button variant="outline" size="sm" onClick={onNavigateToPlatformOps}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Platform Ops
                 </Button>
               )}
               <Button variant="outline" size="sm" onClick={onLogout}>

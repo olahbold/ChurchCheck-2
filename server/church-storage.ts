@@ -98,6 +98,31 @@ export class ChurchStorage {
     return admin || null;
   }
 
+  async getAllSuperAdmins(): Promise<Array<{
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    isActive: boolean;
+    lastLoginAt: string | null;
+    createdAt: string;
+  }>> {
+    return await db
+      .select({
+        id: superAdmins.id,
+        email: superAdmins.email,
+        firstName: superAdmins.firstName,
+        lastName: superAdmins.lastName,
+        role: superAdmins.role,
+        isActive: superAdmins.isActive,
+        lastLoginAt: superAdmins.lastLoginAt,
+        createdAt: superAdmins.createdAt
+      })
+      .from(superAdmins)
+      .orderBy(superAdmins.createdAt);
+  }
+
   async updateSuperAdminLastLogin(adminId: string): Promise<void> {
     await db
       .update(superAdmins)

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { SuperAdminLogin } from "@/components/super-admin-login";
 import { SuperAdminDashboard } from "@/components/super-admin-dashboard";
 import { SuperAdminBusinessOps } from "@/components/super-admin-business-ops";
+import { SuperAdminPlatformOps } from "@/components/super-admin-platform-ops";
 
 export function SuperAdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -13,7 +14,7 @@ export function SuperAdminPage() {
     role: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentView, setCurrentView] = useState<'dashboard' | 'business-ops'>('dashboard');
+  const [currentView, setCurrentView] = useState<'dashboard' | 'business-ops' | 'platform-ops'>('dashboard');
 
   useEffect(() => {
     // Check if super admin is already logged in
@@ -94,11 +95,20 @@ export function SuperAdminPage() {
     );
   }
 
+  if (currentView === 'platform-ops') {
+    return (
+      <SuperAdminPlatformOps 
+        onBack={() => setCurrentView('dashboard')} 
+      />
+    );
+  }
+
   return (
     <SuperAdminDashboard 
       admin={admin} 
       onLogout={handleLogout}
       onNavigateToBusinessOps={() => setCurrentView('business-ops')}
+      onNavigateToPlatformOps={() => setCurrentView('platform-ops')}
     />
   );
 }
