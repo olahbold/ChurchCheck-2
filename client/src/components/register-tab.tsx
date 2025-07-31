@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { insertMemberSchema, type InsertMember, type Member } from "@shared/schema";
+import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,8 +65,33 @@ export default function RegisterTab() {
     }
   };
 
-  // Create client-side schema without churchId validation
-  const clientMemberSchema = insertMemberSchema.omit({ churchId: true });
+  // The insertMemberSchema already excludes id, createdAt, updatedAt
+  // We need to create a client version that excludes churchId for form validation
+  const clientMemberSchema = z.object({
+    title: z.string().optional().or(z.literal("")),
+    firstName: z.string().min(1, "First name is required"),
+    surname: z.string().min(1, "Surname is required"),
+    gender: z.enum(["male", "female"]),
+    ageGroup: z.enum(["child", "adolescent", "adult"]),
+    phone: z.string().optional().or(z.literal("")),
+    email: z.string().email("Invalid email format").optional().or(z.literal("")),
+    whatsappNumber: z.string().optional().or(z.literal("")),
+    address: z.string().optional().or(z.literal("")),
+    dateOfBirth: z.string().optional().or(z.literal("")),
+    weddingAnniversary: z.string().optional().or(z.literal("")),
+    isCurrentMember: z.boolean(),
+    fingerprintId: z.string().optional().or(z.literal("")),
+    parentId: z.string().optional().or(z.literal("")),
+  }).superRefine((data, ctx) => {
+    // Phone validation based on age group
+    if (data.ageGroup === "adult" && (!data.phone || data.phone.trim() === "")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Phone number is required for adults",
+        path: ["phone"]
+      });
+    }
+  });
   
   const form = useForm<InsertMember>({
     resolver: zodResolver(clientMemberSchema),
