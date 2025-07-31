@@ -142,6 +142,21 @@ Key features:
 
 ## Recent Changes
 
+### July 31, 2025 - Fixed Report Export Issues & Date Range Problems
+- **Fixed CSV Export Column Issues**: Removed unnecessary createdAt and updatedAt columns from all report exports:
+  - Updated member export API route to exclude timestamp columns from CSV headers and data rows
+  - Enhanced report CSV generation to filter out createdAt/updatedAt fields automatically
+  - Improved date alignment in "Last Attendance" columns for better readability
+- **Resolved New Members Report Zero Records Issue**: Fixed critical date range filtering problem:
+  - Root cause: Frontend was using 7-day default range but all members registered on current day (2025-07-31)
+  - Changed default date range from 7 days to 30 days in reports frontend component
+  - All 16 registered members now properly display in New Members Report instead of showing 0 records
+  - Fixed church ID filtering in storage functions to ensure multi-tenant data isolation
+- **Enhanced Report Authentication**: Completed authentication fixes for all report endpoints:
+  - All reports now use proper JWT token authentication with apiRequest() method
+  - Fixed church-scoped data filtering to ensure reports only show data for authenticated church
+  - Inactive Members report confirmed working with proper member data (16 records showing)
+
 ### July 31, 2025 - Enhanced Member Search & Multi-Tenant SaaS System Fully Operational
 - **Enhanced Member Search Functionality**: Fixed case-sensitivity and partial matching issues in member search:
   - Improved search algorithm to handle firstName, surname, and full name combinations
