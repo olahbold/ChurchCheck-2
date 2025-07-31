@@ -33,9 +33,12 @@ export default function DashboardTab() {
   });
 
   // Get all members with search and filter
-  const { data: members = [] } = useQuery<MemberWithChildren[]>({
+  const { data: members = [], isLoading: membersLoading, error: membersError } = useQuery<MemberWithChildren[]>({
     queryKey: ['/api/members'],
   });
+  
+  // Debug logging
+  console.log('Dashboard members data:', members, 'Loading:', membersLoading, 'Error:', membersError);
 
   // Get members needing follow-up
   const { data: followUpMembers = [] } = useQuery<any[]>({

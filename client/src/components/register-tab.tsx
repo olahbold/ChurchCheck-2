@@ -212,10 +212,12 @@ export default function RegisterTab() {
   // Create member mutation
   const createMemberMutation = useMutation({
     mutationFn: async (data: InsertMember) => {
+      console.log('Creating member with data:', data);
       const response = await apiRequest('/api/members', {
         method: 'POST',
         body: JSON.stringify(data),
       });
+      console.log('Member created successfully:', response);
       return response;
     },
     onSuccess: () => {
