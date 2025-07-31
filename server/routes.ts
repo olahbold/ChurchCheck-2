@@ -1168,10 +1168,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Visitor check-in route - creates visitor record AND attendance record
-  app.post("/api/visitor-checkin", async (req, res) => {
+  // Visitor check-in route - creates visitor record AND attendance record  
+  app.post("/api/visitor-checkin", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
-      const visitorData = insertVisitorSchema.parse(req.body);
+      // Add churchId to visitor data
+      const visitorDataWithChurch = {
+        ...req.body,
+        churchId: req.churchId
+      };
+      
+      const visitorData = insertVisitorSchema.parse(visitorDataWithChurch);
       
       // Create visitor record
       const visitor = await storage.createVisitor(visitorData);
@@ -1179,6 +1185,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Create attendance record for the visitor
       const today = new Date().toISOString().split('T')[0];
       const attendanceRecord = await storage.createAttendanceRecord({
+        churchId: req.churchId!,
         visitorId: visitor.id,
         attendanceDate: today,
         checkInMethod: "visitor",
@@ -1190,19 +1197,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({ visitor, attendanceRecord });
     } catch (error) {
+      console.error('Visitor check-in error:', error);
       res.status(400).json({ error: error instanceof Error ? error.message : "Invalid visitor data" });
     }
   });
 
-  app.get("/api/visitors", async (req, res) => {
+  app.get("/api/visitors", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
       const { status } = req.query;
       let visitors;
       
       if (status) {
-        visitors = await storage.getVisitorsByStatus(status as string);
+        visitors = await storage.getVisitorsByStatus(status as string, req.churchId!);
       } else {
-        visitors = await storage.getAllVisitors();
+        visitors = await storage.getAllVisitors(req.churchId!);
       }
       
       res.json(visitors);

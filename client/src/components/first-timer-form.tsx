@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Calendar, User, Heart, MessageSquare, Phone, Mail, MapPin } from "lucide-react";
 import { insertVisitorSchema, type InsertVisitor } from "@shared/schema";
+import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 
 interface FirstTimerFormProps {
@@ -19,6 +20,27 @@ interface FirstTimerFormProps {
   onCancel?: () => void;
   churchName?: string;
 }
+
+// Create client-side schema excluding churchId
+const clientVisitorSchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  gender: z.enum(["male", "female"]),
+  ageGroup: z.enum(["child", "adolescent", "adult"]),
+  address: z.string().optional(),
+  email: z.string().email().optional().or(z.literal("")),
+  phone: z.string().min(1, "Phone number is required"),
+  whatsappNumber: z.string().optional(),
+  weddingAnniversary: z.string().optional(),
+  birthday: z.string().optional(),
+  prayerPoints: z.string().optional(),
+  howDidYouHearAboutUs: z.string().optional(),
+  comments: z.string().optional(),
+  followUpStatus: z.enum(["pending", "contacted", "member", "inactive"]).default("pending"),
+  assignedTo: z.string().optional(),
+  memberId: z.string().nullable().optional(),
+});
+
+type ClientVisitorForm = z.infer<typeof clientVisitorSchema>;
 
 export default function FirstTimerForm({ 
   onSubmit, 
@@ -29,10 +51,12 @@ export default function FirstTimerForm({
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const form = useForm<InsertVisitor>({
-    resolver: zodResolver(insertVisitorSchema),
+  const form = useForm<ClientVisitorForm>({
+    resolver: zodResolver(clientVisitorSchema),
     defaultValues: {
       name: "",
+      gender: "male" as const,
+      ageGroup: "adult" as const,
       address: "",
       email: "",
       phone: "",
@@ -49,28 +73,22 @@ export default function FirstTimerForm({
   });
 
   const createVisitorMutation = useMutation({
-    mutationFn: async (data: InsertVisitor) => {
-      const response = await fetch("/api/visitors", {
+    mutationFn: async (data: ClientVisitorForm) => {
+      // Use the visitor-checkin endpoint to create both visitor record and attendance
+      const response = await apiRequest("/api/visitor-checkin", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(data),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to submit visitor information");
-      }
-
-      return response.json();
+      return response;
     },
-    onSuccess: (visitor) => {
+    onSuccess: (result) => {
       toast({
         title: "Welcome!",
-        description: "Thank you for visiting us. We look forward to staying in touch!",
+        description: `Thank you for visiting us, ${result.visitor?.name}! You've been checked in successfully.`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/visitors"] });
-      onSubmit?.(visitor);
+      queryClient.invalidateQueries({ queryKey: ["/api/attendance"] });
+      onSubmit?.(result.visitor);
     },
     onError: (error: any) => {
       toast({
@@ -81,7 +99,7 @@ export default function FirstTimerForm({
     },
   });
 
-  const handleSubmit = async (data: InsertVisitor) => {
+  const handleSubmit = async (data: ClientVisitorForm) => {
     setIsSubmitting(true);
     try {
       await createVisitorMutation.mutateAsync(data);

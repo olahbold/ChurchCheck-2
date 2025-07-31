@@ -61,8 +61,8 @@ export interface IStorage {
   // Visitor methods
   createVisitor(visitor: InsertVisitor): Promise<Visitor>;
   getVisitor(id: string): Promise<Visitor | undefined>;
-  getAllVisitors(): Promise<Visitor[]>;
-  getVisitorsByStatus(status: string): Promise<Visitor[]>;
+  getAllVisitors(churchId: string): Promise<Visitor[]>;
+  getVisitorsByStatus(status: string, churchId: string): Promise<Visitor[]>;
   updateVisitor(id: string, visitor: Partial<InsertVisitor>): Promise<Visitor>;
   updateConsecutiveAbsences(): Promise<void>;
 
@@ -773,12 +773,12 @@ export class DatabaseStorage implements IStorage {
     return visitor;
   }
 
-  async getAllVisitors(): Promise<Visitor[]> {
-    return await db.select().from(visitors).orderBy(desc(visitors.visitDate));
+  async getAllVisitors(churchId: string): Promise<Visitor[]> {
+    return await db.select().from(visitors).where(eq(visitors.churchId, churchId)).orderBy(desc(visitors.visitDate));
   }
 
-  async getVisitorsByStatus(status: string): Promise<Visitor[]> {
-    return await db.select().from(visitors).where(eq(visitors.followUpStatus, status));
+  async getVisitorsByStatus(status: string, churchId: string): Promise<Visitor[]> {
+    return await db.select().from(visitors).where(and(eq(visitors.followUpStatus, status), eq(visitors.churchId, churchId)));
   }
 
   async updateVisitor(id: string, visitorUpdate: Partial<InsertVisitor>): Promise<Visitor> {
