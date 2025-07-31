@@ -275,10 +275,17 @@ export default function RegisterTab() {
   });
 
   const onSubmit = (data: InsertMember) => {
+    console.log('=== FRONTEND FORM SUBMISSION ===');
+    
     const authToken = localStorage.getItem('auth_token');
     const churchData = localStorage.getItem('church_data');
     
+    console.log('Auth token exists:', !!authToken);
+    console.log('Church data exists:', !!churchData);
+    console.log('All localStorage keys:', Object.keys(localStorage));
+    
     if (!authToken || !churchData) {
+      console.log('Authentication check failed - showing error toast');
       toast({
         title: "Authentication Required",
         description: "Please log in to register members",
@@ -290,9 +297,13 @@ export default function RegisterTab() {
     const parsedChurchData = JSON.parse(churchData);
     const churchId = parsedChurchData?.id;
     
+    console.log('Parsed church data:', parsedChurchData);
+    console.log('Extracted church ID:', churchId);
+    
     if (!churchId) {
+      console.log('Church ID missing - showing error toast');
       toast({
-        title: "Church Context Missing",
+        title: "Church Context Missing", 
         description: "Please log in again to register members",
         variant: "destructive",
       });
@@ -301,13 +312,16 @@ export default function RegisterTab() {
     
     const memberData = {
       ...data,
-      churchId: churchId,
       fingerprintId: enrolledFingerprintId || undefined,
     };
+    
+    console.log('Submitting member data:', memberData);
+    console.log('Is update mode:', isUpdateMode);
     
     if (isUpdateMode && selectedMember) {
       setShowUpdateConfirmation(true);
     } else {
+      console.log('Calling createMemberMutation...');
       createMemberMutation.mutate(memberData);
     }
   };
