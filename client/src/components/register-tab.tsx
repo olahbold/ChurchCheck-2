@@ -140,7 +140,7 @@ export default function RegisterTab() {
       dateOfBirth: member.dateOfBirth || "",
       weddingAnniversary: member.weddingAnniversary || "",
       isCurrentMember: member.isCurrentMember,
-      fingerprintId: member.fingerprintId || undefined,
+      fingerprintId: member.fingerprintId || "",
       parentId: member.parentId || "",
     });
     
@@ -227,11 +227,12 @@ export default function RegisterTab() {
       });
       handleClearForm();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.log('Member creation error:', error);
+      const errorMessage = error?.message || error?.error || "Please check your information and try again.";
       toast({
         title: "Registration Failed",
-        description: error.message || "Please check your information and try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -277,6 +278,18 @@ export default function RegisterTab() {
 
   const onSubmit = (data: InsertMember) => {
     console.log('Form submitted with data:', data);
+    const authToken = localStorage.getItem('auth_token');
+    console.log('Auth token present:', !!authToken);
+    
+    if (!authToken) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to register members",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const memberData = {
       ...data,
       fingerprintId: enrolledFingerprintId || undefined,

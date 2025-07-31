@@ -117,6 +117,7 @@ export default function CheckInTab() {
       setSearchQuery("");
     },
     onError: (error: any) => {
+      console.log('Check-in error:', error);
       // Check if this is a duplicate check-in error
       if (error?.isDuplicate) {
         toast({
@@ -125,9 +126,10 @@ export default function CheckInTab() {
           variant: "destructive",
         });
       } else {
+        const errorMessage = error?.message || error?.error || "Please try again";
         toast({
           title: "Check-in Failed",
-          description: "Please try again",
+          description: errorMessage,
           variant: "destructive",
         });
       }
@@ -239,6 +241,17 @@ export default function CheckInTab() {
   };
 
   const handleManualCheckIn = (memberId: string) => {
+    console.log('Manual check-in initiated for member ID:', memberId);
+    const authToken = localStorage.getItem('auth_token');
+    console.log('Auth token present:', !!authToken);
+    if (!authToken) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to check in members",
+        variant: "destructive",
+      });
+      return;
+    }
     manualCheckInMutation.mutate(memberId);
   };
 

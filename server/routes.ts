@@ -241,6 +241,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Auto check-in the member
         await storage.createAttendanceRecord({
+          churchId: req.churchId!,
           memberId: member.id,
           attendanceDate: today,
           checkInMethod: "fingerprint",
@@ -266,10 +267,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Attendance routes with biometric feature gating
-  app.post("/api/attendance", requireFeature('basic_checkin'), async (req, res) => {
+  // Attendance routes with authentication
+  app.post("/api/attendance", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
-      const attendanceData = insertAttendanceRecordSchema.parse(req.body);
+      const attendanceData = insertAttendanceRecordSchema.parse({
+        ...req.body,
+        churchId: req.churchId
+      });
       
       // Check if member/visitor already checked in today
       const today = attendanceData.attendanceDate || new Date().toISOString().split('T')[0];
@@ -297,7 +301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete attendance record
-  app.delete("/api/attendance/:recordId", async (req, res) => {
+  app.delete("/api/attendance/:recordId", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const recordId = req.params.recordId;
       const success = await storage.deleteAttendanceRecord(recordId);
@@ -476,7 +480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Selective family check-in route
-  app.post("/api/attendance/selective-family-checkin", async (req, res) => {
+  app.post("/api/attendance/selective-family-checkin", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const { parentId, childrenIds } = req.body;
       const today = new Date().toISOString().split('T')[0];
@@ -525,7 +529,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Original family check-in route (for backward compatibility)
-  app.post("/api/attendance/family-checkin", async (req, res) => {
+  app.post("/api/attendance/family-checkin", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const { parentId } = req.body;
       const today = new Date().toISOString().split('T')[0];
