@@ -42,7 +42,7 @@ export const verifyPassword = async (password: string, hash: string): Promise<bo
 };
 
 // Authentication middleware
-export const authenticateToken = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+export const authenticateToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
 
@@ -53,6 +53,23 @@ export const authenticateToken = (req: AuthenticatedRequest, res: Response, next
   const user = verifyToken(token);
   if (!user) {
     return res.status(403).json({ error: 'Invalid or expired token' });
+  }
+
+  // Check if church is suspended
+  try {
+    const { churchStorage } = await import('./church-storage.js');
+    const church = await churchStorage.getChurchById(user.churchId);
+    
+    const subscriptionTier = church?.subscriptionTier || (church as any)?.subscription_tier;
+    if (church && subscriptionTier === 'suspended') {
+      return res.status(403).json({ 
+        error: 'Church account is suspended. Please contact support for assistance.',
+        suspended: true 
+      });
+    }
+  } catch (error) {
+    console.error('Church suspension check failed:', error);
+    // Continue on error to not break existing functionality
   }
 
   req.user = user;

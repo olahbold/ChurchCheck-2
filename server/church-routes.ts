@@ -143,6 +143,15 @@ router.post('/login', async (req, res) => {
       return res.status(500).json({ error: 'Church not found' });
     }
 
+    // Check if church is suspended (handle both camelCase and snake_case)
+    const subscriptionTier = church.subscriptionTier || (church as any).subscription_tier;
+    if (subscriptionTier === 'suspended') {
+      return res.status(403).json({ 
+        error: 'Church account is suspended. Please contact support for assistance.',
+        suspended: true 
+      });
+    }
+
     // Update last login
     await churchStorage.updateLastLogin(user.id);
 
