@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { MembersTab } from "@/components/admin/members-tab";
 import UserManagementTab from "@/components/admin/user-management-tab";
 import ReportsAnalyticsTab from "@/components/admin/reports-analytics-tab";
 import SettingsTab from "@/components/settings-tab";
 import { BrandingTab } from "@/components/admin/branding-tab";
 import { AuthState } from "@/lib/types";
-import { Shield, Users, BarChart3, Settings, LogOut, Palette } from "lucide-react";
+import { Shield, Users, BarChart3, Settings, LogOut, Palette, UserCog } from "lucide-react";
 
 interface AdminTabProps {
   authState: AuthState;
@@ -45,13 +46,13 @@ export default function AdminTab({ authState, onLogout }: AdminTabProps) {
     );
   }
   const getDefaultTab = () => {
-    if (authState.user?.role === 'admin') return 'users';
+    if (authState.user?.role === 'admin') return 'members';
     if (authState.user?.role === 'data_viewer') return 'reports';
-    return 'users'; // fallback
+    return 'members'; // fallback
   };
 
   const getTabsGridClass = () => {
-    if (authState.user?.role === 'admin') return 'grid-cols-4';
+    if (authState.user?.role === 'admin') return 'grid-cols-5';
     if (authState.user?.role === 'data_viewer') return 'grid-cols-1';
     return 'grid-cols-1';
   };
@@ -89,8 +90,14 @@ export default function AdminTab({ authState, onLogout }: AdminTabProps) {
       <Tabs defaultValue={getDefaultTab()} className="space-y-6">
         <TabsList className={`grid w-full h-12 ${getTabsGridClass()}`}>
           {authState.user.role === 'admin' && (
-            <TabsTrigger value="users" className="flex items-center space-x-2">
+            <TabsTrigger value="members" className="flex items-center space-x-2">
               <Users className="h-4 w-4" />
+              <span>Members</span>
+            </TabsTrigger>
+          )}
+          {authState.user.role === 'admin' && (
+            <TabsTrigger value="users" className="flex items-center space-x-2">
+              <UserCog className="h-4 w-4" />
               <span>User Management</span>
             </TabsTrigger>
           )}
@@ -113,6 +120,12 @@ export default function AdminTab({ authState, onLogout }: AdminTabProps) {
             </TabsTrigger>
           )}
         </TabsList>
+
+        {authState.user.role === 'admin' && (
+          <TabsContent value="members" className="space-y-6">
+            <MembersTab />
+          </TabsContent>
+        )}
 
         {authState.user.role === 'admin' && (
           <TabsContent value="users" className="space-y-6">
