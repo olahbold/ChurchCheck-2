@@ -82,7 +82,10 @@ export function EditMemberForm({ member, onSave, onCancel }: EditMemberFormProps
 
       await apiRequest(`/api/members/${member.id}`, {
         method: 'PUT',
-        body: cleanedData,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(cleanedData),
       });
 
       toast({
