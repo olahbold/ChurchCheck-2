@@ -43,8 +43,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (cleanedData[key] === "" || cleanedData[key] === null) {
           if (key === 'dateOfBirth' || key === 'weddingAnniversary') {
             delete cleanedData[key]; // Remove completely for date fields
-          } else if (key === 'parentId' && cleanedData[key] === "") {
-            cleanedData[key] = null; // Convert empty string to null for foreign key
+          } else if (key === 'parentId') {
+            cleanedData[key] = ""; // Convert parentId to empty string, not null or undefined
           } else {
             cleanedData[key] = undefined;
           }
@@ -53,10 +53,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('Cleaned member data:', JSON.stringify(cleanedData, null, 2));
       
-      // Add church_id from the authenticated request
+      // Add churchId from the authenticated request
       const memberDataWithChurch = {
         ...cleanedData,
-        church_id: req.churchId
+        churchId: req.churchId
       };
       
       const memberData = insertMemberSchema.parse(memberDataWithChurch);
@@ -136,10 +136,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Remove the rowNumber field that was added for validation
           delete cleanedData.rowNumber;
           
-          // Add church_id from the authenticated request
+          // Add churchId from the authenticated request
           const memberDataWithChurch = {
             ...cleanedData,
-            church_id: req.churchId
+            churchId: req.churchId
           };
 
           const validatedData = insertMemberSchema.parse(memberDataWithChurch);
