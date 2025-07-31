@@ -150,6 +150,11 @@ Key features:
   - Search now works for partial matches like "oginni" finding "Sobowole-Oginni"
   - Full name searches like "adele sobowole" now work across first and last name fields
   - Case-insensitive matching ensures "ADELE" finds "adele" entries
+- **Fixed Copy Contact Information Feature**: Resolved issue where parent contact details weren't populating child registration forms:
+  - Enhanced React Hook Form setValue() calls with proper validation and dirty state flags
+  - Added form.trigger() to force UI re-rendering after copying contact information
+  - Contact copying now properly populates phone, WhatsApp, and address fields from parent to child
+  - Multi-tenant data isolation working correctly - moved test member to proper church context
 - **Multi-Tenant SaaS System Fully Operational & Production Ready
 - **Complete System Restoration**: Successfully debugged and fixed all critical issues with the multi-tenant SaaS transformation:
   - Fixed duplicate QueryClient instances causing React Query malfunction

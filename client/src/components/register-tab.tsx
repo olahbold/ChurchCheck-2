@@ -201,15 +201,22 @@ export default function RegisterTab() {
     if (pendingParentId && copyContact) {
       const parent = potentialParents.find(p => p.id === pendingParentId);
       if (parent) {
+        // Copy phone if parent has one and current field is empty
         if (parent.phone && !form.getValues("phone")) {
-          form.setValue("phone", parent.phone);
+          form.setValue("phone", parent.phone, { shouldValidate: true, shouldDirty: true });
         }
+        // Copy WhatsApp number if parent has one and current field is empty
         if (parent.whatsappNumber && !form.getValues("whatsappNumber")) {
-          form.setValue("whatsappNumber", parent.whatsappNumber);
+          form.setValue("whatsappNumber", parent.whatsappNumber, { shouldValidate: true, shouldDirty: true });
         }
+        // Copy address if parent has one and current field is empty
         if (parent.address && !form.getValues("address")) {
-          form.setValue("address", parent.address);
+          form.setValue("address", parent.address, { shouldValidate: true, shouldDirty: true });
         }
+        
+        // Force form re-render to show the copied values
+        form.trigger();
+        
         toast({
           title: "Contact Information Copied",
           description: "Parent's contact details have been copied to this member's profile.",
@@ -217,7 +224,8 @@ export default function RegisterTab() {
       }
     }
     
-    form.setValue("parentId", pendingParentId || "");
+    // Set the parent ID
+    form.setValue("parentId", pendingParentId || "", { shouldValidate: true, shouldDirty: true });
     setShowParentContactDialog(false);
     setPendingParentId(null);
   };
