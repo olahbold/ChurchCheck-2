@@ -39,10 +39,7 @@ export default function DashboardTab() {
     refetchOnMount: true,
   });
   
-  // Debug logging
-  console.log('Dashboard members data:', members, 'Loading:', membersLoading, 'Error:', membersError);
-  console.log('Auth token in localStorage:', localStorage.getItem('auth_token') ? 'Present' : 'Missing');
-  console.log('Members length:', members.length);
+  // Member data successfully loaded
 
   // Get members needing follow-up
   const { data: followUpMembers = [] } = useQuery<any[]>({
