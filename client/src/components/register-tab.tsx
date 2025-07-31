@@ -134,11 +134,11 @@ export default function RegisterTab() {
       gender: member.gender as "male" | "female",
       ageGroup: member.ageGroup as "child" | "adolescent" | "adult",
       phone: member.phone,
-      email: member.email || "",
-      whatsappNumber: member.whatsappNumber || "",
-      address: member.address || "",
-      dateOfBirth: member.dateOfBirth,
-      weddingAnniversary: member.weddingAnniversary || "",
+      email: member.email ?? "",
+      whatsappNumber: member.whatsappNumber ?? "",
+      address: member.address ?? "",
+      dateOfBirth: member.dateOfBirth ?? "",
+      weddingAnniversary: member.weddingAnniversary ?? "",
       isCurrentMember: member.isCurrentMember,
       fingerprintId: member.fingerprintId || "",
       parentId: member.parentId || "",
@@ -194,8 +194,8 @@ export default function RegisterTab() {
   // Search members mutation
   const searchMembersMutation = useMutation({
     mutationFn: async (query: string) => {
-      const response = await apiRequest('GET', `/api/members?search=${encodeURIComponent(query)}`);
-      return response.json() as Promise<Member[]>;
+      const response = await apiRequest(`/api/members?search=${encodeURIComponent(query)}`);
+      return response as Member[];
     },
     onSuccess: (results) => {
       setSearchResults(results);
@@ -212,8 +212,11 @@ export default function RegisterTab() {
   // Create member mutation
   const createMemberMutation = useMutation({
     mutationFn: async (data: InsertMember) => {
-      const response = await apiRequest('POST', '/api/members', data);
-      return response.json();
+      const response = await apiRequest('/api/members', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/members'] });
@@ -235,8 +238,11 @@ export default function RegisterTab() {
   // Update member mutation
   const updateMemberMutation = useMutation({
     mutationFn: async (data: { id: string; updates: Partial<InsertMember> }) => {
-      const response = await apiRequest('PUT', `/api/members/${data.id}`, data.updates);
-      return response.json();
+      const response = await apiRequest(`/api/members/${data.id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data.updates),
+      });
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/members'] });
@@ -259,8 +265,11 @@ export default function RegisterTab() {
   // Fingerprint enrollment mutation
   const enrollFingerprintMutation = useMutation({
     mutationFn: async (data: { memberId: string; fingerprintId: string }) => {
-      const response = await apiRequest('POST', '/api/fingerprint/enroll', data);
-      return response.json();
+      const response = await apiRequest('/api/fingerprint/enroll', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      return response;
     },
   });
 

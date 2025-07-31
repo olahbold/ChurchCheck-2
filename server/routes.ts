@@ -33,7 +33,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', checkTrialStatus);
 
   // Member routes with feature gating
-  app.post("/api/members", checkMemberLimit, requireFeature('member_management'), async (req, res) => {
+  app.post("/api/members", authenticateToken, ensureChurchContext, checkMemberLimit, requireFeature('member_management'), async (req: AuthenticatedRequest, res) => {
     try {
       console.log('Member creation request body:', JSON.stringify(req.body, null, 2));
       
@@ -53,7 +53,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('Cleaned member data:', JSON.stringify(cleanedData, null, 2));
       
-      const memberData = insertMemberSchema.parse(cleanedData);
+      // Add church_id from the authenticated request
+      const memberDataWithChurch = {
+        ...cleanedData,
+        church_id: req.churchId
+      };
+      
+      const memberData = insertMemberSchema.parse(memberDataWithChurch);
       const member = await storage.createMember(memberData);
       res.json(member);
     } catch (error) {
@@ -62,7 +68,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/members", async (req, res) => {
+  app.get("/api/members", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
       const { search, group } = req.query;
       let members;
@@ -82,7 +88,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/members/:id", async (req, res) => {
+  app.get("/api/members/:id", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
       const member = await storage.getMember(req.params.id);
       if (!member) {
@@ -95,7 +101,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bulk upload members
-  app.post("/api/members/bulk-upload", async (req, res) => {
+  app.post("/api/members/bulk-upload", authenticateToken, ensureChurchContext, checkMemberLimit, requireFeature('member_management'), async (req: AuthenticatedRequest, res) => {
     try {
       const { members } = req.body;
       
@@ -129,8 +135,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
           // Remove the rowNumber field that was added for validation
           delete cleanedData.rowNumber;
+          
+          // Add church_id from the authenticated request
+          const memberDataWithChurch = {
+            ...cleanedData,
+            church_id: req.churchId
+          };
 
-          const validatedData = insertMemberSchema.parse(cleanedData);
+          const validatedData = insertMemberSchema.parse(memberDataWithChurch);
           await storage.createMember(validatedData);
           created++;
         } catch (error) {
