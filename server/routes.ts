@@ -35,8 +35,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Member routes with feature gating
   app.post("/api/members", authenticateToken, ensureChurchContext, checkMemberLimit, requireFeature('member_management'), async (req: AuthenticatedRequest, res) => {
     try {
-      console.log('Member creation request body:', JSON.stringify(req.body, null, 2));
-      
       // Clean up empty string values for optional fields
       const cleanedData = { ...req.body };
       Object.keys(cleanedData).forEach(key => {
@@ -51,12 +49,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
-      console.log('Cleaned member data:', JSON.stringify(cleanedData, null, 2));
-      
       // Add churchId from the authenticated request
       const memberDataWithChurch = {
         ...cleanedData,
-        churchId: req.churchId
+        churchId: req.churchId || req.user?.churchId
       };
       
       const memberData = insertMemberSchema.parse(memberDataWithChurch);

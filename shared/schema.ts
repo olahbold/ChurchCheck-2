@@ -215,7 +215,7 @@ export const insertMemberSchema = createInsertSchema(members, {
   id: true,
   createdAt: true,
   updatedAt: true,
-  churchId: true, // churchId will be added by the server from authentication context
+  // Note: churchId is NOT omitted - it will be added by server and must be included in validation
 }).superRefine((data, ctx) => {
   // Phone validation based on age group
   if (data.ageGroup === "adult" && (!data.phone || data.phone.trim() === "")) {
