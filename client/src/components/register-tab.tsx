@@ -456,7 +456,14 @@ export default function RegisterTab() {
           </CardHeader>
           <CardContent>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form onSubmit={(e) => {
+              console.log('=== FORM ONSUBMIT EVENT TRIGGERED ===');
+              console.log('Native form event:', e);
+              return form.handleSubmit((data) => {
+                console.log('=== REACT HOOK FORM HANDLER CALLED ===');
+                return onSubmit(data);
+              })(e);
+            }} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
@@ -832,6 +839,14 @@ export default function RegisterTab() {
                   type="submit" 
                   disabled={createMemberMutation.isPending || updateMemberMutation.isPending}
                   className="church-button-primary flex-1"
+                  onClick={(e) => {
+                    console.log('=== REGISTER BUTTON CLICKED ===');
+                    console.log('Button click event:', e);
+                    console.log('Form state valid:', form.formState.isValid);
+                    console.log('Form errors:', form.formState.errors);
+                    console.log('Current form values:', form.getValues());
+                    // Let the form handle the submission normally
+                  }}
                 >
                   <Save className="mr-2 h-4 w-4" />
                   {isUpdateMode
