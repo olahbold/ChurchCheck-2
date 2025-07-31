@@ -212,13 +212,21 @@ export default function RegisterTab() {
   // Create member mutation
   const createMemberMutation = useMutation({
     mutationFn: async (data: InsertMember) => {
+      console.log('=== MUTATION FUNCTION CALLED ===');
+      console.log('Data being sent to API:', data);
+      
       const response = await apiRequest('/api/members', {
         method: 'POST',
         body: JSON.stringify(data),
       });
+      
+      console.log('API response received:', response);
       return response;
     },
     onSuccess: (result) => {
+      console.log('=== MUTATION SUCCESS ===');
+      console.log('Success result:', result);
+      
       queryClient.invalidateQueries({ queryKey: ['/api/members'] });
       toast({
         title: "Success!",
@@ -227,6 +235,11 @@ export default function RegisterTab() {
       handleClearForm();
     },
     onError: (error: any) => {
+      console.log('=== MUTATION ERROR ===');
+      console.log('Error object:', error);
+      console.log('Error message:', error?.message);
+      console.log('Error error:', error?.error);
+      
       const errorMessage = error?.message || error?.error || "Please check your information and try again.";
       toast({
         title: "Registration Failed",
