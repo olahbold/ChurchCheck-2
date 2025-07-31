@@ -135,10 +135,10 @@ export default function RegisterTab() {
       ageGroup: member.ageGroup as "child" | "adolescent" | "adult",
       phone: member.phone,
       email: member.email || "",
-      whatsappNumber: member.whatsappNumber ?? "",
-      address: member.address ?? "",
-      dateOfBirth: member.dateOfBirth ?? "",
-      weddingAnniversary: member.weddingAnniversary ?? "",
+      whatsappNumber: member.whatsappNumber || "",
+      address: member.address || "",
+      dateOfBirth: member.dateOfBirth || "",
+      weddingAnniversary: member.weddingAnniversary || "",
       isCurrentMember: member.isCurrentMember,
       fingerprintId: member.fingerprintId || undefined,
       parentId: member.parentId || "",
@@ -282,6 +282,7 @@ export default function RegisterTab() {
       fingerprintId: enrolledFingerprintId || undefined,
     };
     console.log('Processed member data:', memberData);
+    console.log('Is update mode?', isUpdateMode, 'Has selected member?', !!selectedMember);
     
     if (isUpdateMode && selectedMember) {
       setShowUpdateConfirmation(true);

@@ -41,7 +41,7 @@ export default function CheckInTab() {
   const { data: searchResults = [] } = useQuery<MemberWithChildren[]>({
     queryKey: ['/api/members', searchQuery],
     enabled: searchQuery.length > 0,
-    queryFn: () => apiRequest('GET', `/api/members?search=${encodeURIComponent(searchQuery)}`).then(res => res.json()),
+    queryFn: () => apiRequest(`/api/members?search=${encodeURIComponent(searchQuery)}`),
   });
 
   // States for enrollment flow
@@ -52,11 +52,14 @@ export default function CheckInTab() {
   // Biometric scan mutation for check-in
   const biometricScanMutation = useMutation({
     mutationFn: async (fingerprintId: string) => {
-      const response = await apiRequest('POST', '/api/fingerprint/scan', { 
-        fingerprintId,
-        deviceId: navigator.userAgent + navigator.language + screen.width 
+      const response = await apiRequest('/api/fingerprint/scan', {
+        method: 'POST',
+        body: JSON.stringify({ 
+          fingerprintId,
+          deviceId: navigator.userAgent + navigator.language + screen.width 
+        }),
       });
-      return response.json() as Promise<CheckInResult>;
+      return response as CheckInResult;
     },
     onSuccess: (result) => {
       setIsScanning(false);
@@ -93,13 +96,16 @@ export default function CheckInTab() {
   const manualCheckInMutation = useMutation({
     mutationFn: async (memberId: string) => {
       const today = new Date().toISOString().split('T')[0];
-      const response = await apiRequest('POST', '/api/attendance', {
-        memberId,
-        attendanceDate: today,
-        checkInMethod: "manual",
-        isGuest: false,
+      const response = await apiRequest('/api/attendance', {
+        method: 'POST',
+        body: JSON.stringify({
+          memberId,
+          attendanceDate: today,
+          checkInMethod: "manual",
+          isGuest: false,
+        }),
       });
-      return response.json();
+      return response;
     },
     onSuccess: (_, memberId) => {
       const member = searchResults.find(m => m.id === memberId);
@@ -138,17 +144,23 @@ export default function CheckInTab() {
   // Quick enrollment mutation for unrecognized fingerprints
   const quickEnrollMutation = useMutation({
     mutationFn: async (data: { memberId: string; fingerprintId: string }) => {
-      const response = await apiRequest('POST', '/api/fingerprint/enroll', data);
-      return response.json();
+      const response = await apiRequest('/api/fingerprint/enroll', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      return response;
     },
     onSuccess: (_, variables) => {
       // After enrollment, automatically check in the member
       const today = new Date().toISOString().split('T')[0];
-      return apiRequest('POST', '/api/attendance', {
-        memberId: variables.memberId,
-        attendanceDate: today,
-        checkInMethod: "fingerprint",
-        isGuest: false,
+      return apiRequest('/api/attendance', {
+        method: 'POST',
+        body: JSON.stringify({
+          memberId: variables.memberId,
+          attendanceDate: today,
+          checkInMethod: "fingerprint",
+          isGuest: false,
+        }),
       }).then(() => {
         toast({
           title: "Enrollment & Check-in Complete!",
@@ -186,8 +198,11 @@ export default function CheckInTab() {
   // Family check-in mutation
   const familyCheckInMutation = useMutation({
     mutationFn: async (data: { parentId: string; childrenIds: string[] }) => {
-      const response = await apiRequest('POST', '/api/attendance/selective-family-checkin', data);
-      return response.json();
+      const response = await apiRequest('/api/attendance/selective-family-checkin', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      return response;
     },
     onSuccess: (result) => {
       toast({
@@ -234,8 +249,7 @@ export default function CheckInTab() {
 
     // Fetch children for this parent
     try {
-      const response = await apiRequest('GET', `/api/members/children/${parentId}`);
-      const children = await response.json();
+      const children = await apiRequest(`/api/members/children/${parentId}`);
       
       if (children.length === 0) {
         toast({
@@ -296,8 +310,10 @@ export default function CheckInTab() {
   // Delete attendance record mutation
   const deleteAttendanceMutation = useMutation({
     mutationFn: async (recordId: string) => {
-      const response = await apiRequest('DELETE', `/api/attendance/${recordId}`);
-      return response.json();
+      const response = await apiRequest(`/api/attendance/${recordId}`, {
+        method: 'DELETE',
+      });
+      return response;
     },
     onSuccess: (result, recordId) => {
       // Find the record to get member name for toast
@@ -326,7 +342,7 @@ export default function CheckInTab() {
   const bulkDeleteMutation = useMutation({
     mutationFn: async (recordIds: string[]) => {
       const deletePromises = recordIds.map(id => 
-        apiRequest('DELETE', `/api/attendance/${id}`).then(r => r.json())
+        apiRequest(`/api/attendance/${id}`, { method: 'DELETE' })
       );
       return Promise.all(deletePromises);
     },
