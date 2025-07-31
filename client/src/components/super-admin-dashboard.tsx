@@ -53,7 +53,13 @@ interface ChurchWithStats {
 }
 
 interface SuperAdminDashboardProps {
-  admin: any;
+  admin: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+  } | null;
   onLogout: () => void;
 }
 
@@ -210,7 +216,7 @@ export function SuperAdminDashboard({ admin, onLogout }: SuperAdminDashboardProp
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-sm text-gray-600 dark:text-gray-300">
-                {admin.firstName} {admin.lastName}
+                {admin?.firstName || 'Super'} {admin?.lastName || 'Admin'}
               </span>
               <Button variant="outline" size="sm" onClick={onLogout}>
                 <LogOut className="h-4 w-4 mr-2" />
