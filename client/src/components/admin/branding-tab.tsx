@@ -117,6 +117,47 @@ export function BrandingTab() {
     }
   };
 
+  const handleRemoveBranding = async (type: 'logo' | 'banner') => {
+    setIsUploading(true);
+    try {
+      const response = await apiRequest('/api/churches/branding', {
+        method: 'PUT',
+        body: JSON.stringify({ 
+          [type === 'logo' ? 'logoUrl' : 'bannerUrl']: null 
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      // Update local state
+      setBranding(prev => ({ 
+        ...prev, 
+        [type === 'logo' ? 'logoUrl' : 'bannerUrl']: undefined 
+      }));
+      
+      toast({
+        title: `${type === 'logo' ? 'Logo' : 'Banner'} Removed`,
+        description: `Your church ${type} has been removed successfully!`,
+      });
+
+      // Trigger a page reload to refresh header branding
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+
+    } catch (error) {
+      console.error(`${type} removal error:`, error);
+      toast({
+        title: "Removal Failed",
+        description: `Failed to remove ${type}. Please try again.`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleBrandColorChange = async (color: string) => {
     setIsUpdating(true);
     try {
@@ -289,10 +330,8 @@ export function BrandingTab() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => {
-                  setBranding(prev => ({ ...prev, logoUrl: undefined }));
-                  // TODO: Add API call to remove logo
-                }}
+                onClick={() => handleRemoveBranding('logo')}
+                disabled={isUploading}
                 className="text-red-600 hover:text-red-700"
               >
                 <RotateCcw className="h-3 w-3 mr-1" />
@@ -346,10 +385,8 @@ export function BrandingTab() {
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => {
-                  setBranding(prev => ({ ...prev, bannerUrl: undefined }));
-                  // TODO: Add API call to remove banner
-                }}
+                onClick={() => handleRemoveBranding('banner')}
+                disabled={isUploading}
                 className="text-red-600 hover:text-red-700"
               >
                 <RotateCcw className="h-3 w-3 mr-1" />
