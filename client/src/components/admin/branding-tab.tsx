@@ -95,8 +95,13 @@ export function BrandingTab() {
 
       toast({
         title: "Upload Successful",
-        description: `${type === 'logo' ? 'Logo' : 'Banner'} uploaded successfully!`,
+        description: `${type === 'logo' ? 'Logo' : 'Banner'} uploaded successfully! Changes are now live.`,
       });
+
+      // Trigger a page reload to refresh header branding
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
 
     } catch (error) {
       console.error('Upload error:', error);
@@ -126,9 +131,14 @@ export function BrandingTab() {
       setBranding(prev => ({ ...prev, brandColor: color }));
       
       toast({
-        title: "Brand Color Updated",
-        description: "Your church's brand color has been updated successfully.",
+        title: "Brand Color Updated", 
+        description: "Your church's brand color has been updated successfully! Changes are now live.",
       });
+
+      // Trigger a page reload to refresh header branding
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
 
     } catch (error) {
       console.error('Brand color update error:', error);
@@ -171,6 +181,11 @@ export function BrandingTab() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <p className="text-sm text-green-700 dark:text-green-400 font-medium">
+              ✓ Your branding is automatically saved and applied when you upload files or change colors!
+            </p>
+          </div>
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 overflow-hidden">
             {/* Banner Preview */}
             {branding.bannerUrl && (
