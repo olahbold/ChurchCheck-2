@@ -334,6 +334,7 @@ export const insertVisitorSchema = createInsertSchema(visitors, {
   createdAt: true,
   updatedAt: true,
   visitDate: true,
+  churchId: true, // Exclude churchId for client-side forms
 });
 
 // Types

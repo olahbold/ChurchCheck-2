@@ -112,8 +112,10 @@ export default function VisitorsTab() {
   // Create visitor mutation - now includes check-in
   const createVisitorMutation = useMutation({
     mutationFn: async (data: InsertVisitor) => {
-      const response = await apiRequest('POST', '/api/visitor-checkin', data);
-      return response.json();
+      return await apiRequest('/api/visitor-checkin', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/visitors'] });

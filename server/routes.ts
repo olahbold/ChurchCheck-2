@@ -27,6 +27,7 @@ import {
   insertVisitorSchema
 } from "@shared/schema";
 import { z } from "zod";
+import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Apply trial status checking to all routes
@@ -1174,7 +1175,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         churchId: req.churchId
       };
       
-      const visitorData = insertVisitorSchema.parse(visitorDataWithChurch);
+      // Use a server-side schema that includes churchId for validation
+      const serverVisitorSchema = insertVisitorSchema.extend({
+        churchId: z.string()
+      });
+      const visitorData = serverVisitorSchema.parse(visitorDataWithChurch);
       
       // Create visitor record
       const visitor = await storage.createVisitor(visitorData);
