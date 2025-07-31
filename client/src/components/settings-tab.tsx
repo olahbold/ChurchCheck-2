@@ -726,7 +726,7 @@ export default function SettingsTab() {
           <DialogHeader>
             <DialogTitle>Admin User Management</DialogTitle>
             <DialogDescription>
-              Manage system administrators, volunteers, and data viewers. {adminUsers.length} users found.
+              Manage system administrators, volunteers, and data viewers. {(adminUsers || []).length} users found.
             </DialogDescription>
           </DialogHeader>
           
@@ -744,7 +744,7 @@ export default function SettingsTab() {
                   </tr>
                 </thead>
                 <tbody>
-                  {adminUsers.map((user) => (
+                  {(adminUsers || []).map((user) => (
                     <tr key={user.id} className="border-b hover:bg-slate-50">
                       <td className="p-3 font-medium">{user.fullName}</td>
                       <td className="p-3">{user.email}</td>
