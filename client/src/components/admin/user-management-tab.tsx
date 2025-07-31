@@ -62,7 +62,10 @@ export default function UserManagementTab() {
   // Create admin user mutation
   const createUserMutation = useMutation({
     mutationFn: async (data: InsertAdminUser) => {
-      return await apiRequest('POST', '/api/admin/users', data);
+      return await apiRequest('/api/admin/users', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
@@ -85,7 +88,10 @@ export default function UserManagementTab() {
   // Update admin user mutation
   const updateUserMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<InsertAdminUser> }) => {
-      return await apiRequest('PUT', `/api/admin/users/${id}`, data);
+      return await apiRequest(`/api/admin/users/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
@@ -107,7 +113,9 @@ export default function UserManagementTab() {
   // Delete admin user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (id: string) => {
-      return await apiRequest('DELETE', `/api/admin/users/${id}`);
+      return await apiRequest(`/api/admin/users/${id}`, {
+        method: 'DELETE',
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/admin/users'] });
