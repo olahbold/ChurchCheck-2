@@ -113,10 +113,7 @@ export default function RegisterTab() {
     },
   });
 
-  // Add debugging for form state
-  console.log('Form errors:', form.formState.errors);
-  console.log('Form isValid:', form.formState.isValid);
-  console.log('Form isSubmitting:', form.formState.isSubmitting);
+
 
   // Fetch all members for family linking
   const { data: members = [] } = useQuery<Member[]>({
@@ -246,21 +243,13 @@ export default function RegisterTab() {
   // Create member mutation
   const createMemberMutation = useMutation({
     mutationFn: async (data: InsertMember) => {
-      console.log('=== MUTATION FUNCTION CALLED ===');
-      console.log('Data being sent to API:', data);
-      
       const response = await apiRequest('/api/members', {
         method: 'POST',
         body: JSON.stringify(data),
       });
-      
-      console.log('API response received:', response);
       return response;
     },
     onSuccess: (result) => {
-      console.log('=== MUTATION SUCCESS ===');
-      console.log('Success result:', result);
-      
       queryClient.invalidateQueries({ queryKey: ['/api/members'] });
       toast({
         title: "Success!",
@@ -269,11 +258,6 @@ export default function RegisterTab() {
       handleClearForm();
     },
     onError: (error: any) => {
-      console.log('=== MUTATION ERROR ===');
-      console.log('Error object:', error);
-      console.log('Error message:', error?.message);
-      console.log('Error error:', error?.error);
-      
       const errorMessage = error?.message || error?.error || "Please check your information and try again.";
       toast({
         title: "Registration Failed",
@@ -322,17 +306,10 @@ export default function RegisterTab() {
   });
 
   const onSubmit = (data: InsertMember) => {
-    console.log('=== FRONTEND FORM SUBMISSION ===');
-    
     const authToken = localStorage.getItem('auth_token');
     const churchData = localStorage.getItem('church_data');
     
-    console.log('Auth token exists:', !!authToken);
-    console.log('Church data exists:', !!churchData);
-    console.log('All localStorage keys:', Object.keys(localStorage));
-    
     if (!authToken || !churchData) {
-      console.log('Authentication check failed - showing error toast');
       toast({
         title: "Authentication Required",
         description: "Please log in to register members",
@@ -344,11 +321,7 @@ export default function RegisterTab() {
     const parsedChurchData = JSON.parse(churchData);
     const churchId = parsedChurchData?.id;
     
-    console.log('Parsed church data:', parsedChurchData);
-    console.log('Extracted church ID:', churchId);
-    
     if (!churchId) {
-      console.log('Church ID missing - showing error toast');
       toast({
         title: "Church Context Missing", 
         description: "Please log in again to register members",
@@ -362,13 +335,9 @@ export default function RegisterTab() {
       fingerprintId: enrolledFingerprintId || undefined,
     };
     
-    console.log('Submitting member data:', memberData);
-    console.log('Is update mode:', isUpdateMode);
-    
     if (isUpdateMode && selectedMember) {
       setShowUpdateConfirmation(true);
     } else {
-      console.log('Calling createMemberMutation...');
       createMemberMutation.mutate(memberData);
     }
   };
@@ -510,13 +479,7 @@ export default function RegisterTab() {
           </CardHeader>
           <CardContent>
           <Form {...form}>
-            <form onSubmit={(e) => {
-              console.log('=== FORM SUBMIT EVENT ===');
-              console.log('Event:', e);
-              console.log('Form state:', form.formState);
-              console.log('Form values:', form.getValues());
-              form.handleSubmit(onSubmit)(e);
-            }} className="space-y-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <FormField
                   control={form.control}
@@ -900,33 +863,6 @@ export default function RegisterTab() {
                     : (createMemberMutation.isPending ? "Registering..." : "Register Member")
                   }
                 </Button>
-                
-                {/* Debug Test Button */}
-                <Button
-                  type="button"
-                  onClick={() => {
-                    console.log('=== DIRECT TEST BUTTON CLICKED ===');
-                    const testData = {
-                      firstName: "Direct",
-                      surname: "Test",
-                      gender: "male" as const,
-                      ageGroup: "adult" as const,
-                      phone: "+447456186000",
-                      email: "directtest@example.com",
-                      isCurrentMember: true,
-                      title: "",
-                      whatsappNumber: "",
-                      address: "",
-                      parentId: "",
-                    };
-                    console.log('Calling onSubmit directly with test data:', testData);
-                    onSubmit(testData);
-                  }}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  🧪 Test
-                </Button>
-                
                 <Button 
                   type="button" 
                   onClick={handleClearForm}
