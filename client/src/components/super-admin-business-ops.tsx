@@ -17,7 +17,8 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  BarChart3
+  BarChart3,
+  RefreshCw
 } from "lucide-react";
 
 interface RevenueMetrics {
@@ -215,13 +216,6 @@ export function SuperAdminBusinessOps({ onBack }: SuperAdminBusinessOpsProps) {
 
   useEffect(() => {
     loadBusinessData();
-    
-    // Auto-refresh reports every 5 seconds to check for status updates
-    const interval = setInterval(() => {
-      loadBusinessData();
-    }, 5000);
-    
-    return () => clearInterval(interval);
   }, []);
 
   if (isLoading) {
@@ -437,8 +431,21 @@ export function SuperAdminBusinessOps({ onBack }: SuperAdminBusinessOpsProps) {
         {/* Recent Reports */}
         {reports.length > 0 && (
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Recent Reports</CardTitle>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={loadBusinessData}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                <span className="ml-2">Refresh</span>
+              </Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
