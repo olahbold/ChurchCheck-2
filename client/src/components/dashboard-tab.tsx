@@ -35,10 +35,14 @@ export default function DashboardTab() {
   // Get all members with search and filter
   const { data: members = [], isLoading: membersLoading, error: membersError } = useQuery<MemberWithChildren[]>({
     queryKey: ['/api/members'],
+    retry: 1,
+    refetchOnMount: true,
   });
   
   // Debug logging
   console.log('Dashboard members data:', members, 'Loading:', membersLoading, 'Error:', membersError);
+  console.log('Auth token in localStorage:', localStorage.getItem('auth_token') ? 'Present' : 'Missing');
+  console.log('Members length:', members.length);
 
   // Get members needing follow-up
   const { data: followUpMembers = [] } = useQuery<any[]>({

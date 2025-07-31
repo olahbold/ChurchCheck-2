@@ -54,6 +54,7 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     // Get auth token from localStorage for SaaS authentication
     const authToken = localStorage.getItem('auth_token');
+    console.log('Query function called for:', queryKey, 'with token:', authToken ? 'Present' : 'Missing');
     
     const res = await fetch(queryKey.join("/") as string, {
       headers: {
@@ -61,6 +62,13 @@ export const getQueryFn: <T>(options: {
       },
       credentials: "include",
     });
+    
+    console.log('Query response status:', res.status, 'for:', queryKey);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.log('Query error response:', errorText);
+    }
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;
