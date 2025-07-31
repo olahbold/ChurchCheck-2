@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { SuperAdminLogin } from "@/components/super-admin-login";
 import { SuperAdminDashboard } from "@/components/super-admin-dashboard";
+import { SuperAdminBusinessOps } from "@/components/super-admin-business-ops";
 
 export function SuperAdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -12,6 +13,7 @@ export function SuperAdminPage() {
     role: string;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentView, setCurrentView] = useState<'dashboard' | 'business-ops'>('dashboard');
 
   useEffect(() => {
     // Check if super admin is already logged in
@@ -66,6 +68,7 @@ export function SuperAdminPage() {
     localStorage.removeItem('super_admin_token');
     setIsAuthenticated(false);
     setAdmin(null);
+    setCurrentView('dashboard');
   };
 
   if (isLoading) {
@@ -83,5 +86,19 @@ export function SuperAdminPage() {
     return <SuperAdminLogin onLogin={handleLogin} />;
   }
 
-  return <SuperAdminDashboard admin={admin} onLogout={handleLogout} />;
+  if (currentView === 'business-ops') {
+    return (
+      <SuperAdminBusinessOps 
+        onBack={() => setCurrentView('dashboard')} 
+      />
+    );
+  }
+
+  return (
+    <SuperAdminDashboard 
+      admin={admin} 
+      onLogout={handleLogout}
+      onNavigateToBusinessOps={() => setCurrentView('business-ops')}
+    />
+  );
 }

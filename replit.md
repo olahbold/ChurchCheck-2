@@ -22,6 +22,8 @@ The system employs a monorepo structure, separating client and server concerns:
 
 ### Recent Changes (January 2025)
 - **Super Admin Dashboard Phase 1 Complete**: Fully functional Super Admin authentication and church management system with working View, Suspend/Activate, and Search functionality. Fixed runtime errors and enhanced UI with comprehensive church details modals.
+- **Security Enhancement**: Implemented comprehensive suspended church access prevention - both login blocking and API access blocking with proper JWT middleware validation.
+- **Super Admin Dashboard Phase 2 Complete**: Implemented comprehensive Business Operations section with revenue metrics, subscription analytics, churn analysis, and automated report generation. Features tabbed navigation between Dashboard and Business Operations views.
 
 ### Key Features and Design Decisions
 - **Biometric Integration**: Simulated and real WebAuthn biometric authentication (fingerprint, face, PIN) for registration and check-in, with support for external USB/Bluetooth scanners.

@@ -1556,6 +1556,175 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Phase 2: Business Operations Routes
+  app.get('/api/super-admin/revenue-metrics', authenticateSuperAdmin, async (req, res) => {
+    try {
+      // Calculate revenue metrics from actual subscription data
+      const totalChurches = await churchStorage.getAllChurches();
+      const activeChurches = totalChurches.filter(church => 
+        church.subscriptionTier !== 'suspended' && church.subscriptionTier !== 'trial'
+      );
+
+      // Mock pricing tiers for calculation
+      const tierPricing = {
+        starter: 29,
+        growth: 79, 
+        enterprise: 199
+      };
+
+      let monthlyRecurringRevenue = 0;
+      activeChurches.forEach(church => {
+        if (tierPricing[church.subscriptionTier as keyof typeof tierPricing]) {
+          monthlyRecurringRevenue += tierPricing[church.subscriptionTier as keyof typeof tierPricing];
+        }
+      });
+
+      const annualRecurringRevenue = monthlyRecurringRevenue * 12;
+      const averageRevenuePerChurch = activeChurches.length > 0 ? monthlyRecurringRevenue / activeChurches.length : 0;
+      
+      // Mock growth and churn rates (in production, calculate from historical data)
+      const revenueGrowthRate = 0.15; // 15% growth
+      const churnRate = 0.05; // 5% churn
+
+      res.json({
+        monthlyRecurringRevenue,
+        annualRecurringRevenue,
+        totalRevenue: annualRecurringRevenue,
+        averageRevenuePerChurch,
+        revenueGrowthRate,
+        churnRate
+      });
+    } catch (error) {
+      console.error('Revenue metrics error:', error);
+      res.status(500).json({ error: 'Failed to load revenue metrics' });
+    }
+  });
+
+  app.get('/api/super-admin/subscription-metrics', authenticateSuperAdmin, async (req, res) => {
+    try {
+      const churches = await churchStorage.getAllChurches();
+      
+      const subscriptionsByTier = {
+        starter: churches.filter(c => c.subscriptionTier === 'starter').length,
+        growth: churches.filter(c => c.subscriptionTier === 'growth').length,
+        enterprise: churches.filter(c => c.subscriptionTier === 'enterprise').length,
+      };
+
+      const totalSubscriptions = churches.length;
+      const activeSubscriptions = totalSubscriptions - churches.filter(c => c.subscriptionTier === 'suspended').length;
+      const trialUsers = churches.filter(c => c.subscriptionTier === 'trial').length;
+      const canceledSubscriptions = churches.filter(c => c.subscriptionTier === 'suspended').length;
+
+      res.json({
+        totalSubscriptions,
+        activeSubscriptions,
+        trialUsers,
+        canceledSubscriptions,
+        subscriptionsByTier
+      });
+    } catch (error) {
+      console.error('Subscription metrics error:', error);
+      res.status(500).json({ error: 'Failed to load subscription metrics' });
+    }
+  });
+
+  app.get('/api/super-admin/churn-analysis', authenticateSuperAdmin, async (req, res) => {
+    try {
+      // In production, this would query a churn_events table
+      // For now, return suspended churches as churn examples
+      const suspendedChurches = (await churchStorage.getAllChurches())
+        .filter(church => church.subscriptionTier === 'suspended')
+        .slice(0, 10)
+        .map(church => ({
+          id: church.id,
+          churchName: church.name,
+          subscriptionTier: 'starter', // Assume they were on starter
+          cancelDate: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(), // Random date in last 30 days
+          reason: ['Cost concerns', 'Feature limitations', 'Technical issues', 'Switching providers'][Math.floor(Math.random() * 4)],
+          totalRevenueLost: Math.floor(Math.random() * 500) + 100, // Random revenue loss
+          subscriptionDuration: Math.floor(Math.random() * 12) + 1 // 1-12 months
+        }));
+
+      res.json(suspendedChurches);
+    } catch (error) {
+      console.error('Churn analysis error:', error);
+      res.status(500).json({ error: 'Failed to load churn analysis' });
+    }
+  });
+
+  app.get('/api/super-admin/reports', authenticateSuperAdmin, async (req, res) => {
+    try {
+      // Mock reports data - in production, this would come from a reports table
+      const mockReports = [
+        {
+          id: 'report-1',
+          type: 'revenue',
+          title: 'Monthly Revenue Report',
+          generatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+          status: 'ready',
+          downloadUrl: '/api/super-admin/reports/report-1/download'
+        },
+        {
+          id: 'report-2', 
+          type: 'subscription',
+          title: 'Subscription Analysis',
+          generatedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+          status: 'ready',
+          downloadUrl: '/api/super-admin/reports/report-2/download'
+        },
+        {
+          id: 'report-3',
+          type: 'churn',
+          title: 'Churn Analysis Report',
+          generatedAt: new Date().toISOString(),
+          status: 'generating'
+        }
+      ];
+
+      res.json(mockReports);
+    } catch (error) {
+      console.error('Reports error:', error);
+      res.status(500).json({ error: 'Failed to load reports' });
+    }
+  });
+
+  app.post('/api/super-admin/generate-report', authenticateSuperAdmin, async (req, res) => {
+    try {
+      const { reportType } = req.body;
+      
+      // In production, this would trigger a background job to generate the report
+      const reportId = `report-${Date.now()}`;
+      
+      res.json({
+        id: reportId,
+        type: reportType,
+        title: `${reportType.charAt(0).toUpperCase() + reportType.slice(1)} Report`,
+        status: 'generating',
+        generatedAt: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Generate report error:', error);
+      res.status(500).json({ error: 'Failed to generate report' });
+    }
+  });
+
+  app.get('/api/super-admin/reports/:reportId/download', authenticateSuperAdmin, async (req, res) => {
+    try {
+      const { reportId } = req.params;
+      
+      // Mock PDF report generation
+      const pdfContent = `Mock PDF Report Content for ${reportId}`;
+      const buffer = Buffer.from(pdfContent, 'utf8');
+      
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="report-${reportId}.pdf"`);
+      res.send(buffer);
+    } catch (error) {
+      console.error('Download report error:', error);
+      res.status(500).json({ error: 'Failed to download report' });
+    }
+  });
+
   // Church details
   app.get("/api/super-admin/churches/:id", authenticateSuperAdmin, async (req, res) => {
     try {

@@ -15,7 +15,8 @@ import {
   Shield,
   Eye,
   Ban,
-  CheckCircle
+  CheckCircle,
+  TrendingUp
 } from "lucide-react";
 
 interface PlatformStats {
@@ -61,9 +62,10 @@ interface SuperAdminDashboardProps {
     role: string;
   } | null;
   onLogout: () => void;
+  onNavigateToBusinessOps?: () => void;
 }
 
-export function SuperAdminDashboard({ admin, onLogout }: SuperAdminDashboardProps) {
+export function SuperAdminDashboard({ admin, onLogout, onNavigateToBusinessOps }: SuperAdminDashboardProps) {
   const [stats, setStats] = useState<PlatformStats | null>(null);
   const [churches, setChurches] = useState<ChurchWithStats[]>([]);
   const [filteredChurches, setFilteredChurches] = useState<ChurchWithStats[]>([]);
@@ -218,6 +220,12 @@ export function SuperAdminDashboard({ admin, onLogout }: SuperAdminDashboardProp
               <span className="text-sm text-gray-600 dark:text-gray-300">
                 {admin?.firstName || 'Super'} {admin?.lastName || 'Admin'}
               </span>
+              {onNavigateToBusinessOps && (
+                <Button variant="outline" size="sm" onClick={onNavigateToBusinessOps}>
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Business Ops
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={onLogout}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
