@@ -845,6 +845,12 @@ export default function RegisterTab() {
                     console.log('Form state valid:', form.formState.isValid);
                     console.log('Form errors:', form.formState.errors);
                     console.log('Current form values:', form.getValues());
+                    
+                    // Force validation check to see detailed errors
+                    form.trigger().then((isValid) => {
+                      console.log('Manual validation result:', isValid);
+                      console.log('Detailed form errors after trigger:', form.formState.errors);
+                    });
                     // Let the form handle the submission normally
                   }}
                 >
