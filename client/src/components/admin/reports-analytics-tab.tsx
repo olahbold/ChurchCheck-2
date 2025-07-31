@@ -25,6 +25,7 @@ import {
   Activity,
   X
 } from "lucide-react";
+import { apiRequest } from '@/lib/queryClient';
 
 const REPORT_CONFIGS = [
   {
@@ -122,13 +123,7 @@ export default function ReportsAnalyticsTab() {
       }
       
       const url = `/api/reports/${selectedReport}?${params.toString()}`;
-      const response = await fetch(url, { credentials: 'include' });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-      
-      return await response.json();
+      return await apiRequest(url);
     },
   });
 

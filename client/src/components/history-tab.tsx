@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar as CalendarIcon, Download, Users, Filter, BarChart3, TrendingUp, Clock, Grid, List, User, Trophy, Target, Award, Star, Activity } from "lucide-react";
+import { apiRequest } from '@/lib/queryClient';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -84,9 +85,7 @@ export default function HistoryTab() {
       if (memberTypeFilter && memberTypeFilter !== 'all') params.append('isCurrentMember', memberTypeFilter);
       if (selectedMember) params.append('memberId', selectedMember);
 
-      const response = await fetch(`/api/attendance/history?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch attendance history');
-      return response.json();
+      return await apiRequest(`/api/attendance/history?${params}`);
     },
   });
 
@@ -105,9 +104,7 @@ export default function HistoryTab() {
         endDate: endDateStr,
       });
 
-      const response = await fetch(`/api/attendance/stats-range?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch range statistics');
-      return response.json();
+      return await apiRequest(`/api/attendance/stats-range?${params}`);
     },
   });
 
