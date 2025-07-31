@@ -212,26 +212,35 @@ export default function RegisterTab() {
   // Create member mutation
   const createMemberMutation = useMutation({
     mutationFn: async (data: InsertMember) => {
+      console.log('=== MUTATION FUNCTION CALLED ===');
+      console.log('Sending data to API:', data);
+      
       const response = await apiRequest('/api/members', {
         method: 'POST',
         body: JSON.stringify(data),
       });
+      console.log('API response received:', response);
       return response;
     },
     onSuccess: (result) => {
-      console.log('Member created successfully:', result);
+      console.log('=== MEMBER CREATED SUCCESSFULLY ===');
+      console.log('Member creation result:', result);
       queryClient.invalidateQueries({ queryKey: ['/api/members'] });
       toast({
-        title: "Success",
-        description: "Member registered successfully!",
+        title: "Success! 🎉",
+        description: `Member registered successfully! ID: ${result?.id?.substring(0, 8)}...`,
       });
       handleClearForm();
     },
     onError: (error: any) => {
-      console.log('Member creation error:', error);
+      console.log('=== MEMBER CREATION ERROR ===');
+      console.log('Full error object:', error);
+      console.log('Error message:', error?.message);
+      console.log('Error error:', error?.error);
+      
       const errorMessage = error?.message || error?.error || "Please check your information and try again.";
       toast({
-        title: "Registration Failed",
+        title: "Registration Failed ❌",
         description: errorMessage,
         variant: "destructive",
       });
@@ -277,7 +286,10 @@ export default function RegisterTab() {
   });
 
   const onSubmit = (data: InsertMember) => {
+    console.log('=== FORM SUBMISSION STARTED ===');
     console.log('Form submitted with data:', data);
+    console.log('Form validation errors:', form.formState.errors);
+    
     const authToken = localStorage.getItem('auth_token');
     console.log('Auth token present:', !!authToken);
     
@@ -298,9 +310,11 @@ export default function RegisterTab() {
     console.log('Is update mode?', isUpdateMode, 'Has selected member?', !!selectedMember);
     
     if (isUpdateMode && selectedMember) {
+      console.log('Setting update confirmation dialog...');
       setShowUpdateConfirmation(true);
     } else {
       console.log('Creating member via mutation...');
+      console.log('Mutation pending status:', createMemberMutation.isPending);
       createMemberMutation.mutate(memberData);
     }
   };
