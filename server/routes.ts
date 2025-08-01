@@ -1292,7 +1292,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/events/:id", authenticateToken, ensureChurchContext, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params;
-      const eventData = insertEventSchema.parse(req.body);
+      const eventData = insertEventSchema.parse({
+        ...req.body,
+        churchId: req.churchId
+      });
       const storage = getStorage(req);
       const event = await storage.updateEvent(id, eventData);
       res.json(event);
