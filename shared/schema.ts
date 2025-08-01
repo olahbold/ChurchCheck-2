@@ -367,16 +367,8 @@ export const insertVisitorSchema = createInsertSchema(visitors, {
   howDidYouHearAboutUs: z.string().optional().or(z.literal("")),
   comments: z.string().optional().or(z.literal("")),
   assignedTo: z.string().optional().or(z.literal("")),
-  weddingAnniversary: z.string().optional().or(z.literal("")).transform(val => {
-    // Convert empty strings and placeholder text to null for database
-    if (!val || val.trim() === "" || val === "dd/mm/yyyy") return null;
-    return val;
-  }),
-  birthday: z.string().optional().or(z.literal("")).transform(val => {
-    // Convert empty strings and placeholder text to null for database
-    if (!val || val.trim() === "" || val === "dd/mm/yyyy") return null;
-    return val;
-  }),
+  weddingAnniversary: z.string().optional().or(z.literal("")).optional(),
+  birthday: z.string().optional().or(z.literal("")).optional(),
   followUpStatus: z.enum(["pending", "contacted", "member"]).default("pending"),
 }).omit({
   id: true,

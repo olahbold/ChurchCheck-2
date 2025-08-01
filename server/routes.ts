@@ -1325,13 +1325,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         churchId: req.churchId,
       };
       
-      // Only include date fields if they have valid values
-      if (visitorData.weddingAnniversary && visitorData.weddingAnniversary !== '') {
-        cleanedVisitorData.weddingAnniversary = visitorData.weddingAnniversary;
-      }
-      if (visitorData.birthday && visitorData.birthday !== '') {
-        cleanedVisitorData.birthday = visitorData.birthday;
-      }
+      // Remove problematic date fields entirely
+      Object.keys(cleanedVisitorData).forEach(key => {
+        if ((key === 'weddingAnniversary' || key === 'birthday') && 
+            (cleanedVisitorData[key] === '' || cleanedVisitorData[key] === undefined || cleanedVisitorData[key] === null || cleanedVisitorData[key] === 'dd/mm/yyyy')) {
+          delete cleanedVisitorData[key];
+        }
+      });
 
       // Create visitor first
       const visitor = await storage.createVisitor(cleanedVisitorData);
@@ -1544,12 +1544,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Clean the data to handle empty date strings and remove undefined values
       const cleanedData = { ...req.body };
-      if (cleanedData.weddingAnniversary === '' || cleanedData.weddingAnniversary === undefined) {
-        delete cleanedData.weddingAnniversary;
-      }
-      if (cleanedData.birthday === '' || cleanedData.birthday === undefined) {
-        delete cleanedData.birthday;
-      }
+      
+      // Remove or convert problematic date fields
+      Object.keys(cleanedData).forEach(key => {
+        if ((key === 'weddingAnniversary' || key === 'birthday') && 
+            (cleanedData[key] === '' || cleanedData[key] === undefined || cleanedData[key] === null || cleanedData[key] === 'dd/mm/yyyy')) {
+          delete cleanedData[key];
+        }
+      });
       
       const visitorUpdate = insertVisitorSchema.partial().parse(cleanedData);
       const visitor = await storage.updateVisitor(req.params.id, visitorUpdate);
