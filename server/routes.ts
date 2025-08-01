@@ -381,6 +381,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Export attendance records as CSV
+  app.get("/api/export/attendance", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
+    try {
+      const storage = getStorage(req);
+      const { startDate, endDate } = req.query;
+      
+      const today = new Date().toISOString().split('T')[0];
+      const start = startDate as string || today;
+      const end = endDate as string || today;
+      
+      const attendance = await storage.getAttendanceInRange(start, end, req.churchId);
+      
+      // Convert to CSV format
+      const headers = [
+        'ID', 'Member Name', 'Event Name', 'Check-in Time', 'Check-in Method', 
+        'Gender', 'Age Group', 'Phone', 'Email', 'Attendance Date'
+      ];
+      
+      const csvRows = [headers.join(',')];
+      
+      attendance.forEach(record => {
+        const memberName = record.member ? 
+          `${record.member.firstName} ${record.member.surname}` : 
+          record.visitorName || 'Unknown';
+        
+        const row = [
+          record.id,
+          `"${memberName}"`,
+          `"${record.event?.name || 'No Event'}"`,
+          record.checkInTime,
+          record.checkInMethod,
+          record.member?.gender || record.visitorGender || '',
+          record.member?.ageGroup || record.visitorAgeGroup || '',
+          `"${record.member?.phone || ''}"`,
+          `"${record.member?.email || ''}"`,
+          record.attendanceDate
+        ];
+        csvRows.push(row.join(','));
+      });
+
+      const csv = csvRows.join('\n');
+      const date = new Date().toISOString().split('T')[0];
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="attendance_export_${date}.csv"`);
+      res.send(csv);
+    } catch (error) {
+      console.error('Export attendance error:', error);
+      res.status(500).json({ error: "Failed to export attendance" });
+    }
+  });
+
   app.get("/api/attendance/stats", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const storage = getStorage(req);

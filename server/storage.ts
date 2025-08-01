@@ -231,12 +231,14 @@ export class DatabaseStorage implements IStorage {
     return newRecord;
   }
 
+
+
   async deleteAttendanceRecord(recordId: string): Promise<boolean> {
-    const result = await db
+    const result = await this.db
       .delete(attendanceRecords)
-      .where(eq(attendanceRecords.id, recordId))
-      .returning();
-    return result.length > 0;
+      .where(eq(attendanceRecords.id, recordId));
+    
+    return result.rowCount > 0;
   }
 
   async getAttendanceForDate(date: string): Promise<any[]> {
@@ -253,6 +255,7 @@ export class DatabaseStorage implements IStorage {
         visitorName: attendanceRecords.visitorName,
         visitorGender: attendanceRecords.visitorGender,
         visitorAgeGroup: attendanceRecords.visitorAgeGroup,
+        eventId: attendanceRecords.eventId,
         member: {
           id: members.id,
           firstName: members.firstName,
@@ -261,10 +264,16 @@ export class DatabaseStorage implements IStorage {
           ageGroup: members.ageGroup,
           phone: members.phone,
           email: members.email,
+        },
+        event: {
+          id: events.id,
+          name: events.name,
+          eventType: events.eventType,
         }
       })
       .from(attendanceRecords)
       .leftJoin(members, eq(attendanceRecords.memberId, members.id))
+      .leftJoin(events, eq(attendanceRecords.eventId, events.id))
       .where(eq(attendanceRecords.attendanceDate, date))
       .orderBy(desc(attendanceRecords.checkInTime));
 
@@ -287,8 +296,53 @@ export class DatabaseStorage implements IStorage {
         phone: null,
         email: null,
       },
-      isVisitor: !record.memberId
+      isVisitor: !record.memberId,
+      event: record.event
     }));
+  }
+
+  async getAttendanceInRange(startDate: string, endDate: string, churchId: string): Promise<any[]> {
+    const result = await this.db
+      .select({
+        id: attendanceRecords.id,
+        memberId: attendanceRecords.memberId,
+        visitorId: attendanceRecords.visitorId,
+        attendanceDate: attendanceRecords.attendanceDate,
+        checkInTime: attendanceRecords.checkInTime,
+        checkInMethod: attendanceRecords.checkInMethod,
+        isGuest: attendanceRecords.isGuest,
+        visitorName: attendanceRecords.visitorName,
+        visitorGender: attendanceRecords.visitorGender,
+        visitorAgeGroup: attendanceRecords.visitorAgeGroup,
+        eventId: attendanceRecords.eventId,
+        member: {
+          id: members.id,
+          firstName: members.firstName,
+          surname: members.surname,
+          gender: members.gender,
+          ageGroup: members.ageGroup,
+          phone: members.phone,
+          email: members.email,
+        },
+        event: {
+          id: events.id,
+          name: events.name,
+          eventType: events.eventType,
+        }
+      })
+      .from(attendanceRecords)
+      .leftJoin(members, eq(attendanceRecords.memberId, members.id))
+      .leftJoin(events, eq(attendanceRecords.eventId, events.id))
+      .where(
+        and(
+          eq(attendanceRecords.churchId, churchId),
+          sql`${attendanceRecords.attendanceDate} >= ${startDate}`,
+          sql`${attendanceRecords.attendanceDate} <= ${endDate}`
+        )
+      )
+      .orderBy(desc(attendanceRecords.checkInTime));
+
+    return result;
   }
 
   async getMemberAttendanceHistory(memberId: string, limit = 10): Promise<AttendanceRecord[]> {

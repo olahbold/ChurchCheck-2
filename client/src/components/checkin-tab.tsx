@@ -44,6 +44,35 @@ export default function CheckInTab() {
     refetchInterval: 10000,
   });
 
+  // Delete attendance record mutation
+  const deleteRecordMutation = useMutation({
+    mutationFn: (recordId: string) => apiRequest(`/api/attendance/${recordId}`, {
+      method: 'DELETE',
+    }),
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Attendance record deleted successfully",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/attendance/today'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/attendance/stats'] });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete attendance record",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Export attendance data
+  const handleExportAttendance = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const url = `/api/export/attendance?startDate=${today}&endDate=${today}`;
+    window.open(url, '_blank');
+  };
+
   // Search members
   const { data: searchResults = [] } = useQuery<MemberWithChildren[]>({
     queryKey: ['/api/members', searchQuery],
@@ -274,8 +303,14 @@ export default function CheckInTab() {
 
       {/* Today's Attendance */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle>Today's Attendance ({formatTodayDate()})</CardTitle>
+          {todayAttendance.length > 0 && (
+            <Button variant="outline" size="sm" onClick={handleExportAttendance}>
+              <Download className="h-4 w-4 mr-2" />
+              Export
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {todayAttendance.length === 0 ? (
@@ -287,17 +322,33 @@ export default function CheckInTab() {
             <div className="space-y-2">
               {todayAttendance.map((record: any) => (
                 <div key={record.id} className="flex items-center justify-between p-3 bg-slate-50 rounded">
-                  <div>
+                  <div className="flex-1">
                     <p className="font-medium">
                       {record.member?.firstName} {record.member?.surname}
                     </p>
                     <p className="text-sm text-slate-500">
                       {formatTime(record.checkInTime)} • {record.checkInMethod}
                     </p>
+                    {record.event && (
+                      <p className="text-xs text-blue-600">
+                        Event: {record.event.name}
+                      </p>
+                    )}
                   </div>
-                  <Badge variant="secondary">
-                    {record.member?.ageGroup}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary">
+                      {record.member?.ageGroup}
+                    </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteRecordMutation.mutate(record.id)}
+                      disabled={deleteRecordMutation.isPending}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
