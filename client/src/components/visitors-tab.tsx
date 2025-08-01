@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { insertVisitorSchema, type InsertVisitor, type Visitor } from "@shared/schema";
+import { z } from "zod";
 import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -70,7 +71,7 @@ export default function VisitorsTab() {
   // Form for adding new visitors
   const form = useForm<InsertVisitor & { eventId?: string }>({
     resolver: zodResolver(insertVisitorSchema.extend({
-      eventId: insertVisitorSchema.shape.id.optional()
+      eventId: z.string().optional()
     })),
     defaultValues: {
       name: "",
