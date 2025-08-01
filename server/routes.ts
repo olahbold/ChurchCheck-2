@@ -1337,17 +1337,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const visitor = await storage.createVisitor(cleanedVisitorData);
 
       // Create attendance record for the visitor
+      const today = new Date().toISOString().split('T')[0];
       const attendanceData = {
         churchId: req.churchId!,
         visitorId: visitor.id,
         eventId: eventId,
-        attendanceDate: new Date().toISOString().split('T')[0],
-        checkInTime: new Date().toISOString(),
-        checkInMethod: 'manual',
+        attendanceDate: today,
+        checkInMethod: 'manual' as const,
         isGuest: false,
         visitorName: visitor.name,
-        visitorGender: visitor.gender,
-        visitorAgeGroup: visitor.ageGroup,
+        visitorGender: visitor.gender as 'male' | 'female',
+        visitorAgeGroup: visitor.ageGroup as 'child' | 'adolescent' | 'adult',
       };
 
       await storage.createAttendanceRecord(attendanceData);
@@ -1564,7 +1564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const today = new Date().toISOString().split('T')[0];
         
         // Check if attendance record already exists for this visitor and event today
-        const existingAttendance = await storage.getTodayAttendanceRecords(req.churchId!);
+        const existingAttendance = await storage.getAttendanceRecordsByDate(today, req.churchId!);
         const hasAttendance = existingAttendance.some(record => 
           record.visitorId === visitor.id && record.eventId === eventId
         );

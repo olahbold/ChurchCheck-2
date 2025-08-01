@@ -75,8 +75,8 @@ export const members = pgTable("members", {
   email: text("email"),
   whatsappNumber: text("whatsapp_number"),
   address: text("address"),
-  dateOfBirth: date("date_of_birth"), // Optional
-  weddingAnniversary: date("wedding_anniversary"),
+  dateOfBirth: varchar("date_of_birth", { length: 10 }), // Optional
+  weddingAnniversary: varchar("wedding_anniversary", { length: 10 }),
   isCurrentMember: boolean("is_current_member").notNull().default(true),
   fingerprintId: text("fingerprint_id"), // Simulated fingerprint identifier
   parentId: varchar("parent_id"), // For family linking
@@ -94,8 +94,8 @@ export const events = pgTable("events", {
   location: text("location"),
   isRecurring: boolean("is_recurring").default(false),
   recurringPattern: text("recurring_pattern"), // weekly, monthly, etc.
-  startDate: date("start_date"),
-  endDate: date("end_date"),
+  startDate: varchar("start_date", { length: 10 }),
+  endDate: varchar("end_date", { length: 10 }),
   startTime: text("start_time"), // HH:MM format
   endTime: text("end_time"), // HH:MM format
   maxAttendees: integer("max_attendees"),
@@ -110,7 +110,7 @@ export const attendanceRecords = pgTable("attendance_records", {
   eventId: varchar("event_id").references(() => events.id),
   memberId: varchar("member_id").references(() => members.id),
   visitorId: varchar("visitor_id").references(() => visitors.id),
-  attendanceDate: date("attendance_date").notNull(),
+  attendanceDate: varchar("attendance_date", { length: 10 }).notNull(),
   checkInTime: timestamp("check_in_time").defaultNow().notNull(),
   checkInMethod: text("check_in_method").notNull(), // "fingerprint", "manual", "family", "visitor"
   isGuest: boolean("is_guest").default(false),
