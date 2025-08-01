@@ -1309,6 +1309,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Visitor check-in with event attendance
+  app.post("/api/visitor-checkin", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
+    try {
+      const storage = getStorage(req);
+      const { eventId, ...visitorData } = req.body;
+      
+      if (!eventId) {
+        return res.status(400).json({ error: "Event selection is required for visitor check-in" });
+      }
+
+      // Create visitor first
+      const visitor = await storage.createVisitor({
+        ...visitorData,
+        churchId: req.churchId,
+      });
+
+      // Create attendance record for the visitor
+      const attendanceData = {
+        churchId: req.churchId!,
+        visitorId: visitor.id,
+        eventId: eventId,
+        attendanceDate: new Date().toISOString().split('T')[0],
+        checkInTime: new Date().toISOString(),
+        checkInMethod: 'manual',
+        isGuest: false,
+        visitorName: visitor.name,
+        visitorGender: visitor.gender,
+        visitorAgeGroup: visitor.ageGroup,
+      };
+
+      await storage.createAttendanceRecord(attendanceData);
+
+      res.json({ 
+        visitor, 
+        message: "Visitor registered and attendance recorded successfully" 
+      });
+    } catch (error) {
+      console.error('Visitor check-in error:', error);
+      res.status(400).json({ error: error instanceof Error ? error.message : "Failed to check in visitor" });
+    }
+  });
+
   // Event Management Routes
   app.get("/api/events", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {

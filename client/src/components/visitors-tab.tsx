@@ -29,6 +29,11 @@ export default function VisitorsTab() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Get active events for event selection
+  const { data: activeEvents = [] } = useQuery({
+    queryKey: ['/api/events/active'],
+  });
+
   // Export function
   const handleExportVisitors = async () => {
     try {
@@ -63,8 +68,10 @@ export default function VisitorsTab() {
   };
 
   // Form for adding new visitors
-  const form = useForm<InsertVisitor>({
-    resolver: zodResolver(insertVisitorSchema),
+  const form = useForm<InsertVisitor & { eventId?: string }>({
+    resolver: zodResolver(insertVisitorSchema.extend({
+      eventId: insertVisitorSchema.shape.id.optional()
+    })),
     defaultValues: {
       name: "",
       gender: undefined,
@@ -73,6 +80,7 @@ export default function VisitorsTab() {
       email: "",
       phone: "",
       whatsappNumber: "",
+      eventId: "",
       weddingAnniversary: "",
       birthday: "",
       prayerPoints: "",
@@ -111,7 +119,7 @@ export default function VisitorsTab() {
 
   // Create visitor mutation - now includes check-in
   const createVisitorMutation = useMutation({
-    mutationFn: async (data: InsertVisitor) => {
+    mutationFn: async (data: InsertVisitor & { eventId?: string }) => {
       return await apiRequest('/api/visitor-checkin', {
         method: 'POST',
         body: JSON.stringify(data),
@@ -119,10 +127,12 @@ export default function VisitorsTab() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/visitors'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/attendance/today'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/attendance/stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/events/attendance-counts'] });
       toast({
         title: "Success",
-        description: "Visitor checked in successfully! They are now included in today's attendance.",
+        description: "Visitor registered and attendance recorded! They are now included in today's attendance and event statistics.",
       });
       form.reset();
       setIsAddDialogOpen(false);
@@ -130,7 +140,7 @@ export default function VisitorsTab() {
     onError: (error) => {
       toast({
         title: "Error",
-        description: error.message || "Failed to check in visitor",
+        description: error.message || "Failed to register visitor",
         variant: "destructive",
       });
     },
@@ -814,6 +824,38 @@ export default function VisitorsTab() {
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {/* Event Selection - Required for attendance tracking */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <h4 className="font-medium text-blue-900 mb-2">Event Attendance</h4>
+                <p className="text-sm text-blue-700 mb-3">
+                  Select the event this visitor is attending to automatically record their attendance.
+                </p>
+                <FormField
+                  control={form.control}
+                  name="eventId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Event *</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select event for attendance tracking" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {activeEvents.map((event: any) => (
+                            <SelectItem key={event.id} value={event.id}>
+                              {event.name} ({event.eventType.replace(/_/g, ' ')})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Name Field */}
                 <FormField
