@@ -1319,11 +1319,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Event selection is required for visitor check-in" });
       }
 
-      // Create visitor first
-      const visitor = await storage.createVisitor({
+      // Clean date fields - convert empty strings to null
+      const cleanedVisitorData = {
         ...visitorData,
         churchId: req.churchId,
-      });
+        weddingAnniversary: visitorData.weddingAnniversary === '' ? null : visitorData.weddingAnniversary,
+        birthday: visitorData.birthday === '' ? null : visitorData.birthday,
+      };
+
+      // Create visitor first
+      const visitor = await storage.createVisitor(cleanedVisitorData);
 
       // Create attendance record for the visitor
       const attendanceData = {
@@ -1530,10 +1535,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/visitors/:id", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
       const storage = getStorage(req);
-      const visitorUpdate = insertVisitorSchema.partial().parse(req.body);
+      
+      // Clean the data to handle empty date strings
+      const cleanedData = { ...req.body };
+      if (cleanedData.weddingAnniversary === '') cleanedData.weddingAnniversary = null;
+      if (cleanedData.birthday === '') cleanedData.birthday = null;
+      
+      const visitorUpdate = insertVisitorSchema.partial().parse(cleanedData);
       const visitor = await storage.updateVisitor(req.params.id, visitorUpdate);
       res.json(visitor);
     } catch (error) {
+      console.error('Update visitor error:', error);
       res.status(400).json({ error: error instanceof Error ? error.message : "Invalid visitor data" });
     }
   });

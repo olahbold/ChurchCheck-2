@@ -240,8 +240,8 @@ export default function VisitorsTab() {
       howDidYouHearAboutUs: data.howDidYouHearAboutUs || "",
       comments: data.comments || "",
       assignedTo: data.assignedTo || "",
-      weddingAnniversary: data.weddingAnniversary || "",
-      birthday: data.birthday || "",
+      weddingAnniversary: data.weddingAnniversary || null,
+      birthday: data.birthday || null,
     };
     createVisitorMutation.mutate(cleanedData);
   };
@@ -260,8 +260,8 @@ export default function VisitorsTab() {
       howDidYouHearAboutUs: data.howDidYouHearAboutUs || "",
       comments: data.comments || "",
       assignedTo: data.assignedTo || "",
-      weddingAnniversary: data.weddingAnniversary || "",
-      birthday: data.birthday || "",
+      weddingAnniversary: data.weddingAnniversary || null,
+      birthday: data.birthday || null,
     };
 
     updateVisitorMutation.mutate({
