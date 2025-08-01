@@ -388,12 +388,12 @@ export const insertVisitorSchema = createInsertSchema(visitors, {
 
 export const insertEventSchema = createInsertSchema(events, {
   eventType: z.enum(["sunday_service", "prayer_meeting", "bible_study", "youth_group", "special_event", "other"]),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
-  startTime: z.string().optional().refine((val) => !val || /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(val), {
+  startDate: z.string().nullable().optional(),
+  endDate: z.string().nullable().optional(),
+  startTime: z.string().nullable().optional().refine((val) => !val || /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(val), {
     message: "Invalid time format (HH:MM)"
   }),
-  endTime: z.string().optional().refine((val) => !val || /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(val), {
+  endTime: z.string().nullable().optional().refine((val) => !val || /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(val), {
     message: "Invalid time format (HH:MM)"
   }),
 }).omit({

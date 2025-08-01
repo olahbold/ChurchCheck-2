@@ -1280,10 +1280,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cleanedData = {
         ...req.body,
         churchId: req.churchId,
-        startDate: req.body.startDate || null,
-        endDate: req.body.endDate || null,
-        startTime: req.body.startTime || null,
-        endTime: req.body.endTime || null,
+        startDate: req.body.startDate === "" ? null : req.body.startDate,
+        endDate: req.body.endDate === "" ? null : req.body.endDate,
+        startTime: req.body.startTime === "" ? null : req.body.startTime,
+        endTime: req.body.endTime === "" ? null : req.body.endTime,
       };
       
       const eventData = insertEventSchema.parse(cleanedData);
@@ -1304,10 +1304,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const cleanedData = {
         ...req.body,
         churchId: req.churchId,
-        startDate: req.body.startDate || null,
-        endDate: req.body.endDate || null,
-        startTime: req.body.startTime || null,
-        endTime: req.body.endTime || null,
+        startDate: req.body.startDate === "" ? null : req.body.startDate,
+        endDate: req.body.endDate === "" ? null : req.body.endDate,
+        startTime: req.body.startTime === "" ? null : req.body.startTime,
+        endTime: req.body.endTime === "" ? null : req.body.endTime,
       };
       
       const eventData = insertEventSchema.parse(cleanedData);
