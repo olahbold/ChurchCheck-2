@@ -93,8 +93,10 @@ export default function VisitorsTab() {
   });
 
   // Form for editing visitors
-  const editForm = useForm<InsertVisitor>({
-    resolver: zodResolver(insertVisitorSchema),
+  const editForm = useForm<InsertVisitor & { eventId?: string }>({
+    resolver: zodResolver(insertVisitorSchema.extend({
+      eventId: z.string().optional()
+    })),
     defaultValues: {
       name: "",
       gender: undefined,
@@ -110,6 +112,7 @@ export default function VisitorsTab() {
       comments: "",
       followUpStatus: "pending",
       assignedTo: "",
+      eventId: "",
     },
   });
 
@@ -216,7 +219,16 @@ export default function VisitorsTab() {
     setIsEditDialogOpen(true);
   };
 
-  const onSubmit = (data: InsertVisitor) => {
+  const onSubmit = (data: InsertVisitor & { eventId?: string }) => {
+    if (!data.eventId) {
+      toast({
+        title: "Event Required",
+        description: "Please select an event for this visitor's attendance.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Ensure optional fields are handled properly
     const cleanedData = {
       ...data,
@@ -234,7 +246,7 @@ export default function VisitorsTab() {
     createVisitorMutation.mutate(cleanedData);
   };
 
-  const onEditSubmit = (data: InsertVisitor) => {
+  const onEditSubmit = (data: InsertVisitor & { eventId?: string }) => {
     if (!selectedVisitor) return;
 
     // Clean the data similar to create mutation
@@ -517,6 +529,39 @@ export default function VisitorsTab() {
           {selectedVisitor && (
             <Form {...editForm}>
               <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+                {/* Event Selection for tracking attendance changes */}
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+                  <h4 className="font-medium text-green-900 mb-2">Update Event Attendance</h4>
+                  <p className="text-sm text-green-700 mb-3">
+                    Optionally change which event this visitor attended or add event attendance if missing.
+                  </p>
+                  <FormField
+                    control={editForm.control}
+                    name="eventId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Event</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select event (optional)" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="">No event selected</SelectItem>
+                            {activeEvents.map((event: any) => (
+                              <SelectItem key={event.id} value={event.id}>
+                                {event.name} ({event.eventType.replace(/_/g, ' ')})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Name Field */}
                   <FormField
