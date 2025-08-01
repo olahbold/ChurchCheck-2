@@ -1542,8 +1542,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const storage = getStorage(req);
       
+      // Extract eventId for attendance tracking
+      const { eventId, ...visitorData } = req.body;
+      
       // Clean the data to handle empty date strings and remove undefined values
-      const cleanedData = { ...req.body };
+      const cleanedData = { ...visitorData };
       
       // Remove or convert problematic date fields
       Object.keys(cleanedData).forEach(key => {
@@ -1555,6 +1558,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const visitorUpdate = insertVisitorSchema.partial().parse(cleanedData);
       const visitor = await storage.updateVisitor(req.params.id, visitorUpdate);
+      
+      // If eventId is provided, create/update attendance record
+      if (eventId && eventId !== "none") {
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Check if attendance record already exists for this visitor and event today
+        const existingAttendance = await storage.getTodayAttendanceRecords(req.churchId!);
+        const hasAttendance = existingAttendance.some(record => 
+          record.visitorId === visitor.id && record.eventId === eventId
+        );
+        
+        if (!hasAttendance) {
+          await storage.createAttendanceRecord({
+            churchId: req.churchId!,
+            attendanceDate: today,
+            checkInMethod: "manual",
+            visitorId: visitor.id,
+            eventId: eventId,
+          });
+        }
+      }
+      
       res.json(visitor);
     } catch (error) {
       console.error('Update visitor error:', error);

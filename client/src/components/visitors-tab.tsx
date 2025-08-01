@@ -257,10 +257,24 @@ export default function VisitorsTab() {
       ...(data.birthday && { birthday: data.birthday }),
     };
 
-    updateVisitorMutation.mutate({
-      id: selectedVisitor.id,
-      updates: cleanedData,
-    });
+    // Handle event attendance update if event is selected
+    if (data.eventId && data.eventId !== "none") {
+      // Update visitor and create/update attendance record
+      const updateWithEvent = {
+        ...cleanedData,
+        eventId: data.eventId,
+      };
+      
+      updateVisitorMutation.mutate({
+        id: selectedVisitor.id,
+        updates: updateWithEvent,
+      });
+    } else {
+      updateVisitorMutation.mutate({
+        id: selectedVisitor.id,
+        updates: cleanedData,
+      });
+    }
   };
 
   const getStatusBadge = (status: string) => {
