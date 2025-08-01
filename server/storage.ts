@@ -318,7 +318,7 @@ export class DatabaseStorage implements IStorage {
     if (filters.ageGroup && filters.ageGroup !== 'all') conditions.push(eq(members.ageGroup, filters.ageGroup));
     if (filters.memberId) conditions.push(eq(attendanceRecords.memberId, filters.memberId));
 
-    const result = await this.db
+    const result = await db
       .select({
         id: attendanceRecords.id,
         memberId: attendanceRecords.memberId,
@@ -359,7 +359,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAttendanceInRange(startDate: string, endDate: string, churchId: string): Promise<any[]> {
-    const result = await this.db
+    const result = await db
       .select({
         id: attendanceRecords.id,
         memberId: attendanceRecords.memberId,
@@ -398,6 +398,38 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(desc(attendanceRecords.checkInTime));
+
+    return result;
+  }
+
+  // Get attendance count for specific events
+  async getEventAttendanceCounts(churchId: string): Promise<any[]> {
+    const result = await db
+      .select({
+        eventId: attendanceRecords.eventId,
+        eventName: events.name,
+        eventType: events.eventType,
+        eventDate: events.eventDate,
+        totalAttendees: count(),
+        members: sql`COUNT(CASE WHEN ${attendanceRecords.memberId} IS NOT NULL THEN 1 END)`,
+        visitors: sql`COUNT(CASE WHEN ${attendanceRecords.visitorId} IS NOT NULL THEN 1 END)`,
+        maleCount: sql`COUNT(CASE WHEN ${members.gender} = 'male' OR ${attendanceRecords.visitorGender} = 'male' THEN 1 END)`,
+        femaleCount: sql`COUNT(CASE WHEN ${members.gender} = 'female' OR ${attendanceRecords.visitorGender} = 'female' THEN 1 END)`,
+        childCount: sql`COUNT(CASE WHEN ${members.ageGroup} = 'child' OR ${attendanceRecords.visitorAgeGroup} = 'child' THEN 1 END)`,
+        adolescentCount: sql`COUNT(CASE WHEN ${members.ageGroup} = 'adolescent' OR ${attendanceRecords.visitorAgeGroup} = 'adolescent' THEN 1 END)`,
+        adultCount: sql`COUNT(CASE WHEN ${members.ageGroup} = 'adult' OR ${attendanceRecords.visitorAgeGroup} = 'adult' THEN 1 END)`,
+      })
+      .from(attendanceRecords)
+      .leftJoin(members, eq(attendanceRecords.memberId, members.id))
+      .leftJoin(events, eq(attendanceRecords.eventId, events.id))
+      .where(
+        and(
+          eq(attendanceRecords.churchId, churchId),
+          isNotNull(attendanceRecords.eventId)
+        )
+      )
+      .groupBy(attendanceRecords.eventId, events.name, events.eventType, events.eventDate)
+      .orderBy(desc(events.eventDate));
 
     return result;
   }

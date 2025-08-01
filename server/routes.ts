@@ -1332,6 +1332,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get event attendance counts
+  app.get("/api/events/attendance-counts", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
+    try {
+      const storage = getStorage(req);
+      const attendanceCounts = await storage.getEventAttendanceCounts(req.churchId!);
+      res.json(attendanceCounts);
+    } catch (error) {
+      console.error('Get event attendance counts error:', error);
+      res.status(500).json({ error: "Failed to fetch event attendance counts" });
+    }
+  });
+
   app.post("/api/events", authenticateToken, ensureChurchContext, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
     try {
       // Clean up empty date/time values to prevent database errors

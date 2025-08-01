@@ -48,6 +48,11 @@ export function EventsTab() {
     queryKey: ['/api/events'],
   });
 
+  // Get event attendance counts
+  const { data: attendanceCounts = [] } = useQuery({
+    queryKey: ['/api/events/attendance-counts'],
+  });
+
   const createEventMutation = useMutation({
     mutationFn: (data: EventFormData) => apiRequest(`/api/events`, { 
       method: "POST", 
@@ -167,6 +172,28 @@ export function EventsTab() {
     if (filterActive === null) return true;
     return event.isActive === filterActive;
   });
+
+  // Helper function to get attendance count for an event
+  const getEventAttendanceCount = (eventId: string) => {
+    const attendanceData = attendanceCounts.find((count: any) => count.eventId === eventId);
+    return attendanceData ? Number(attendanceData.totalAttendees) : 0;
+  };
+
+  // Helper function to get attendance details for an event
+  const getEventAttendanceDetails = (eventId: string) => {
+    const attendanceData = attendanceCounts.find((count: any) => count.eventId === eventId);
+    if (!attendanceData) return null;
+    return {
+      total: Number(attendanceData.totalAttendees),
+      members: Number(attendanceData.members),
+      visitors: Number(attendanceData.visitors),
+      male: Number(attendanceData.maleCount),
+      female: Number(attendanceData.femaleCount),
+      children: Number(attendanceData.childCount),
+      adolescents: Number(attendanceData.adolescentCount),
+      adults: Number(attendanceData.adultCount),
+    };
+  };
 
   const getEventTypeLabel = (type: string) => {
     const types = {
@@ -303,6 +330,13 @@ export function EventsTab() {
                       <Badge variant={event.isActive ? "default" : "secondary"}>
                         {event.isActive ? "Active" : "Inactive"}
                       </Badge>
+                      
+                      {getEventAttendanceCount(event.id) > 0 && (
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          <Users className="h-3 w-3 mr-1" />
+                          {getEventAttendanceCount(event.id)} attendees
+                        </Badge>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -336,8 +370,60 @@ export function EventsTab() {
         <TabsContent value="statistics">
           <Card>
             <CardHeader>
-              <CardTitle>Event Statistics</CardTitle>
+              <CardTitle>Event Attendance Statistics</CardTitle>
             </CardHeader>
+            <CardContent>
+              {attendanceCounts.length === 0 ? (
+                <div className="text-center py-6 text-muted-foreground">
+                  <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p>No attendance data available yet</p>
+                  <p className="text-sm">Attendance will appear here after check-ins</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {attendanceCounts.map((eventData: any) => {
+                    const details = getEventAttendanceDetails(eventData.eventId);
+                    if (!details || details.total === 0) return null;
+                    
+                    return (
+                      <div key={eventData.eventId} className="p-4 border rounded-lg bg-slate-50">
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h4 className="font-medium">{eventData.eventName}</h4>
+                            <Badge className={`${getEventTypeBadgeColor(eventData.eventType)} text-white text-xs mt-1`}>
+                              {getEventTypeLabel(eventData.eventType)}
+                            </Badge>
+                          </div>
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            <Users className="h-3 w-3 mr-1" />
+                            {details.total} Total
+                          </Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                          <div className="bg-white p-2 rounded border">
+                            <p className="text-muted-foreground">Members</p>
+                            <p className="font-medium text-blue-600">{details.members}</p>
+                          </div>
+                          <div className="bg-white p-2 rounded border">
+                            <p className="text-muted-foreground">Visitors</p>
+                            <p className="font-medium text-purple-600">{details.visitors}</p>
+                          </div>
+                          <div className="bg-white p-2 rounded border">
+                            <p className="text-muted-foreground">Male / Female</p>
+                            <p className="font-medium">{details.male} / {details.female}</p>
+                          </div>
+                          <div className="bg-white p-2 rounded border">
+                            <p className="text-muted-foreground">C / A / Ad</p>
+                            <p className="font-medium">{details.children} / {details.adolescents} / {details.adults}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="text-center">
