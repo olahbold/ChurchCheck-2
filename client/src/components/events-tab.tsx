@@ -49,25 +49,53 @@ export function EventsTab() {
   });
 
   const createEventMutation = useMutation({
-    mutationFn: (data: EventFormData) => apiRequest(`/api/events`, { method: "POST", body: data }),
+    mutationFn: (data: EventFormData) => apiRequest(`/api/events`, { 
+      method: "POST", 
+      body: JSON.stringify(data),
+      headers: { 'Content-Type': 'application/json' }
+    }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       setDialogOpen(false);
       setEditingEvent(null);
       resetForm();
-      toast({ description: "Event created successfully" });
+      toast({ 
+        title: "Success!",
+        description: "Event created successfully" 
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error",
+        description: error.message || "Failed to create event",
+        variant: "destructive"
+      });
     },
   });
 
   const updateEventMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: EventFormData }) =>
-      apiRequest(`/api/events/${id}`, { method: "PUT", body: data }),
+      apiRequest(`/api/events/${id}`, { 
+        method: "PUT", 
+        body: JSON.stringify(data),
+        headers: { 'Content-Type': 'application/json' }
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
       setDialogOpen(false);
       setEditingEvent(null);
       resetForm();
-      toast({ description: "Event updated successfully" });
+      toast({ 
+        title: "Success!",
+        description: "Event updated successfully" 
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error",
+        description: error.message || "Failed to update event",
+        variant: "destructive"
+      });
     },
   });
 
@@ -75,7 +103,17 @@ export function EventsTab() {
     mutationFn: (id: string) => apiRequest(`/api/events/${id}`, { method: "DELETE" }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/events"] });
-      toast({ description: "Event deleted successfully" });
+      toast({ 
+        title: "Success!",
+        description: "Event deleted successfully" 
+      });
+    },
+    onError: (error: any) => {
+      toast({ 
+        title: "Error",
+        description: error.message || "Failed to delete event",
+        variant: "destructive"
+      });
     },
   });
 
