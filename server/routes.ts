@@ -391,7 +391,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const start = startDate as string || today;
       const end = endDate as string || today;
       
-      const attendance = await storage.getAttendanceInRange(start, end, req.churchId);
+      const attendance = await storage.getAttendanceInRange(start, end, req.churchId!);
       
       // Convert to CSV format
       const headers = [

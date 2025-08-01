@@ -234,11 +234,12 @@ export class DatabaseStorage implements IStorage {
 
 
   async deleteAttendanceRecord(recordId: string): Promise<boolean> {
-    const result = await this.db
+    const result = await db
       .delete(attendanceRecords)
-      .where(eq(attendanceRecords.id, recordId));
+      .where(eq(attendanceRecords.id, recordId))
+      .returning();
     
-    return result.rowCount > 0;
+    return result.length > 0;
   }
 
   async getAttendanceForDate(date: string): Promise<any[]> {
