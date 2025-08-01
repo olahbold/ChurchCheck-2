@@ -1,5 +1,6 @@
 import { 
   members, 
+  events,
   attendanceRecords, 
   followUpRecords,
   adminUsers,
@@ -7,7 +8,9 @@ import {
   reportRuns,
   visitors,
   type Member, 
-  type InsertMember, 
+  type InsertMember,
+  type Event,
+  type InsertEvent,
   type AttendanceRecord, 
   type InsertAttendanceRecord,
   type FollowUpRecord,
@@ -57,6 +60,14 @@ export interface IStorage {
   // Follow-up methods
   updateFollowUpRecord(record: InsertFollowUpRecord): Promise<FollowUpRecord>;
   getMembersNeedingFollowUp(): Promise<(Member & { followUpRecord: FollowUpRecord })[]>;
+
+  // Event methods
+  createEvent(event: InsertEvent): Promise<Event>;
+  getEvent(id: string, churchId?: string): Promise<Event | undefined>;
+  getAllEvents(churchId?: string): Promise<Event[]>;
+  getActiveEvents(churchId?: string): Promise<Event[]>;
+  updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event>;
+  deleteEvent(id: string): Promise<void>;
 
   // Visitor methods
   createVisitor(visitor: InsertVisitor): Promise<Visitor>;
@@ -1021,5 +1032,67 @@ export class DatabaseStorage implements IStorage {
         adult: stats[0]?.adult || 0,
       },
     };
+  }
+
+  // Event methods implementation
+  async createEvent(event: InsertEvent): Promise<Event> {
+    const [newEvent] = await db.insert(events).values({
+      ...event,
+      id: crypto.randomUUID(),
+      churchId: this.churchId,
+    }).returning();
+    return newEvent;
+  }
+
+  async getEvent(id: string, churchId?: string): Promise<Event | undefined> {
+    const conditions = [eq(events.id, id)];
+    if (this.churchId) {
+      conditions.push(eq(events.churchId, this.churchId));
+    }
+    
+    const [event] = await db
+      .select()
+      .from(events)
+      .where(and(...conditions));
+    return event;
+  }
+
+  async getAllEvents(churchId?: string): Promise<Event[]> {
+    const conditions = this.churchId ? [eq(events.churchId, this.churchId)] : [];
+    
+    return await db
+      .select()
+      .from(events)
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(desc(events.createdAt));
+  }
+
+  async getActiveEvents(churchId?: string): Promise<Event[]> {
+    const conditions = [eq(events.isActive, true)];
+    if (this.churchId) {
+      conditions.push(eq(events.churchId, this.churchId));
+    }
+    
+    return await db
+      .select()
+      .from(events)
+      .where(and(...conditions))
+      .orderBy(events.name);
+  }
+
+  async updateEvent(id: string, event: Partial<InsertEvent>): Promise<Event> {
+    const [updatedEvent] = await db
+      .update(events)
+      .set({
+        ...event,
+        updatedAt: new Date(),
+      })
+      .where(eq(events.id, id))
+      .returning();
+    return updatedEvent;
+  }
+
+  async deleteEvent(id: string): Promise<void> {
+    await db.delete(events).where(eq(events.id, id));
   }
 }

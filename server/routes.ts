@@ -26,6 +26,7 @@ import {
   insertReportConfigSchema,
   insertReportRunSchema,
   insertVisitorSchema,
+  insertEventSchema,
   updateChurchBrandingSchema
 } from "@shared/schema";
 import multer from 'multer';
@@ -1247,6 +1248,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(visitor);
     } catch (error) {
       res.status(400).json({ error: error instanceof Error ? error.message : "Invalid visitor data" });
+    }
+  });
+
+  // Event Management Routes
+  app.get("/api/events", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
+    try {
+      const storage = getStorage(req);
+      const events = await storage.getAllEvents(req.churchId);
+      res.json(events);
+    } catch (error) {
+      console.error('Get events error:', error);
+      res.status(500).json({ error: "Failed to fetch events" });
+    }
+  });
+
+  app.get("/api/events/active", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
+    try {
+      const storage = getStorage(req);
+      const events = await storage.getActiveEvents(req.churchId);
+      res.json(events);
+    } catch (error) {
+      console.error('Get active events error:', error);
+      res.status(500).json({ error: "Failed to fetch active events" });
+    }
+  });
+
+  app.post("/api/events", authenticateToken, ensureChurchContext, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
+    try {
+      const eventData = insertEventSchema.parse({
+        ...req.body,
+        churchId: req.churchId
+      });
+      const storage = getStorage(req);
+      const event = await storage.createEvent(eventData);
+      res.json(event);
+    } catch (error) {
+      console.error('Create event error:', error);
+      res.status(400).json({ error: error instanceof Error ? error.message : "Invalid event data" });
+    }
+  });
+
+  app.put("/api/events/:id", authenticateToken, ensureChurchContext, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const eventData = insertEventSchema.parse(req.body);
+      const storage = getStorage(req);
+      const event = await storage.updateEvent(id, eventData);
+      res.json(event);
+    } catch (error) {
+      console.error('Update event error:', error);
+      res.status(400).json({ error: error instanceof Error ? error.message : "Invalid event data" });
+    }
+  });
+
+  app.delete("/api/events/:id", authenticateToken, ensureChurchContext, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
+    try {
+      const { id } = req.params;
+      const storage = getStorage(req);
+      await storage.deleteEvent(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Delete event error:', error);
+      res.status(500).json({ error: "Failed to delete event" });
     }
   });
 

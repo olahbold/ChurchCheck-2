@@ -84,9 +84,30 @@ export const members = pgTable("members", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+export const events = pgTable("events", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  churchId: varchar("church_id").notNull().references(() => churches.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  description: text("description"),
+  eventType: text("event_type").notNull().default("sunday_service"), // sunday_service, prayer_meeting, bible_study, youth_group, special_event, other
+  organizer: text("organizer"),
+  location: text("location"),
+  isRecurring: boolean("is_recurring").default(false),
+  recurringPattern: text("recurring_pattern"), // weekly, monthly, etc.
+  startDate: date("start_date"),
+  endDate: date("end_date"),
+  startTime: text("start_time"), // HH:MM format
+  endTime: text("end_time"), // HH:MM format
+  maxAttendees: integer("max_attendees"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const attendanceRecords = pgTable("attendance_records", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   churchId: varchar("church_id").notNull().references(() => churches.id, { onDelete: "cascade" }),
+  eventId: varchar("event_id").references(() => events.id),
   memberId: varchar("member_id").references(() => members.id),
   visitorId: varchar("visitor_id").references(() => visitors.id),
   attendanceDate: date("attendance_date").notNull(),
@@ -112,6 +133,7 @@ export const followUpRecords = pgTable("follow_up_records", {
 // Relations
 export const churchesRelations = relations(churches, ({ many, one }) => ({
   members: many(members),
+  events: many(events),
   attendanceRecords: many(attendanceRecords),
   followUpRecords: many(followUpRecords),
   visitors: many(visitors),
@@ -131,6 +153,14 @@ export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
     fields: [subscriptions.churchId],
     references: [churches.id],
   }),
+}));
+
+export const eventsRelations = relations(events, ({ one, many }) => ({
+  church: one(churches, {
+    fields: [events.churchId],
+    references: [churches.id],
+  }),
+  attendanceRecords: many(attendanceRecords),
 }));
 
 export const membersRelations = relations(members, ({ many, one }) => ({
@@ -155,6 +185,10 @@ export const attendanceRecordsRelations = relations(attendanceRecords, ({ one })
   church: one(churches, {
     fields: [attendanceRecords.churchId],
     references: [churches.id],
+  }),
+  event: one(events, {
+    fields: [attendanceRecords.eventId],
+    references: [events.id],
   }),
   member: one(members, {
     fields: [attendanceRecords.memberId],
@@ -352,10 +386,24 @@ export const insertVisitorSchema = createInsertSchema(visitors, {
   churchId: true, // Exclude churchId for client-side forms
 });
 
+export const insertEventSchema = createInsertSchema(events, {
+  eventType: z.enum(["sunday_service", "prayer_meeting", "bible_study", "youth_group", "special_event", "other"]),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)").optional(),
+  endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)").optional(),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type Member = typeof members.$inferSelect;
 export type InsertMember = z.infer<typeof insertMemberSchema>;
 export type UpdateMember = z.infer<typeof updateMemberSchema>;
+export type Event = typeof events.$inferSelect;
+export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type AttendanceRecord = typeof attendanceRecords.$inferSelect;
 export type InsertAttendanceRecord = z.infer<typeof insertAttendanceRecordSchema>;
 export type FollowUpRecord = typeof followUpRecords.$inferSelect;

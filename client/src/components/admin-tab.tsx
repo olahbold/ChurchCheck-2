@@ -7,8 +7,9 @@ import UserManagementTab from "@/components/admin/user-management-tab";
 import ReportsAnalyticsTab from "@/components/admin/reports-analytics-tab";
 import SettingsTab from "@/components/settings-tab";
 import { BrandingTab } from "@/components/admin/branding-tab";
+import { EventsTab } from "@/components/events-tab";
 import { AuthState } from "@/lib/types";
-import { Shield, Users, BarChart3, Settings, LogOut, Palette, UserCog } from "lucide-react";
+import { Shield, Users, BarChart3, Settings, LogOut, Palette, UserCog, Calendar } from "lucide-react";
 
 interface AdminTabProps {
   authState: AuthState;
@@ -52,7 +53,7 @@ export default function AdminTab({ authState, onLogout }: AdminTabProps) {
   };
 
   const getTabsGridClass = () => {
-    if (authState.user?.role === 'admin') return 'grid-cols-5';
+    if (authState.user?.role === 'admin') return 'grid-cols-6';
     if (authState.user?.role === 'data_viewer') return 'grid-cols-1';
     return 'grid-cols-1';
   };
@@ -101,6 +102,12 @@ export default function AdminTab({ authState, onLogout }: AdminTabProps) {
               <span>User Management</span>
             </TabsTrigger>
           )}
+          {authState.user.role === 'admin' && (
+            <TabsTrigger value="events" className="flex items-center space-x-2">
+              <Calendar className="h-4 w-4" />
+              <span>Events</span>
+            </TabsTrigger>
+          )}
           {(authState.user.role === 'admin' || authState.user.role === 'data_viewer') && (
             <TabsTrigger value="reports" className="flex items-center space-x-2">
               <BarChart3 className="h-4 w-4" />
@@ -130,6 +137,12 @@ export default function AdminTab({ authState, onLogout }: AdminTabProps) {
         {authState.user.role === 'admin' && (
           <TabsContent value="users" className="space-y-6">
             <UserManagementTab />
+          </TabsContent>
+        )}
+
+        {authState.user.role === 'admin' && (
+          <TabsContent value="events" className="space-y-6">
+            <EventsTab />
           </TabsContent>
         )}
 

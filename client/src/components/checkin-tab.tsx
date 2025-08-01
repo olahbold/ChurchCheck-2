@@ -13,6 +13,7 @@ import { Search, Users, Check, UserPlus, Baby, UserCheck, X, AlertCircle, Finger
 
 export default function CheckInTab() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedEventId, setSelectedEventId] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [selectedParent, setSelectedParent] = useState<MemberWithChildren | null>(null);
   const [selectedChildren, setSelectedChildren] = useState<string[]>([]);
@@ -24,6 +25,11 @@ export default function CheckInTab() {
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Get active events for event selection
+  const { data: activeEvents = [] } = useQuery({
+    queryKey: ['/api/events/active'],
+  });
 
   // Get today's attendance stats
   const { data: attendanceStats } = useQuery<AttendanceStats>({
@@ -95,11 +101,15 @@ export default function CheckInTab() {
   // Manual check-in mutation
   const manualCheckInMutation = useMutation({
     mutationFn: async (memberId: string) => {
+      if (!selectedEventId) {
+        throw new Error("Please select an event for check-in");
+      }
       const today = new Date().toISOString().split('T')[0];
       const response = await apiRequest('/api/attendance', {
         method: 'POST',
         body: JSON.stringify({
           memberId,
+          eventId: selectedEventId,
           attendanceDate: today,
           checkInMethod: "manual",
           isGuest: false,
