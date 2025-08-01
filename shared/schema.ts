@@ -390,8 +390,12 @@ export const insertEventSchema = createInsertSchema(events, {
   eventType: z.enum(["sunday_service", "prayer_meeting", "bible_study", "youth_group", "special_event", "other"]),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)").optional(),
-  endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (HH:MM)").optional(),
+  startTime: z.string().optional().refine((val) => !val || /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(val), {
+    message: "Invalid time format (HH:MM)"
+  }),
+  endTime: z.string().optional().refine((val) => !val || /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/.test(val), {
+    message: "Invalid time format (HH:MM)"
+  }),
 }).omit({
   id: true,
   createdAt: true,
