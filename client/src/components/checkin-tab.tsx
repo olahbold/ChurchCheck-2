@@ -38,6 +38,13 @@ export default function CheckInTab() {
     refetchInterval: 30000,
   });
 
+  // Get event-specific attendance stats when an event is selected
+  const { data: eventStats } = useQuery<AttendanceStats>({
+    queryKey: ['/api/events', selectedEventId, 'attendance-stats'],
+    enabled: !!selectedEventId,
+    refetchInterval: 30000,
+  });
+
   // Get today's attendance records
   const { data: todayAttendance = [] } = useQuery<any[]>({
     queryKey: ['/api/attendance/today'],
@@ -186,14 +193,23 @@ export default function CheckInTab() {
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Total</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {selectedEventId ? 'Event Total' : "Today's Total"}
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{attendanceStats?.total || 0}</div>
+            <div className="text-2xl font-bold">
+              {selectedEventId ? (eventStats?.total || 0) : (attendanceStats?.total || 0)}
+            </div>
             <p className="text-xs text-muted-foreground">
-              Members checked in today
+              {selectedEventId ? 'Event attendees' : 'Members checked in today'}
             </p>
+            {selectedEventId && (
+              <p className="text-xs text-blue-600 mt-1">
+                Members: {eventStats?.members || 0} | Visitors: {eventStats?.visitors || 0}
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -205,11 +221,15 @@ export default function CheckInTab() {
             <div className="space-y-1">
               <div className="flex justify-between text-sm">
                 <span>Male:</span>
-                <span className="font-medium">{attendanceStats?.male || 0}</span>
+                <span className="font-medium">
+                  {selectedEventId ? (eventStats?.male || 0) : (attendanceStats?.male || 0)}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Female:</span>
-                <span className="font-medium">{attendanceStats?.female || 0}</span>
+                <span className="font-medium">
+                  {selectedEventId ? (eventStats?.female || 0) : (attendanceStats?.female || 0)}
+                </span>
               </div>
             </div>
           </CardContent>
@@ -223,15 +243,21 @@ export default function CheckInTab() {
             <div className="space-y-1">
               <div className="flex justify-between text-sm">
                 <span>Adults:</span>
-                <span className="font-medium">{attendanceStats?.adult || 0}</span>
+                <span className="font-medium">
+                  {selectedEventId ? (eventStats?.adult || 0) : (attendanceStats?.adult || 0)}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Teens:</span>
-                <span className="font-medium">{attendanceStats?.adolescent || 0}</span>
+                <span className="font-medium">
+                  {selectedEventId ? (eventStats?.adolescent || 0) : (attendanceStats?.adolescent || 0)}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span>Children:</span>
-                <span className="font-medium">{attendanceStats?.child || 0}</span>
+                <span className="font-medium">
+                  {selectedEventId ? (eventStats?.child || 0) : (attendanceStats?.child || 0)}
+                </span>
               </div>
             </div>
           </CardContent>

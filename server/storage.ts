@@ -410,14 +410,14 @@ export class DatabaseStorage implements IStorage {
         eventName: events.name,
         eventType: events.eventType,
         eventDate: events.eventDate,
-        totalAttendees: count(),
-        members: sql`COUNT(CASE WHEN ${attendanceRecords.memberId} IS NOT NULL THEN 1 END)`,
-        visitors: sql`COUNT(CASE WHEN ${attendanceRecords.visitorId} IS NOT NULL THEN 1 END)`,
-        maleCount: sql`COUNT(CASE WHEN ${members.gender} = 'male' OR ${attendanceRecords.visitorGender} = 'male' THEN 1 END)`,
-        femaleCount: sql`COUNT(CASE WHEN ${members.gender} = 'female' OR ${attendanceRecords.visitorGender} = 'female' THEN 1 END)`,
-        childCount: sql`COUNT(CASE WHEN ${members.ageGroup} = 'child' OR ${attendanceRecords.visitorAgeGroup} = 'child' THEN 1 END)`,
-        adolescentCount: sql`COUNT(CASE WHEN ${members.ageGroup} = 'adolescent' OR ${attendanceRecords.visitorAgeGroup} = 'adolescent' THEN 1 END)`,
-        adultCount: sql`COUNT(CASE WHEN ${members.ageGroup} = 'adult' OR ${attendanceRecords.visitorAgeGroup} = 'adult' THEN 1 END)`,
+        totalAttendees: sql<number>`count(*)`,
+        members: sql<number>`sum(case when ${attendanceRecords.memberId} is not null then 1 else 0 end)`,
+        visitors: sql<number>`sum(case when ${attendanceRecords.visitorId} is not null then 1 else 0 end)`,
+        maleCount: sql<number>`sum(case when coalesce(${members.gender}, ${attendanceRecords.visitorGender}) = 'male' then 1 else 0 end)`,
+        femaleCount: sql<number>`sum(case when coalesce(${members.gender}, ${attendanceRecords.visitorGender}) = 'female' then 1 else 0 end)`,
+        childCount: sql<number>`sum(case when coalesce(${members.ageGroup}, ${attendanceRecords.visitorAgeGroup}) = 'child' then 1 else 0 end)`,
+        adolescentCount: sql<number>`sum(case when coalesce(${members.ageGroup}, ${attendanceRecords.visitorAgeGroup}) = 'adolescent' then 1 else 0 end)`,
+        adultCount: sql<number>`sum(case when coalesce(${members.ageGroup}, ${attendanceRecords.visitorAgeGroup}) = 'adult' then 1 else 0 end)`,
       })
       .from(attendanceRecords)
       .leftJoin(members, eq(attendanceRecords.memberId, members.id))
@@ -432,6 +432,40 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(events.eventDate));
 
     return result;
+  }
+
+  // Get attendance stats for a specific event
+  async getEventAttendanceStats(churchId: string, eventId: string): Promise<any> {
+    const result = await db
+      .select({
+        total: sql<number>`count(*)`,
+        male: sql<number>`sum(case when coalesce(${members.gender}, ${attendanceRecords.visitorGender}) = 'male' then 1 else 0 end)`,
+        female: sql<number>`sum(case when coalesce(${members.gender}, ${attendanceRecords.visitorGender}) = 'female' then 1 else 0 end)`,
+        child: sql<number>`sum(case when coalesce(${members.ageGroup}, ${attendanceRecords.visitorAgeGroup}) = 'child' then 1 else 0 end)`,
+        adolescent: sql<number>`sum(case when coalesce(${members.ageGroup}, ${attendanceRecords.visitorAgeGroup}) = 'adolescent' then 1 else 0 end)`,
+        adult: sql<number>`sum(case when coalesce(${members.ageGroup}, ${attendanceRecords.visitorAgeGroup}) = 'adult' then 1 else 0 end)`,
+        members: sql<number>`sum(case when ${attendanceRecords.memberId} is not null then 1 else 0 end)`,
+        visitors: sql<number>`sum(case when ${attendanceRecords.visitorId} is not null then 1 else 0 end)`,
+      })
+      .from(attendanceRecords)
+      .leftJoin(members, eq(attendanceRecords.memberId, members.id))
+      .where(
+        and(
+          eq(attendanceRecords.churchId, churchId),
+          eq(attendanceRecords.eventId, eventId)
+        )
+      );
+
+    return result[0] || {
+      total: 0,
+      male: 0,
+      female: 0,
+      child: 0,
+      adolescent: 0,
+      adult: 0,
+      members: 0,
+      visitors: 0,
+    };
   }
 
   async getMemberAttendanceHistory(memberId: string, limit = 10): Promise<AttendanceRecord[]> {
