@@ -153,19 +153,10 @@ export default function VisitorsTab() {
   // Update visitor mutation
   const updateVisitorMutation = useMutation({
     mutationFn: async (data: { id: string; updates: Partial<Visitor> }) => {
-      const response = await fetch(`/api/visitors/${data.id}`, {
+      return await apiRequest(`/api/visitors/${data.id}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify(data.updates),
       });
-
-      if (!response.ok) {
-        throw new Error("Failed to update visitor");
-      }
-
-      return response.json();
     },
     onSuccess: () => {
       toast({
@@ -240,8 +231,9 @@ export default function VisitorsTab() {
       howDidYouHearAboutUs: data.howDidYouHearAboutUs || "",
       comments: data.comments || "",
       assignedTo: data.assignedTo || "",
-      weddingAnniversary: data.weddingAnniversary || null,
-      birthday: data.birthday || null,
+      // Only include date fields if they have values
+      ...(data.weddingAnniversary && { weddingAnniversary: data.weddingAnniversary }),
+      ...(data.birthday && { birthday: data.birthday }),
     };
     createVisitorMutation.mutate(cleanedData);
   };
@@ -260,8 +252,9 @@ export default function VisitorsTab() {
       howDidYouHearAboutUs: data.howDidYouHearAboutUs || "",
       comments: data.comments || "",
       assignedTo: data.assignedTo || "",
-      weddingAnniversary: data.weddingAnniversary || null,
-      birthday: data.birthday || null,
+      // Only include date fields if they have values
+      ...(data.weddingAnniversary && { weddingAnniversary: data.weddingAnniversary }),
+      ...(data.birthday && { birthday: data.birthday }),
     };
 
     updateVisitorMutation.mutate({

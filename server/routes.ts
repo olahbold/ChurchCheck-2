@@ -1319,13 +1319,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Event selection is required for visitor check-in" });
       }
 
-      // Clean date fields - convert empty strings to null
+      // Clean date fields - remove empty strings entirely
       const cleanedVisitorData = {
         ...visitorData,
         churchId: req.churchId,
-        weddingAnniversary: visitorData.weddingAnniversary === '' ? null : visitorData.weddingAnniversary,
-        birthday: visitorData.birthday === '' ? null : visitorData.birthday,
       };
+      
+      // Only include date fields if they have valid values
+      if (visitorData.weddingAnniversary && visitorData.weddingAnniversary !== '') {
+        cleanedVisitorData.weddingAnniversary = visitorData.weddingAnniversary;
+      }
+      if (visitorData.birthday && visitorData.birthday !== '') {
+        cleanedVisitorData.birthday = visitorData.birthday;
+      }
 
       // Create visitor first
       const visitor = await storage.createVisitor(cleanedVisitorData);
@@ -1536,10 +1542,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const storage = getStorage(req);
       
-      // Clean the data to handle empty date strings
+      // Clean the data to handle empty date strings and remove undefined values
       const cleanedData = { ...req.body };
-      if (cleanedData.weddingAnniversary === '') cleanedData.weddingAnniversary = null;
-      if (cleanedData.birthday === '') cleanedData.birthday = null;
+      if (cleanedData.weddingAnniversary === '' || cleanedData.weddingAnniversary === undefined) {
+        delete cleanedData.weddingAnniversary;
+      }
+      if (cleanedData.birthday === '' || cleanedData.birthday === undefined) {
+        delete cleanedData.birthday;
+      }
       
       const visitorUpdate = insertVisitorSchema.partial().parse(cleanedData);
       const visitor = await storage.updateVisitor(req.params.id, visitorUpdate);
