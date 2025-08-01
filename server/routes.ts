@@ -1276,10 +1276,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/events", authenticateToken, ensureChurchContext, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
     try {
-      const eventData = insertEventSchema.parse({
+      // Clean up empty date/time values to prevent database errors
+      const cleanedData = {
         ...req.body,
-        churchId: req.churchId
-      });
+        churchId: req.churchId,
+        startDate: req.body.startDate || null,
+        endDate: req.body.endDate || null,
+        startTime: req.body.startTime || null,
+        endTime: req.body.endTime || null,
+      };
+      
+      const eventData = insertEventSchema.parse(cleanedData);
       const storage = getStorage(req);
       const event = await storage.createEvent(eventData);
       res.json(event);
@@ -1292,10 +1299,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/events/:id", authenticateToken, ensureChurchContext, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
     try {
       const { id } = req.params;
-      const eventData = insertEventSchema.parse({
+      
+      // Clean up empty date/time values to prevent database errors
+      const cleanedData = {
         ...req.body,
-        churchId: req.churchId
-      });
+        churchId: req.churchId,
+        startDate: req.body.startDate || null,
+        endDate: req.body.endDate || null,
+        startTime: req.body.startTime || null,
+        endTime: req.body.endTime || null,
+      };
+      
+      const eventData = insertEventSchema.parse(cleanedData);
       const storage = getStorage(req);
       const event = await storage.updateEvent(id, eventData);
       res.json(event);
