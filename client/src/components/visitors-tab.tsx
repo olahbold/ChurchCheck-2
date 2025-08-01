@@ -31,7 +31,7 @@ export default function VisitorsTab() {
   const queryClient = useQueryClient();
 
   // Get active events for event selection
-  const { data: activeEvents = [] } = useQuery({
+  const { data: activeEvents = [] } = useQuery<any[]>({
     queryKey: ['/api/events/active'],
   });
 
