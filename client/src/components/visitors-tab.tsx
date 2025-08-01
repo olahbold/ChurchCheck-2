@@ -81,7 +81,7 @@ export default function VisitorsTab() {
       email: "",
       phone: "",
       whatsappNumber: "",
-      eventId: "",
+      eventId: "none",
       weddingAnniversary: "",
       birthday: "",
       prayerPoints: "",
@@ -112,7 +112,7 @@ export default function VisitorsTab() {
       comments: "",
       followUpStatus: "pending",
       assignedTo: "",
-      eventId: "",
+      eventId: "none",
     },
   });
 
@@ -220,7 +220,7 @@ export default function VisitorsTab() {
   };
 
   const onSubmit = (data: InsertVisitor & { eventId?: string }) => {
-    if (!data.eventId) {
+    if (!data.eventId || data.eventId === "none") {
       toast({
         title: "Event Required",
         description: "Please select an event for this visitor's attendance.",
@@ -548,7 +548,7 @@ export default function VisitorsTab() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">No event selected</SelectItem>
+                            <SelectItem value="none">No event selected</SelectItem>
                             {activeEvents.map((event: any) => (
                               <SelectItem key={event.id} value={event.id}>
                                 {event.name} ({event.eventType.replace(/_/g, ' ')})
