@@ -24,6 +24,7 @@ The system employs a monorepo structure, separating client and server concerns:
 - **Super Admin Dashboard Phase 1 Complete**: Fully functional Super Admin authentication and church management system with working View, Suspend/Activate, and Search functionality. Fixed runtime errors and enhanced UI with comprehensive church details modals.
 - **Security Enhancement**: Implemented comprehensive suspended church access prevention - both login blocking and API access blocking with proper JWT middleware validation.
 - **Super Admin Dashboard Phase 2 Complete**: Implemented comprehensive Business Operations section with revenue metrics, subscription analytics, churn analysis, and automated report generation. Features tabbed navigation between Dashboard and Business Operations views.
+- **Event Management Module Complete**: Advanced event-based attendance system with comprehensive event creation, management, and event-specific check-in flow. Features include event types (Sunday Service, Prayer Meeting, Bible Study, Youth Group, Special Event, Other), event scheduling, organizer management, and event-based analytics.
 
 ### Key Features and Design Decisions
 - **Biometric Integration**: Simulated and real WebAuthn biometric authentication (fingerprint, face, PIN) for registration and check-in, with support for external USB/Bluetooth scanners.
@@ -34,7 +35,7 @@ The system employs a monorepo structure, separating client and server concerns:
     - Church-specific branding (logo, banner, brand colors).
 - **Member Management**: Comprehensive member profiles, family linking, bulk data upload (CSV), and detailed attendance tracking.
 - **Reporting & Analytics**: Over 10 specialized reports (e.g., missed services, new members, attendance trends) with comprehensive member details and CSV export functionality. Reports focus on export rather than on-screen display.
-- **Daily Check-in**: Dynamic "Today Check-in" interface with robust backend duplicate prevention for daily attendance.
+- **Event-Based Check-in**: Advanced check-in system requiring event selection before member attendance tracking. Supports both biometric and manual check-in methods with event-specific attendance records.
 - **Demographics**: Separate `gender` (Male/Female) and `ageGroup` (Child/Adolescent/Adult) fields for granular demographic tracking.
 - **Database Choice**: PostgreSQL with Neon serverless for scalability, ACID compliance, and relational integrity.
 - **ORM Selection**: Drizzle ORM for type-safe database operations and migration support.
