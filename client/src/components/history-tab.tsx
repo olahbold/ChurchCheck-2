@@ -627,6 +627,11 @@ export default function HistoryTab() {
                           <span className="ml-2">• {record.member.phone}</span>
                         )}
                       </p>
+                      {record.event && (
+                        <p className="text-xs text-blue-600 mt-1">
+                          Event: {record.event.name}
+                        </p>
+                      )}
                     </div>
                     {!selectedMember && (
                       <Button 

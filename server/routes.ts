@@ -460,7 +460,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get attendance history with date range and filters
-  app.get("/api/attendance/history", authenticateToken, async (req: AuthenticatedRequest, res) => {
+  app.get("/api/attendance/history", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
       const storage = getStorage(req);
       const { startDate, endDate, memberId, gender, ageGroup, isCurrentMember } = req.query;
@@ -475,10 +475,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (ageGroup) filters.ageGroup = ageGroup as string;
       if (isCurrentMember !== undefined) filters.isCurrentMember = isCurrentMember === 'true';
 
-      const history = await storage.getAttendanceHistory(
-        startDate as string,
-        endDate as string,
-        filters
+      const history = await storage.getAttendanceHistoryWithEvents(
+        req.churchId!,
+        {
+          startDate: startDate as string,
+          endDate: endDate as string,
+          gender: gender as string,
+          ageGroup: ageGroup as string,
+          isCurrentMember: isCurrentMember as string,
+          memberId: memberId as string,
+        }
       );
       
       res.json(history);

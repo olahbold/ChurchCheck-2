@@ -302,6 +302,62 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
+  async getAttendanceHistoryWithEvents(churchId: string, filters: {
+    startDate?: string;
+    endDate?: string;
+    gender?: string;
+    ageGroup?: string;
+    isCurrentMember?: string;
+    memberId?: string;
+  }): Promise<any[]> {
+    let conditions = [eq(attendanceRecords.churchId, churchId)];
+    
+    if (filters.startDate) conditions.push(gte(attendanceRecords.attendanceDate, filters.startDate));
+    if (filters.endDate) conditions.push(lte(attendanceRecords.attendanceDate, filters.endDate));
+    if (filters.gender && filters.gender !== 'all') conditions.push(eq(members.gender, filters.gender));
+    if (filters.ageGroup && filters.ageGroup !== 'all') conditions.push(eq(members.ageGroup, filters.ageGroup));
+    if (filters.memberId) conditions.push(eq(attendanceRecords.memberId, filters.memberId));
+
+    const result = await this.db
+      .select({
+        id: attendanceRecords.id,
+        memberId: attendanceRecords.memberId,
+        visitorId: attendanceRecords.visitorId,
+        attendanceDate: attendanceRecords.attendanceDate,
+        checkInTime: attendanceRecords.checkInTime,
+        checkInMethod: attendanceRecords.checkInMethod,
+        isGuest: attendanceRecords.isGuest,
+        visitorName: attendanceRecords.visitorName,
+        visitorGender: attendanceRecords.visitorGender,
+        visitorAgeGroup: attendanceRecords.visitorAgeGroup,
+        eventId: attendanceRecords.eventId,
+        member: {
+          id: members.id,
+          firstName: members.firstName,
+          surname: members.surname,
+          gender: members.gender,
+          ageGroup: members.ageGroup,
+          phone: members.phone,
+          email: members.email,
+        },
+        event: {
+          id: events.id,
+          name: events.name,
+          eventType: events.eventType,
+        }
+      })
+      .from(attendanceRecords)
+      .leftJoin(members, eq(attendanceRecords.memberId, members.id))
+      .leftJoin(events, eq(attendanceRecords.eventId, events.id))
+      .where(and(...conditions))
+      .orderBy(desc(attendanceRecords.attendanceDate), desc(attendanceRecords.checkInTime));
+
+    return result.map(record => ({
+      ...record,
+      isVisitor: !record.memberId,
+    }));
+  }
+
   async getAttendanceInRange(startDate: string, endDate: string, churchId: string): Promise<any[]> {
     const result = await this.db
       .select({

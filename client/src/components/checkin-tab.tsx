@@ -319,38 +319,53 @@ export default function CheckInTab() {
               <p>No check-ins yet today</p>
             </div>
           ) : (
-            <div className="space-y-2">
-              {todayAttendance.map((record: any) => (
-                <div key={record.id} className="flex items-center justify-between p-3 bg-slate-50 rounded">
-                  <div className="flex-1">
-                    <p className="font-medium">
-                      {record.member?.firstName} {record.member?.surname}
-                    </p>
-                    <p className="text-sm text-slate-500">
-                      {formatTime(record.checkInTime)} • {record.checkInMethod}
-                    </p>
-                    {record.event && (
-                      <p className="text-xs text-blue-600">
-                        Event: {record.event.name}
+            <div className="space-y-3">
+              {todayAttendance.map((record: any) => {
+                const memberName = record.member ? 
+                  `${record.member.firstName} ${record.member.surname}` : 
+                  record.visitorName || 'Unknown';
+                const initials = memberName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                
+                return (
+                  <div key={record.id} className="flex items-center gap-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                      {initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <p className="font-medium text-gray-900 truncate">
+                          {memberName}
+                        </p>
+                        <Badge variant="secondary" className="text-xs">
+                          {record.member?.ageGroup || record.visitorAgeGroup || 'N/A'}
+                        </Badge>
+                      </div>
+                      <p className="text-sm text-gray-600">
+                        {formatTime(record.checkInTime)} • {record.checkInMethod} • {record.member?.phone || 'No phone'}
                       </p>
-                    )}
+                      {record.event && (
+                        <p className="text-xs text-blue-600 mt-1">
+                          Event: {record.event.name}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-500">
+                        {formatTodayDate()}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => deleteRecordMutation.mutate(record.id)}
+                        disabled={deleteRecordMutation.isPending}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="secondary">
-                      {record.member?.ageGroup}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteRecordMutation.mutate(record.id)}
-                      disabled={deleteRecordMutation.isPending}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
