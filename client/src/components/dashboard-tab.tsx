@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { motion, AnimatePresence, useSpring, useTransform } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -10,6 +11,33 @@ import { Users, Calendar, AlertTriangle, TrendingUp, Download, Search, MessageSq
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
+// Animated counter component
+function AnimatedCounter({ target, duration = 2000 }: { target: number; duration?: number }) {
+  const [count, setCount] = useState(0);
+  
+  useEffect(() => {
+    let startTime = Date.now();
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const currentCount = Math.floor(progress * target);
+      setCount(currentCount);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    const timer = setTimeout(() => {
+      requestAnimationFrame(animate);
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [target, duration]);
+  
+  return <span>{count}</span>;
+}
+
 export default function DashboardTab() {
   const [searchQuery, setSearchQuery] = useState("");
   const [groupFilter, setGroupFilter] = useState("all");
@@ -18,6 +46,7 @@ export default function DashboardTab() {
     "Hi [Name], we missed you at church today. Hope to see you next Sunday! - Grace Community Church"
   );
   const [isSendingAll, setIsSendingAll] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -40,6 +69,11 @@ export default function DashboardTab() {
   });
   
   // Member data successfully loaded
+  useEffect(() => {
+    if (members.length > 0 && attendanceStats) {
+      setIsLoaded(true);
+    }
+  }, [members, attendanceStats]);
 
   // Get recent attendance history (last 30 days) for proper attendance status calculation
   const thirtyDaysAgo = new Date();
@@ -244,80 +278,259 @@ export default function DashboardTab() {
     }
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { 
+      opacity: 0, 
+      y: 20,
+      scale: 0.95
+    },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      scale: 1,
+      transition: {
+        type: "spring",
+        damping: 25,
+        stiffness: 300
+      }
+    }
+  };
+
+  const iconVariants = {
+    hidden: { scale: 0 },
+    visible: { 
+      scale: 1,
+      transition: {
+        type: "spring",
+        delay: 0.3,
+        damping: 15,
+        stiffness: 300
+      }
+    }
+  };
+
   return (
-    <div className="space-y-8">
+    <motion.div 
+      className="space-y-8"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="church-stat-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">Registered Members</p>
-              <p className="text-3xl font-bold text-slate-900">{totalRegisteredMembers}</p>
-            </div>
-            <div className="w-12 h-12 bg-[hsl(258,90%,66%)]/10 rounded-lg flex items-center justify-center">
-              <Users className="text-[hsl(258,90%,66%)] text-xl" />
-            </div>
-          </div>
-          <p className="text-sm text-[hsl(142,76%,36%)] mt-2">
-            <TrendingUp className="inline h-3 w-3 mr-1" />
-            Enrolled in system
-          </p>
-        </Card>
+      <motion.div 
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+        variants={containerVariants}
+      >
+        <motion.div variants={cardVariants}>
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Registered Members</p>
+                  <motion.p 
+                    className="text-3xl font-bold text-slate-900"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.5, duration: 0.6 }}
+                  >
+                    {isLoaded ? <AnimatedCounter target={totalRegisteredMembers} /> : '---'}
+                  </motion.p>
+                </div>
+                <motion.div 
+                  className="w-12 h-12 bg-[hsl(258,90%,66%)]/10 rounded-lg flex items-center justify-center"
+                  variants={iconVariants}
+                >
+                  <Users className="text-[hsl(258,90%,66%)] text-xl pulse-icon" />
+                </motion.div>
+              </div>
+              <motion.p 
+                className="text-sm text-[hsl(142,76%,36%)] mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <TrendingUp className="inline h-3 w-3 mr-1" />
+                Enrolled in system
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[hsl(258,90%,66%)] to-[hsl(271,91%,65%)]"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1, duration: 1.2 }}
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card className="church-stat-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">Today's Attendance</p>
-              <p className="text-3xl font-bold text-slate-900">{totalTodaysAttendance}</p>
-            </div>
-            <div className="w-12 h-12 bg-[hsl(142,76%,36%)]/10 rounded-lg flex items-center justify-center">
-              <Calendar className="text-[hsl(142,76%,36%)] text-xl" />
-            </div>
-          </div>
-          <p className="text-sm text-blue-600 mt-2">{todaysMemberAttendance} members + {todaysVisitorAttendance} visitors</p>
-        </Card>
+        <motion.div variants={cardVariants}>
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Today's Attendance</p>
+                  <motion.p 
+                    className="text-3xl font-bold text-slate-900"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.6, duration: 0.6 }}
+                  >
+                    {isLoaded ? <AnimatedCounter target={totalTodaysAttendance} /> : '---'}
+                  </motion.p>
+                </div>
+                <motion.div 
+                  className="w-12 h-12 bg-[hsl(142,76%,36%)]/10 rounded-lg flex items-center justify-center"
+                  variants={iconVariants}
+                >
+                  <Calendar className="text-[hsl(142,76%,36%)] text-xl pulse-icon" />
+                </motion.div>
+              </div>
+              <motion.p 
+                className="text-sm text-blue-600 mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.9 }}
+              >
+                {todaysMemberAttendance} members + {todaysVisitorAttendance} visitors
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[hsl(142,76%,36%)] to-[hsl(120,76%,50%)]"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1.1, duration: 1.2 }}
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card className="church-stat-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">Follow-up Needed</p>
-              <p className="text-3xl font-bold text-slate-900">{followUpMembers.length}</p>
-            </div>
-            <div className="w-12 h-12 bg-[hsl(45,93%,47%)]/10 rounded-lg flex items-center justify-center">
-              <AlertTriangle className="text-[hsl(45,93%,47%)] text-xl" />
-            </div>
-          </div>
-          <p className="text-sm text-[hsl(45,93%,47%)] mt-2">3+ services missed</p>
-        </Card>
+        <motion.div variants={cardVariants}>
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Follow-up Needed</p>
+                  <motion.p 
+                    className="text-3xl font-bold text-slate-900"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.7, duration: 0.6 }}
+                  >
+                    {isLoaded ? <AnimatedCounter target={followUpMembers.length} /> : '---'}
+                  </motion.p>
+                </div>
+                <motion.div 
+                  className="w-12 h-12 bg-[hsl(45,93%,47%)]/10 rounded-lg flex items-center justify-center"
+                  variants={iconVariants}
+                >
+                  <AlertTriangle className="text-[hsl(45,93%,47%)] text-xl pulse-icon" />
+                </motion.div>
+              </div>
+              <motion.p 
+                className="text-sm text-[hsl(45,93%,47%)] mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.0 }}
+              >
+                3+ services missed
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[hsl(45,93%,47%)] to-[hsl(30,100%,50%)]"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1.2, duration: 1.2 }}
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card className="church-stat-card">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">Member Attendance Rate</p>
-              <p className="text-3xl font-bold text-slate-900">{memberAttendanceRate}%</p>
-            </div>
-            <div className="w-12 h-12 bg-[hsl(271,91%,65%)]/10 rounded-lg flex items-center justify-center">
-              <TrendingUp className="text-[hsl(271,91%,65%)] text-xl" />
-            </div>
-          </div>
-          <p className="text-sm text-slate-600 mt-2">
-            {todaysMemberAttendance} of {totalRegisteredMembers} attended today
-          </p>
-        </Card>
-      </div>
+        <motion.div variants={cardVariants}>
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Member Attendance Rate</p>
+                  <motion.p 
+                    className="text-3xl font-bold text-slate-900"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.8, duration: 0.6 }}
+                  >
+                    {isLoaded ? <AnimatedCounter target={memberAttendanceRate} /> : '---'}%
+                  </motion.p>
+                </div>
+                <motion.div 
+                  className="w-12 h-12 bg-[hsl(271,91%,65%)]/10 rounded-lg flex items-center justify-center"
+                  variants={iconVariants}
+                >
+                  <TrendingUp className="text-[hsl(271,91%,65%)] text-xl pulse-icon" />
+                </motion.div>
+              </div>
+              <motion.p 
+                className="text-sm text-slate-600 mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.1 }}
+              >
+                {todaysMemberAttendance} of {totalRegisteredMembers} attended today
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[hsl(271,91%,65%)] to-[hsl(258,90%,66%)]"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1.3, duration: 1.2 }}
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <motion.div 
+        className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1.5, duration: 0.6 }}
+      >
         {/* Member Search & Filter */}
-        <Card className="church-card">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-semibold text-slate-900">Member Directory</CardTitle>
-            <div className="flex space-x-2">
-              <Button onClick={handleExportMembers} variant="outline" size="sm">
-                <Download className="mr-2 h-4 w-4" />
-                Export CSV
-              </Button>
-            </div>
-          </CardHeader>
+        <motion.div
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 1.7, duration: 0.6 }}
+        >
+          <Card className="church-card overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <motion.div
+                  initial={{ rotate: 0 }}
+                  animate={{ rotate: 360 }}
+                  transition={{ delay: 2, duration: 1, ease: "easeOut" }}
+                >
+                  <Search className="h-5 w-5" />
+                </motion.div>
+                Member Directory
+              </CardTitle>
+              <div className="flex space-x-2">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button onClick={handleExportMembers} variant="outline" size="sm">
+                    <Download className="mr-2 h-4 w-4" />
+                    Export CSV
+                  </Button>
+                </motion.div>
+              </div>
+            </CardHeader>
           <CardContent>
             <div className="space-y-4 mb-6">
               <div className="flex space-x-4">
@@ -362,37 +575,81 @@ export default function DashboardTab() {
               </div>
             </div>
 
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {filteredMembers.map((member) => {
-                const attendanceStatus = getAttendanceStatus(member);
-                return (
-                  <div key={member.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg hover:bg-slate-50">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-[hsl(258,90%,66%)] rounded-full flex items-center justify-center">
-                        <span className="text-white font-medium">
-                          {member.firstName[0]}{member.surname[0]}
-                        </span>
+            <motion.div 
+              className="space-y-3 max-h-96 overflow-y-auto"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 2.2, duration: 0.4 }}
+            >
+              <AnimatePresence mode="wait">
+                {filteredMembers.map((member, index) => {
+                  const attendanceStatus = getAttendanceStatus(member);
+                  return (
+                    <motion.div 
+                      key={member.id} 
+                      className="member-item-hover flex items-center justify-between p-4 border border-slate-200 rounded-lg cursor-pointer"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 20 }}
+                      transition={{ 
+                        delay: index * 0.05,
+                        duration: 0.3,
+                        type: "spring",
+                        stiffness: 300,
+                        damping: 30
+                      }}
+                      whileHover={{ 
+                        scale: 1.02,
+                        transition: { duration: 0.2 }
+                      }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <div className="flex items-center space-x-4">
+                        <motion.div 
+                          className="w-10 h-10 bg-[hsl(258,90%,66%)] rounded-full flex items-center justify-center"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ 
+                            delay: 2.4 + (index * 0.05),
+                            type: "spring",
+                            stiffness: 500
+                          }}
+                        >
+                          <span className="text-white font-medium">
+                            {member.firstName[0]}{member.surname[0]}
+                          </span>
+                        </motion.div>
+                        <div>
+                          <p className="font-medium text-slate-900">
+                            {member.firstName} {member.surname}
+                          </p>
+                          <p className="text-sm text-slate-500">
+                            {member.ageGroup} • {member.isCurrentMember ? 'Current' : 'New'} Member
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-slate-900">
-                          {member.firstName} {member.surname}
-                        </p>
-                        <p className="text-sm text-slate-500">
-                          {member.ageGroup} • {member.isCurrentMember ? 'Current' : 'New'} Member
-                        </p>
+                      <div className="text-right">
+                        <motion.p 
+                          className={`text-sm ${attendanceStatus.color}`}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 2.5 + (index * 0.05) }}
+                        >
+                          {attendanceStatus.text}
+                        </motion.p>
+                        <motion.p 
+                          className="text-xs text-slate-500"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 2.6 + (index * 0.05) }}
+                        >
+                          Last: {attendanceStatus.lastDate}
+                        </motion.p>
                       </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={`text-sm ${attendanceStatus.color}`}>
-                        {attendanceStatus.text}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        Last: {attendanceStatus.lastDate}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
               
               {filteredMembers.length === 0 && (
                 <div className="text-center py-8">
@@ -400,28 +657,68 @@ export default function DashboardTab() {
                   <p className="text-slate-500">No members found</p>
                 </div>
               )}
-            </div>
+            </motion.div>
           </CardContent>
         </Card>
+        </motion.div>
 
         {/* Follow-up Notifications */}
-        <Card className="church-card">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg font-semibold text-slate-900">Follow-up Queue</CardTitle>
-            <Button 
-              className="church-button-primary" 
-              size="sm"
-              onClick={handleSendAll}
-              disabled={followUpMembers.length === 0 || isSendingAll}
-            >
-              <MessageSquare className="mr-2 h-4 w-4" />
-              {isSendingAll ? 'Sending...' : 'Send All'}
-            </Button>
-          </CardHeader>
+        <motion.div
+          initial={{ opacity: 0, x: 30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 1.9, duration: 0.6 }}
+        >
+          <Card className="church-card overflow-hidden">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 2.1, type: "spring", stiffness: 500 }}
+                >
+                  <MessageSquare className="h-5 w-5" />
+                </motion.div>
+                Follow-up Queue
+              </CardTitle>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Button 
+                  className="church-button-primary" 
+                  size="sm"
+                  onClick={handleSendAll}
+                  disabled={followUpMembers.length === 0 || isSendingAll}
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  {isSendingAll ? 'Sending...' : 'Send All'}
+                </Button>
+              </motion.div>
+            </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {followUpMembers.slice(0, 5).map((member: any) => (
-                <div key={member.id} className="p-4 bg-[hsl(45,93%,47%)]/5 border border-[hsl(45,93%,47%)]/20 rounded-lg">
+            <motion.div 
+              className="space-y-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 2.3, duration: 0.4 }}
+            >
+              {followUpMembers.slice(0, 5).map((member: any, index) => (
+                <motion.div 
+                  key={member.id} 
+                  className="p-4 bg-[hsl(45,93%,47%)]/5 border border-[hsl(45,93%,47%)]/20 rounded-lg member-item-hover cursor-pointer"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ 
+                    delay: 2.5 + (index * 0.1),
+                    duration: 0.4,
+                    type: "spring",
+                    stiffness: 300
+                  }}
+                  whileHover={{ 
+                    scale: 1.02,
+                    transition: { duration: 0.2 }
+                  }}
+                >
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <p className="font-medium text-slate-900">
@@ -469,16 +766,21 @@ export default function DashboardTab() {
                       {sendFollowUpMutation.isPending ? 'Sending...' : 'Mark Contacted'}
                     </Button>
                   </div>
-                </div>
+                </motion.div>
               ))}
 
               {followUpMembers.length === 0 && (
-                <div className="text-center py-8">
+                <motion.div 
+                  className="text-center py-8"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 2.5, duration: 0.4 }}
+                >
                   <CheckCircle className="h-12 w-12 text-slate-400 mx-auto mb-4" />
                   <p className="text-slate-500">No follow-ups needed</p>
-                </div>
+                </motion.div>
               )}
-            </div>
+            </motion.div>
 
             {/* Follow-up Template */}
             <div className="mt-6 pt-6 border-t border-slate-200">
@@ -497,7 +799,8 @@ export default function DashboardTab() {
             </div>
           </CardContent>
         </Card>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 }
