@@ -138,6 +138,42 @@ export default function CheckInTab() {
     manualCheckInMutation.mutate(memberId);
   };
 
+  // Family check-in functions
+  const handleFamilyCheckIn = (parent: MemberWithChildren) => {
+    setSelectedParent(parent);
+    setSelectedChildren([]);
+    setIsFamilyDialogOpen(true);
+  };
+
+  const handleFamilyCheckInSubmit = async () => {
+    if (!selectedParent || !selectedEventId) return;
+    
+    try {
+      // Check in parent
+      await manualCheckInMutation.mutateAsync(selectedParent.id);
+      
+      // Check in selected children
+      for (const childId of selectedChildren) {
+        await manualCheckInMutation.mutateAsync(childId);
+      }
+      
+      toast({
+        title: "Family Check-in Successful!",
+        description: `${selectedParent.firstName} ${selectedParent.surname} and ${selectedChildren.length} children checked in`,
+      });
+      
+      setIsFamilyDialogOpen(false);
+      setSelectedParent(null);
+      setSelectedChildren([]);
+    } catch (error) {
+      toast({
+        title: "Family Check-in Failed",
+        description: "Some family members could not be checked in",
+        variant: "destructive",
+      });
+    }
+  };
+
   const formatTime = (timestamp: string) => {
     return new Date(timestamp).toLocaleTimeString('en-US', {
       hour: 'numeric',
@@ -265,11 +301,71 @@ export default function CheckInTab() {
         </Card>
       </div>
 
+      {/* Biometric Authentication */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold text-slate-900">
+            Biometric Authentication
+          </CardTitle>
+          <p className="text-sm text-slate-600">
+            Use your device biometric authentication to check in
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!selectedEventId && (
+            <div className="bg-red-50 border border-red-200 rounded p-3 text-red-700 text-sm">
+              Please select an event above before using biometric check-in.
+            </div>
+          )}
+          
+          <div className="flex flex-col items-center space-y-4">
+            <div className="w-24 h-24 bg-gradient-to-br from-purple-500 to-blue-600 rounded-full flex items-center justify-center">
+              <Fingerprint className="h-12 w-12 text-white" />
+            </div>
+            
+            <div className="flex gap-2">
+              <Button 
+                variant="default" 
+                className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700"
+                disabled={!selectedEventId}
+              >
+                Device
+              </Button>
+              <Button 
+                variant="outline"
+                disabled={!selectedEventId}
+              >
+                Simulate
+              </Button>
+            </div>
+            
+            <Button 
+              variant="secondary" 
+              size="sm"
+              disabled={!selectedEventId}
+            >
+              ⚙️ Setup External Scanner
+            </Button>
+            
+            <Button 
+              className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white px-8 py-2"
+              disabled={!selectedEventId}
+            >
+              Start Biometric Scan
+            </Button>
+            
+            <p className="text-xs text-gray-500 text-center">
+              Supported: Fingerprint, Face Recognition, PIN, or Pattern
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Manual Check-in */}
       <Card>
         <CardHeader>
           <CardTitle className="text-xl font-semibold text-slate-900">
-            Manual Check-in
+            Manual Check-In
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -298,7 +394,7 @@ export default function CheckInTab() {
                   className="p-3 hover:bg-slate-50 border-b border-slate-100 last:border-b-0"
                 >
                   <div className="flex items-center justify-between">
-                    <div>
+                    <div className="flex-1">
                       <p className="font-medium text-slate-900">
                         {member.firstName} {member.surname}
                       </p>
@@ -306,14 +402,28 @@ export default function CheckInTab() {
                         {member.ageGroup} • {member.phone}
                       </p>
                     </div>
-                    <Button
-                      size="sm"
-                      onClick={() => handleManualCheckIn(member.id)}
-                      disabled={manualCheckInMutation.isPending}
-                      className="text-xs px-3 py-1"
-                    >
-                      Check In
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleManualCheckIn(member.id)}
+                        disabled={manualCheckInMutation.isPending}
+                        className="text-xs px-3 py-1"
+                      >
+                        Check In
+                      </Button>
+                      {member.children && member.children.length > 0 && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleFamilyCheckIn(member)}
+                          disabled={manualCheckInMutation.isPending}
+                          className="text-xs px-2 py-1"
+                        >
+                          <Users className="h-3 w-3 mr-1" />
+                          Family
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -408,6 +518,69 @@ export default function CheckInTab() {
           )}
         </CardContent>
       </Card>
+
+      {/* Family Check-in Dialog */}
+      <Dialog open={isFamilyDialogOpen} onOpenChange={setIsFamilyDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Family Check-in</DialogTitle>
+          </DialogHeader>
+          
+          {selectedParent && (
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <p className="font-medium text-blue-900">
+                  {selectedParent.firstName} {selectedParent.surname}
+                </p>
+                <p className="text-sm text-blue-700">Parent will be checked in</p>
+              </div>
+              
+              {selectedParent.children && selectedParent.children.length > 0 && (
+                <div>
+                  <p className="font-medium mb-2">Select children to check in:</p>
+                  <div className="space-y-2">
+                    {selectedParent.children.map((child) => (
+                      <div key={child.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={child.id}
+                          checked={selectedChildren.includes(child.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedChildren([...selectedChildren, child.id]);
+                            } else {
+                              setSelectedChildren(selectedChildren.filter(id => id !== child.id));
+                            }
+                          }}
+                        />
+                        <label htmlFor={child.id} className="text-sm">
+                          {child.firstName} {child.surname} ({child.ageGroup})
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              <div className="flex gap-3 pt-4">
+                <Button 
+                  onClick={handleFamilyCheckInSubmit}
+                  disabled={manualCheckInMutation.isPending}
+                  className="flex-1"
+                >
+                  Check In Family
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsFamilyDialogOpen(false)}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
