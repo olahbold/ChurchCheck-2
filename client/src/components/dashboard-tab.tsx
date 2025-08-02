@@ -334,8 +334,8 @@ export default function DashboardTab() {
         variants={containerVariants}
       >
         <motion.div variants={cardVariants}>
-          <Card className="stat-card-hover cursor-pointer overflow-hidden relative">
-            <CardContent className="p-6">
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
+            <CardContent className="p-6 h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">Registered Members</p>
@@ -375,8 +375,8 @@ export default function DashboardTab() {
         </motion.div>
 
         <motion.div variants={cardVariants}>
-          <Card className="stat-card-hover cursor-pointer overflow-hidden relative">
-            <CardContent className="p-6">
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
+            <CardContent className="p-6 h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">Today's Attendance</p>
@@ -415,8 +415,8 @@ export default function DashboardTab() {
         </motion.div>
 
         <motion.div variants={cardVariants}>
-          <Card className="stat-card-hover cursor-pointer overflow-hidden relative">
-            <CardContent className="p-6">
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
+            <CardContent className="p-6 h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">Follow-up Needed</p>
@@ -455,8 +455,8 @@ export default function DashboardTab() {
         </motion.div>
 
         <motion.div variants={cardVariants}>
-          <Card className="stat-card-hover cursor-pointer overflow-hidden relative">
-            <CardContent className="p-6">
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
+            <CardContent className="p-6 h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">Member Attendance Rate</p>
@@ -581,7 +581,7 @@ export default function DashboardTab() {
               animate={{ opacity: 1 }}
               transition={{ delay: 2.2, duration: 0.4 }}
             >
-              <AnimatePresence mode="wait">
+              <AnimatePresence>
                 {filteredMembers.map((member, index) => {
                   const attendanceStatus = getAttendanceStatus(member);
                   return (
