@@ -257,6 +257,7 @@ export class DatabaseStorage implements IStorage {
         visitorGender: attendanceRecords.visitorGender,
         visitorAgeGroup: attendanceRecords.visitorAgeGroup,
         eventId: attendanceRecords.eventId,
+        churchId: attendanceRecords.churchId,
         member: {
           id: members.id,
           firstName: members.firstName,
@@ -266,6 +267,12 @@ export class DatabaseStorage implements IStorage {
           phone: members.phone,
           email: members.email,
         },
+        visitor: {
+          id: visitors.id,
+          name: visitors.name,
+          gender: visitors.gender,
+          ageGroup: visitors.ageGroup,
+        },
         event: {
           id: events.id,
           name: events.name,
@@ -274,6 +281,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(attendanceRecords)
       .leftJoin(members, eq(attendanceRecords.memberId, members.id))
+      .leftJoin(visitors, eq(attendanceRecords.visitorId, visitors.id))
       .leftJoin(events, eq(attendanceRecords.eventId, events.id))
       .where(eq(attendanceRecords.attendanceDate, date))
       .orderBy(desc(attendanceRecords.checkInTime));
@@ -287,16 +295,19 @@ export class DatabaseStorage implements IStorage {
       checkInTime: record.checkInTime,
       checkInMethod: record.checkInMethod,
       isGuest: record.isGuest,
+      churchId: record.churchId,
+      eventId: record.eventId,
       // Unified person data - use member data if it's a member, visitor data if it's a visitor
       member: record.member ? record.member : {
         id: record.visitorId,
-        firstName: record.visitorName?.split(' ')[0] || 'Visitor',
-        surname: record.visitorName?.split(' ').slice(1).join(' ') || '',
-        gender: record.visitorGender,
-        ageGroup: record.visitorAgeGroup,
+        firstName: (record.visitor?.name || record.visitorName || 'Visitor').split(' ')[0],
+        surname: (record.visitor?.name || record.visitorName || '').split(' ').slice(1).join(' '),
+        gender: record.visitor?.gender || record.visitorGender,
+        ageGroup: record.visitor?.ageGroup || record.visitorAgeGroup,
         phone: null,
         email: null,
       },
+      visitorName: record.visitor?.name || record.visitorName,
       isVisitor: !record.memberId,
       event: record.event
     }));
