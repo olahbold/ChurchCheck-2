@@ -409,7 +409,7 @@ export class DatabaseStorage implements IStorage {
         eventId: attendanceRecords.eventId,
         eventName: events.name,
         eventType: events.eventType,
-        eventDate: events.eventDate,
+        eventDate: events.startDate,
         totalAttendees: sql<number>`count(*)`,
         members: sql<number>`sum(case when ${attendanceRecords.memberId} is not null then 1 else 0 end)`,
         visitors: sql<number>`sum(case when ${attendanceRecords.visitorId} is not null then 1 else 0 end)`,
@@ -428,8 +428,8 @@ export class DatabaseStorage implements IStorage {
           isNotNull(attendanceRecords.eventId)
         )
       )
-      .groupBy(attendanceRecords.eventId, events.name, events.eventType, events.eventDate)
-      .orderBy(desc(events.eventDate));
+      .groupBy(attendanceRecords.eventId, events.name, events.eventType, events.startDate)
+      .orderBy(desc(events.startDate));
 
     return result;
   }
@@ -995,7 +995,10 @@ export class DatabaseStorage implements IStorage {
   }
   // Visitor methods
   async createVisitor(visitor: InsertVisitor): Promise<Visitor> {
-    const [newVisitor] = await db.insert(visitors).values(visitor).returning();
+    const [newVisitor] = await db.insert(visitors).values({
+      ...visitor,
+      churchId: this.churchId
+    }).returning();
     return newVisitor;
   }
 

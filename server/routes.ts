@@ -1564,7 +1564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const today = new Date().toISOString().split('T')[0];
         
         // Check if attendance record already exists for this visitor and event today
-        const existingAttendance = await storage.getAttendanceRecordsByDate(today, req.churchId!);
+        const existingAttendance = await storage.getAttendanceForDate(today, req.churchId!);
         const hasAttendance = existingAttendance.some(record => 
           record.visitorId === visitor.id && record.eventId === eventId
         );
