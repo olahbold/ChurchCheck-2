@@ -489,79 +489,173 @@ export default function HistoryTab() {
           variants={containerVariants}
         >
           <motion.div variants={statsVariants}>
-            <Card className="church-stat-card stat-card-hover h-[140px]">
+            <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
               <CardContent className="p-6 h-full flex flex-col justify-between">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-600">Total Attendance</p>
-                    <p className="text-3xl font-bold text-slate-900"><AnimatedCounter target={rangeStats.totalAttendance} /></p>
+                    <motion.p 
+                      className="text-3xl font-bold text-slate-900"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.5, duration: 0.6 }}
+                    >
+                      <AnimatedCounter target={rangeStats.totalAttendance} />
+                    </motion.p>
                   </div>
-                  <div className="w-12 h-12 bg-[hsl(258,90%,66%)]/10 rounded-lg flex items-center justify-center">
-                    <Users className="text-[hsl(258,90%,66%)] text-xl" />
-                  </div>
+                  <motion.div 
+                    className="w-12 h-12 bg-[hsl(258,90%,66%)]/10 rounded-lg flex items-center justify-center"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.3, type: "spring", stiffness: 300 }}
+                  >
+                    <Users className="text-[hsl(258,90%,66%)] text-xl pulse-icon" />
+                  </motion.div>
                 </div>
-                <p className="text-sm text-slate-500 mt-2">
+                <motion.p 
+                  className="text-sm text-[hsl(142,76%,36%)] mt-2"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.8 }}
+                >
+                  <TrendingUp className="inline h-3 w-3 mr-1" />
                   Over {rangeStats.totalDays} day{rangeStats.totalDays !== 1 ? 's' : ''}
-                </p>
+                </motion.p>
+                <motion.div
+                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[hsl(258,90%,66%)] to-[hsl(271,91%,65%)]"
+                  initial={{ width: 0 }}
+                  animate={{ width: "100%" }}
+                  transition={{ delay: 1, duration: 1.2 }}
+                />
               </CardContent>
             </Card>
           </motion.div>
 
           <motion.div variants={statsVariants}>
-            <Card className="church-stat-card stat-card-hover h-[140px]">
+            <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
               <CardContent className="p-6 h-full flex flex-col justify-between">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-600">Daily Average</p>
-                    <p className="text-3xl font-bold text-slate-900"><AnimatedCounter target={rangeStats.averagePerDay} /></p>
+                    <motion.p 
+                      className="text-3xl font-bold text-slate-900"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.6, duration: 0.6 }}
+                    >
+                      <AnimatedCounter target={rangeStats.averagePerDay} />
+                    </motion.p>
                   </div>
-                  <div className="w-12 h-12 bg-[hsl(142,76%,36%)]/10 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="text-[hsl(142,76%,36%)] text-xl" />
-                  </div>
+                  <motion.div 
+                    className="w-12 h-12 bg-[hsl(142,76%,36%)]/10 rounded-lg flex items-center justify-center"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.4, type: "spring", stiffness: 300 }}
+                  >
+                    <TrendingUp className="text-[hsl(142,76%,36%)] text-xl pulse-icon" />
+                  </motion.div>
                 </div>
-                <p className="text-sm text-blue-600 mt-2">
+                <motion.p 
+                  className="text-sm text-blue-600 mt-2"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.9 }}
+                >
+                  <Users className="inline h-3 w-3 mr-1" />
                   {rangeStats.memberAttendance} members + {rangeStats.visitorAttendance} visitors
-                </p>
+                </motion.p>
+                <motion.div
+                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[hsl(142,76%,36%)] to-[hsl(120,76%,36%)]"
+                  initial={{ width: 0 }}
+                  animate={{ width: "100%" }}
+                  transition={{ delay: 1.1, duration: 1.2 }}
+                />
               </CardContent>
             </Card>
           </motion.div>
 
           <motion.div variants={statsVariants}>
-            <Card className="church-stat-card stat-card-hover h-[140px]">
+            <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
               <CardContent className="p-6 h-full flex flex-col justify-between">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-600">Gender Split</p>
-                    <p className="text-3xl font-bold text-slate-900">
+                    <motion.p 
+                      className="text-3xl font-bold text-slate-900"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.7, duration: 0.6 }}
+                    >
                       <AnimatedCounter target={rangeStats.genderBreakdown.male} />M / <AnimatedCounter target={rangeStats.genderBreakdown.female} />F
-                    </p>
+                    </motion.p>
                   </div>
-                  <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                    <BarChart3 className="text-blue-500 text-xl" />
-                  </div>
+                  <motion.div 
+                    className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.5, type: "spring", stiffness: 300 }}
+                  >
+                    <BarChart3 className="text-blue-500 text-xl pulse-icon" />
+                  </motion.div>
                 </div>
-                <p className="text-sm text-slate-500 mt-2">
+                <motion.p 
+                  className="text-sm text-slate-500 mt-2"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.0 }}
+                >
+                  <BarChart3 className="inline h-3 w-3 mr-1" />
                   {Math.round((rangeStats.genderBreakdown.male / (rangeStats.genderBreakdown.male + rangeStats.genderBreakdown.female)) * 100)}% Male
-                </p>
+                </motion.p>
+                <motion.div
+                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-blue-500 to-blue-600"
+                  initial={{ width: 0 }}
+                  animate={{ width: "100%" }}
+                  transition={{ delay: 1.2, duration: 1.2 }}
+                />
               </CardContent>
             </Card>
           </motion.div>
 
           <motion.div variants={statsVariants}>
-            <Card className="church-stat-card stat-card-hover h-[140px]">
+            <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
               <CardContent className="p-6 h-full flex flex-col justify-between">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-600">Age Groups</p>
-                    <p className="text-lg font-bold text-slate-900">
+                    <motion.p 
+                      className="text-3xl font-bold text-slate-900"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ delay: 0.8, duration: 0.6 }}
+                    >
                       <AnimatedCounter target={rangeStats.ageGroupBreakdown.adult} />A / <AnimatedCounter target={rangeStats.ageGroupBreakdown.child} />C / <AnimatedCounter target={rangeStats.ageGroupBreakdown.adolescent} />T
-                    </p>
+                    </motion.p>
                   </div>
-                  <div className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center">
-                    <Clock className="text-orange-500 text-xl" />
-                  </div>
+                  <motion.div 
+                    className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.6, type: "spring", stiffness: 300 }}
+                  >
+                    <Clock className="text-orange-500 text-xl pulse-icon" />
+                  </motion.div>
                 </div>
-                <p className="text-sm text-slate-500 mt-2">Adult / Child / Teen</p>
+                <motion.p 
+                  className="text-sm text-slate-500 mt-2"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.1 }}
+                >
+                  <Clock className="inline h-3 w-3 mr-1" />
+                  Adult / Child / Teen
+                </motion.p>
+                <motion.div
+                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-orange-500 to-orange-600"
+                  initial={{ width: 0 }}
+                  animate={{ width: "100%" }}
+                  transition={{ delay: 1.3, duration: 1.2 }}
+                />
               </CardContent>
             </Card>
           </motion.div>
