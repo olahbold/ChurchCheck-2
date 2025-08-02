@@ -419,8 +419,8 @@ export function KioskSettingsTab() {
           <p>• Sessions automatically expire after the set timeout</p>
           <p>• All active events are available for member self check-in</p>
           <p>• All check-ins are still recorded under your church account</p>
-          <p>• Family check-ins require admin assistance</p>
-          <p>• Visitor registration still requires admin approval</p>
+          <p>• Family check-ins work through parent member search</p>
+          <p>• Visitors can register themselves during check-in</p>
         </CardContent>
       </Card>
     </div>
