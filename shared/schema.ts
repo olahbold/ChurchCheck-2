@@ -16,6 +16,8 @@ export const churches = pgTable("churches", {
   trialEndDate: timestamp("trial_end_date").default(sql`NOW() + INTERVAL '30 days'`),
   subscriptionStartDate: timestamp("subscription_start_date"),
   maxMembers: integer("max_members").default(100), // Based on subscription tier
+  kioskSessionTimeout: integer("kiosk_session_timeout").default(60), // minutes
+  kioskModeEnabled: boolean("kiosk_mode_enabled").default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

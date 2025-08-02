@@ -9,7 +9,8 @@ import SettingsTab from "@/components/settings-tab";
 import { BrandingTab } from "@/components/admin/branding-tab";
 import { EventsTab } from "@/components/events-tab";
 import { AuthState } from "@/lib/types";
-import { Shield, Users, BarChart3, Settings, LogOut, Palette, UserCog, Calendar } from "lucide-react";
+import { Shield, Users, BarChart3, Settings, LogOut, Palette, UserCog, Calendar, Monitor } from "lucide-react";
+import { KioskSettingsTab } from "@/components/admin/kiosk-settings-tab";
 
 interface AdminTabProps {
   authState: AuthState;
@@ -53,7 +54,7 @@ export default function AdminTab({ authState, onLogout }: AdminTabProps) {
   };
 
   const getTabsGridClass = () => {
-    if (authState.user?.role === 'admin') return 'grid-cols-6';
+    if (authState.user?.role === 'admin') return 'grid-cols-7';
     if (authState.user?.role === 'data_viewer') return 'grid-cols-1';
     return 'grid-cols-1';
   };
@@ -121,6 +122,12 @@ export default function AdminTab({ authState, onLogout }: AdminTabProps) {
             </TabsTrigger>
           )}
           {authState.user.role === 'admin' && (
+            <TabsTrigger value="kiosk" className="flex items-center space-x-2">
+              <Monitor className="h-4 w-4" />
+              <span>Kiosk</span>
+            </TabsTrigger>
+          )}
+          {authState.user.role === 'admin' && (
             <TabsTrigger value="settings" className="flex items-center space-x-2">
               <Settings className="h-4 w-4" />
               <span>Settings</span>
@@ -155,6 +162,12 @@ export default function AdminTab({ authState, onLogout }: AdminTabProps) {
         {authState.user.role === 'admin' && (
           <TabsContent value="branding" className="space-y-6">
             <BrandingTab />
+          </TabsContent>
+        )}
+
+        {authState.user.role === 'admin' && (
+          <TabsContent value="kiosk" className="space-y-6">
+            <KioskSettingsTab />
           </TabsContent>
         )}
 

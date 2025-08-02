@@ -8,10 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FingerprintScanner } from "@/components/fingerprint-scanner";
+import { KioskMode } from "@/components/kiosk-mode";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AttendanceStats, CheckInResult, MemberWithChildren } from "@/lib/types";
-import { Search, Users, Check, UserPlus, Baby, UserCheck, X, AlertCircle, Fingerprint, Download, Trash2 } from "lucide-react";
+import { Search, Users, Check, UserPlus, Baby, UserCheck, X, AlertCircle, Fingerprint, Download, Trash2, Monitor, Clock } from "lucide-react";
 
 export default function CheckInTab() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,7 +26,14 @@ export default function CheckInTab() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [selectedRecords, setSelectedRecords] = useState<string[]>([]);
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [isKioskMode, setIsKioskMode] = useState(false);
+  const [kioskSessionStart, setKioskSessionStart] = useState<Date | null>(null);
   const { toast } = useToast();
+
+  // Get church data for kiosk settings
+  const { data: churchData } = useQuery({
+    queryKey: ["/api/churches/current"],
+  });
 
   // Get active events for event selection
   const { data: activeEvents = [] } = useQuery({
@@ -229,6 +237,65 @@ export default function CheckInTab() {
     });
   };
 
+  // Kiosk mode functions
+  const handleStartKiosk = () => {
+    if (!selectedEventId) {
+      toast({
+        title: "Event Required",
+        description: "Please select an event before starting kiosk mode",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsKioskMode(true);
+    setKioskSessionStart(new Date());
+    
+    toast({
+      title: "Kiosk Mode Started",
+      description: "Members can now check themselves in",
+    });
+  };
+
+  const handleExitKiosk = () => {
+    setIsKioskMode(false);
+    setKioskSessionStart(null);
+    
+    toast({
+      title: "Kiosk Mode Ended",
+      description: "Session has been terminated",
+    });
+  };
+
+  const handleExtendSession = () => {
+    setKioskSessionStart(new Date());
+    
+    toast({
+      title: "Session Extended",
+      description: "Kiosk session timer has been reset",
+    });
+  };
+
+  // Check if kiosk mode is enabled and available
+  const isKioskAvailable = churchData?.kioskModeEnabled && selectedEventId;
+  const kioskTimeoutMinutes = churchData?.kioskSessionTimeout || 60;
+
+  // Show kiosk mode if active
+  if (isKioskMode && selectedEventId) {
+    const selectedEvent = activeEvents.find(e => e.id === selectedEventId);
+    
+    return (
+      <KioskMode
+        isActive={isKioskMode}
+        sessionTimeoutMinutes={kioskTimeoutMinutes}
+        selectedEventId={selectedEventId}
+        selectedEventName={selectedEvent?.name || "Unknown Event"}
+        onExitKiosk={handleExitKiosk}
+        onExtendSession={handleExtendSession}
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Event Selection */}
@@ -398,6 +465,37 @@ export default function CheckInTab() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Kiosk Mode Controls */}
+      {isKioskAvailable && (
+        <Card className="border-purple-200 bg-purple-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-purple-900">
+              <Monitor className="h-5 w-5" />
+              Member Self Check-in
+            </CardTitle>
+            <p className="text-purple-700 text-sm">
+              Allow members to check themselves in without admin supervision
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <Button 
+                onClick={handleStartKiosk}
+                className="bg-purple-600 hover:bg-purple-700 text-white"
+                disabled={!selectedEventId}
+              >
+                <Monitor className="h-4 w-4 mr-2" />
+                Start Kiosk Mode
+              </Button>
+              <div className="flex items-center gap-2 text-sm text-purple-700">
+                <Clock className="h-4 w-4" />
+                Session timeout: {kioskTimeoutMinutes} minutes
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Manual Check-in */}
       <Card>

@@ -31,6 +31,12 @@ const churchLoginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+// Kiosk settings schema
+const kioskSettingsSchema = z.object({
+  kioskModeEnabled: z.boolean(),
+  kioskSessionTimeout: z.number().min(5).max(1440), // 5 minutes to 24 hours
+});
+
 // POST /api/churches/register - Register new church with admin user
 router.post('/register', async (req, res) => {
   try {
@@ -267,6 +273,42 @@ router.put('/settings', authenticateToken, requireRole(['admin']), async (req: A
     }
 
     res.status(500).json({ error: 'Failed to update church settings' });
+  }
+});
+
+// PATCH /api/churches/kiosk-settings - Update kiosk mode settings
+router.patch('/kiosk-settings', authenticateToken, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
+  try {
+    const settings = kioskSettingsSchema.parse(req.body);
+    
+    const church = await churchStorage.updateChurch(req.churchId!, {
+      kioskModeEnabled: settings.kioskModeEnabled,
+      kioskSessionTimeout: settings.kioskSessionTimeout,
+    });
+
+    if (!church) {
+      return res.status(404).json({ error: 'Church not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Kiosk settings updated successfully',
+      settings: {
+        kioskModeEnabled: church.kioskModeEnabled,
+        kioskSessionTimeout: church.kioskSessionTimeout,
+      }
+    });
+  } catch (error) {
+    console.error('Update kiosk settings error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: 'Validation error', 
+        details: error.errors 
+      });
+    }
+
+    res.status(500).json({ error: 'Failed to update kiosk settings' });
   }
 });
 
