@@ -61,6 +61,8 @@ router.post('/register', async (req, res) => {
       subdomain,
       subscriptionTier: 'trial',
       maxMembers: 999999, // Unlimited during trial
+      kioskModeEnabled: false,
+      kioskSessionTimeout: 60,
     });
 
     // Hash password and create admin user
@@ -269,6 +271,25 @@ router.put('/settings', authenticateToken, requireRole(['admin']), async (req: A
     }
 
     res.status(500).json({ error: 'Failed to update church settings' });
+  }
+});
+
+// GET /api/churches/kiosk-settings - Get current kiosk settings
+router.get('/kiosk-settings', authenticateToken, async (req: AuthenticatedRequest, res) => {
+  try {
+    const church = await churchStorage.getChurchById(req.churchId!);
+    
+    if (!church) {
+      return res.status(404).json({ error: 'Church not found' });
+    }
+
+    res.json({
+      kioskModeEnabled: church.kioskModeEnabled || false,
+      kioskSessionTimeout: church.kioskSessionTimeout || 60,
+    });
+  } catch (error) {
+    console.error('Get kiosk settings error:', error);
+    res.status(500).json({ error: 'Failed to get kiosk settings' });
   }
 });
 
