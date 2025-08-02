@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, Users, Edit, Trash2, Plus, Activity, Pause } from "lucide-react";
+import { Calendar, Clock, Users, Edit, Trash2, Plus, Activity, Pause, UserPlus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
@@ -472,48 +472,240 @@ export function EventsTab() {
                   <p className="text-sm">Attendance will appear here after check-ins</p>
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {attendanceCounts.map((eventData: any) => {
+                <motion.div 
+                  className="space-y-6"
+                  initial="hidden"
+                  animate="visible"
+                  variants={{
+                    hidden: { opacity: 0 },
+                    visible: {
+                      opacity: 1,
+                      transition: {
+                        staggerChildren: 0.2
+                      }
+                    }
+                  }}
+                >
+                  {attendanceCounts.map((eventData: any, index: number) => {
                     const details = getEventAttendanceDetails(eventData.eventId);
                     if (!details || details.total === 0) return null;
                     
                     return (
-                      <div key={eventData.eventId} className="p-4 border rounded-lg bg-slate-50">
-                        <div className="flex justify-between items-start mb-3">
+                      <motion.div 
+                        key={eventData.eventId}
+                        variants={{
+                          hidden: { opacity: 0, y: 30 },
+                          visible: { opacity: 1, y: 0 }
+                        }}
+                        className="bg-gradient-to-br from-white to-slate-50 border border-slate-200 rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300"
+                      >
+                        <div className="flex justify-between items-start mb-6">
                           <div>
-                            <h4 className="font-medium">{eventData.eventName}</h4>
-                            <Badge className={`${getEventTypeBadgeColor(eventData.eventType)} text-white text-xs mt-1`}>
-                              {getEventTypeLabel(eventData.eventType)}
-                            </Badge>
+                            <motion.h4 
+                              className="text-lg font-semibold text-slate-900"
+                              initial={{ opacity: 0, x: -20 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: index * 0.1 + 0.3 }}
+                            >
+                              {eventData.eventName}
+                            </motion.h4>
+                            <motion.div
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              transition={{ delay: index * 0.1 + 0.4 }}
+                            >
+                              <Badge className={`${getEventTypeBadgeColor(eventData.eventType)} text-white text-xs mt-2`}>
+                                {getEventTypeLabel(eventData.eventType)}
+                              </Badge>
+                            </motion.div>
                           </div>
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                            <Users className="h-3 w-3 mr-1" />
-                            {details.total} Total
-                          </Badge>
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            transition={{ delay: index * 0.1 + 0.5 }}
+                          >
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 px-3 py-1">
+                              <Users className="h-4 w-4 mr-2" />
+                              <AnimatedCounter target={details.total} duration={1500} /> Total
+                            </Badge>
+                          </motion.div>
                         </div>
                         
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                          <div className="bg-white p-2 rounded border">
-                            <p className="text-muted-foreground">Members</p>
-                            <p className="font-medium text-blue-600">{details.members}</p>
-                          </div>
-                          <div className="bg-white p-2 rounded border">
-                            <p className="text-muted-foreground">Visitors</p>
-                            <p className="font-medium text-purple-600">{details.visitors}</p>
-                          </div>
-                          <div className="bg-white p-2 rounded border">
-                            <p className="text-muted-foreground">Male / Female</p>
-                            <p className="font-medium">{details.male} / {details.female}</p>
-                          </div>
-                          <div className="bg-white p-2 rounded border">
-                            <p className="text-muted-foreground">C / A / Ad</p>
-                            <p className="font-medium">{details.children} / {details.adolescents} / {details.adults}</p>
-                          </div>
-                        </div>
-                      </div>
+                        <motion.div 
+                          className="grid grid-cols-2 md:grid-cols-4 gap-4"
+                          initial="hidden"
+                          animate="visible"
+                          variants={{
+                            hidden: { opacity: 0 },
+                            visible: {
+                              opacity: 1,
+                              transition: {
+                                staggerChildren: 0.1,
+                                delayChildren: index * 0.1 + 0.6
+                              }
+                            }
+                          }}
+                        >
+                          <motion.div
+                            variants={{
+                              hidden: { opacity: 0, y: 20 },
+                              visible: { opacity: 1, y: 0 }
+                            }}
+                          >
+                            <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[100px]">
+                              <CardContent className="p-4 h-full flex flex-col justify-between">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-xs font-medium text-slate-600">Members</p>
+                                    <motion.p 
+                                      className="text-2xl font-bold text-blue-600"
+                                      initial={{ scale: 0.8, opacity: 0 }}
+                                      animate={{ scale: 1, opacity: 1 }}
+                                      transition={{ delay: index * 0.1 + 0.8, duration: 0.6 }}
+                                    >
+                                      <AnimatedCounter target={details.members} duration={1500} />
+                                    </motion.p>
+                                  </div>
+                                  <motion.div 
+                                    className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center"
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ delay: index * 0.1 + 0.7, type: "spring", stiffness: 300 }}
+                                  >
+                                    <Users className="text-blue-500 text-sm pulse-icon" />
+                                  </motion.div>
+                                </div>
+                                <motion.div
+                                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-blue-500 to-blue-600"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: "100%" }}
+                                  transition={{ delay: index * 0.1 + 1.2, duration: 1 }}
+                                />
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+
+                          <motion.div
+                            variants={{
+                              hidden: { opacity: 0, y: 20 },
+                              visible: { opacity: 1, y: 0 }
+                            }}
+                          >
+                            <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[100px]">
+                              <CardContent className="p-4 h-full flex flex-col justify-between">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-xs font-medium text-slate-600">Visitors</p>
+                                    <motion.p 
+                                      className="text-2xl font-bold text-purple-600"
+                                      initial={{ scale: 0.8, opacity: 0 }}
+                                      animate={{ scale: 1, opacity: 1 }}
+                                      transition={{ delay: index * 0.1 + 0.9, duration: 0.6 }}
+                                    >
+                                      <AnimatedCounter target={details.visitors} duration={1500} />
+                                    </motion.p>
+                                  </div>
+                                  <motion.div 
+                                    className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center"
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ delay: index * 0.1 + 0.8, type: "spring", stiffness: 300 }}
+                                  >
+                                    <Users className="text-purple-500 text-sm pulse-icon" />
+                                  </motion.div>
+                                </div>
+                                <motion.div
+                                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-purple-500 to-purple-600"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: "100%" }}
+                                  transition={{ delay: index * 0.1 + 1.3, duration: 1 }}
+                                />
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+
+                          <motion.div
+                            variants={{
+                              hidden: { opacity: 0, y: 20 },
+                              visible: { opacity: 1, y: 0 }
+                            }}
+                          >
+                            <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[100px]">
+                              <CardContent className="p-4 h-full flex flex-col justify-between">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-xs font-medium text-slate-600">Male / Female</p>
+                                    <motion.p 
+                                      className="text-lg font-bold text-emerald-600"
+                                      initial={{ scale: 0.8, opacity: 0 }}
+                                      animate={{ scale: 1, opacity: 1 }}
+                                      transition={{ delay: index * 0.1 + 1.0, duration: 0.6 }}
+                                    >
+                                      <AnimatedCounter target={details.male} duration={1500} /> / <AnimatedCounter target={details.female} duration={1500} />
+                                    </motion.p>
+                                  </div>
+                                  <motion.div 
+                                    className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center"
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ delay: index * 0.1 + 0.9, type: "spring", stiffness: 300 }}
+                                  >
+                                    <Users className="text-emerald-500 text-sm pulse-icon" />
+                                  </motion.div>
+                                </div>
+                                <motion.div
+                                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-emerald-500 to-emerald-600"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: "100%" }}
+                                  transition={{ delay: index * 0.1 + 1.4, duration: 1 }}
+                                />
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+
+                          <motion.div
+                            variants={{
+                              hidden: { opacity: 0, y: 20 },
+                              visible: { opacity: 1, y: 0 }
+                            }}
+                          >
+                            <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[100px]">
+                              <CardContent className="p-4 h-full flex flex-col justify-between">
+                                <div className="flex items-center justify-between">
+                                  <div>
+                                    <p className="text-xs font-medium text-slate-600">C / A / Ad</p>
+                                    <motion.p 
+                                      className="text-lg font-bold text-orange-600"
+                                      initial={{ scale: 0.8, opacity: 0 }}
+                                      animate={{ scale: 1, opacity: 1 }}
+                                      transition={{ delay: index * 0.1 + 1.1, duration: 0.6 }}
+                                    >
+                                      <AnimatedCounter target={details.children} duration={1500} /> / <AnimatedCounter target={details.adolescents} duration={1500} /> / <AnimatedCounter target={details.adults} duration={1500} />
+                                    </motion.p>
+                                  </div>
+                                  <motion.div 
+                                    className="w-8 h-8 bg-orange-500/10 rounded-lg flex items-center justify-center"
+                                    initial={{ scale: 0 }}
+                                    animate={{ scale: 1 }}
+                                    transition={{ delay: index * 0.1 + 1.0, type: "spring", stiffness: 300 }}
+                                  >
+                                    <Users className="text-orange-500 text-sm pulse-icon" />
+                                  </motion.div>
+                                </div>
+                                <motion.div
+                                  className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-orange-500 to-orange-600"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: "100%" }}
+                                  transition={{ delay: index * 0.1 + 1.5, duration: 1 }}
+                                />
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        </motion.div>
+                      </motion.div>
                     );
                   })}
-                </div>
+                </motion.div>
               )}
             </CardContent>
             <CardContent>
