@@ -515,6 +515,8 @@ export const insertChurchSchema = createInsertSchema(churches, {
   brandColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Brand color must be a valid hex color").optional(),
   subscriptionTier: z.enum(["trial", "starter", "growth", "enterprise"]).default("trial"),
   maxMembers: z.number().positive("Max members must be positive").default(100),
+  kioskModeEnabled: z.boolean().default(false),
+  kioskSessionTimeout: z.number().min(5).max(1440).default(60),
 }).omit({
   id: true,
   createdAt: true,
@@ -549,6 +551,11 @@ export const updateChurchBrandingSchema = z.object({
   logoUrl: z.string().url("Invalid logo URL").optional().or(z.literal("")),
   bannerUrl: z.string().url("Invalid banner URL").optional().or(z.literal("")),
   brandColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Brand color must be a valid hex color").optional(),
+});
+
+export const kioskSettingsSchema = z.object({
+  kioskModeEnabled: z.boolean(),
+  kioskSessionTimeout: z.number().min(5).max(1440), // 5 minutes to 24 hours
 });
 
 // Multi-tenant types

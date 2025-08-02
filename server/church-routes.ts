@@ -11,7 +11,7 @@ import {
   ensureChurchContext,
   type AuthenticatedRequest 
 } from './auth.js';
-import { insertChurchSchema, insertChurchUserSchema } from '../shared/schema.js';
+import { insertChurchSchema, insertChurchUserSchema, kioskSettingsSchema } from '../shared/schema.js';
 
 const router = Router();
 
@@ -31,11 +31,7 @@ const churchLoginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-// Kiosk settings schema
-const kioskSettingsSchema = z.object({
-  kioskModeEnabled: z.boolean(),
-  kioskSessionTimeout: z.number().min(5).max(1440), // 5 minutes to 24 hours
-});
+
 
 // POST /api/churches/register - Register new church with admin user
 router.post('/register', async (req, res) => {
