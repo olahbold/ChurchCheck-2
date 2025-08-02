@@ -383,79 +383,166 @@ export default function CheckInTab() {
       </Card>
 
       {/* Header with stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              {selectedEventId ? 'Event Total' : "Today's Total"}
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {selectedEventId ? (eventStats?.total || 0) : (attendanceStats?.total || 0)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {selectedEventId ? 'Event attendees' : 'Members checked in today'}
-            </p>
-            {selectedEventId && (
-              <p className="text-xs text-blue-600 mt-1">
-                Members: {eventStats?.members || 0} | Visitors: {eventStats?.visitors || 0}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">By Gender</CardTitle>
-            <UserCheck className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              <div className="flex justify-between text-sm">
-                <span>Male:</span>
-                <span className="font-medium">
-                  {selectedEventId ? (eventStats?.male || 0) : (attendanceStats?.male || 0)}
-                </span>
+      <motion.div 
+        className="grid gap-4 md:grid-cols-3"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+            transition: {
+              staggerChildren: 0.1
+            }
+          }
+        }}
+      >
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
+        >
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
+            <CardContent className="p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">
+                    {selectedEventId ? 'Event Total' : "Today's Total"}
+                  </p>
+                  <motion.p 
+                    className="text-3xl font-bold text-slate-900"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.5, duration: 0.6 }}
+                  >
+                    <AnimatedCounter target={selectedEventId ? (eventStats?.total || 0) : (attendanceStats?.total || 0)} />
+                  </motion.p>
+                </div>
+                <motion.div 
+                  className="w-12 h-12 bg-[hsl(258,90%,66%)]/10 rounded-lg flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.3, type: "spring", stiffness: 300 }}
+                >
+                  <Users className="text-[hsl(258,90%,66%)] text-xl pulse-icon" />
+                </motion.div>
               </div>
-              <div className="flex justify-between text-sm">
-                <span>Female:</span>
-                <span className="font-medium">
-                  {selectedEventId ? (eventStats?.female || 0) : (attendanceStats?.female || 0)}
-                </span>
+              <motion.p 
+                className="text-sm text-[hsl(142,76%,36%)] mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <Users className="inline h-3 w-3 mr-1" />
+                {selectedEventId ? 'Event attendees' : 'Members checked in today'}
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[hsl(258,90%,66%)] to-[hsl(271,91%,65%)]"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1, duration: 1.2 }}
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
+        >
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
+            <CardContent className="p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">By Gender</p>
+                  <motion.p 
+                    className="text-2xl font-bold text-slate-900"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.6, duration: 0.6 }}
+                  >
+                    <AnimatedCounter target={selectedEventId ? (eventStats?.male || 0) : (attendanceStats?.male || 0)} />M / <AnimatedCounter target={selectedEventId ? (eventStats?.female || 0) : (attendanceStats?.female || 0)} />F
+                  </motion.p>
+                </div>
+                <motion.div 
+                  className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.4, type: "spring", stiffness: 300 }}
+                >
+                  <UserCheck className="text-blue-500 text-xl pulse-icon" />
+                </motion.div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">By Age Group</CardTitle>
-            <Baby className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-1">
-              <div className="flex justify-between text-sm">
-                <span>Adults:</span>
-                <span className="font-medium">
-                  {selectedEventId ? (eventStats?.adult || 0) : (attendanceStats?.adult || 0)}
-                </span>
+              <motion.p 
+                className="text-sm text-slate-500 mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.9 }}
+              >
+                <UserCheck className="inline h-3 w-3 mr-1" />
+                Male: {selectedEventId ? (eventStats?.male || 0) : (attendanceStats?.male || 0)} | Female: {selectedEventId ? (eventStats?.female || 0) : (attendanceStats?.female || 0)}
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-blue-500 to-blue-600"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1.1, duration: 1.2 }}
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
+        >
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
+            <CardContent className="p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">By Age Group</p>
+                  <motion.p 
+                    className="text-lg font-bold text-slate-900"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.7, duration: 0.6 }}
+                  >
+                    <AnimatedCounter target={selectedEventId ? (eventStats?.adult || 0) : (attendanceStats?.adult || 0)} />A / <AnimatedCounter target={selectedEventId ? (eventStats?.child || 0) : (attendanceStats?.child || 0)} />C / <AnimatedCounter target={selectedEventId ? (eventStats?.adolescent || 0) : (attendanceStats?.adolescent || 0)} />T
+                  </motion.p>
+                </div>
+                <motion.div 
+                  className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.5, type: "spring", stiffness: 300 }}
+                >
+                  <Baby className="text-orange-500 text-xl pulse-icon" />
+                </motion.div>
               </div>
-              <div className="flex justify-between text-sm">
-                <span>Teens:</span>
-                <span className="font-medium">
-                  {selectedEventId ? (eventStats?.adolescent || 0) : (attendanceStats?.adolescent || 0)}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Children:</span>
-                <span className="font-medium">
-                  {selectedEventId ? (eventStats?.child || 0) : (attendanceStats?.child || 0)}
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+              <motion.p 
+                className="text-sm text-slate-500 mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.0 }}
+              >
+                <Baby className="inline h-3 w-3 mr-1" />
+                Adult / Child / Teen
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-orange-500 to-orange-600"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1.2, duration: 1.2 }}
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
 
       {/* Biometric Authentication */}
       <Card>
