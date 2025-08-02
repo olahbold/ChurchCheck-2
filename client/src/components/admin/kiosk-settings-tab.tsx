@@ -26,15 +26,24 @@ export function KioskSettingsTab() {
     queryKey: ["/api/churches/current"],
   });
 
+  const { data: kioskSettings, isLoading: isLoadingKiosk } = useQuery<KioskSettings>({
+    queryKey: ["/api/churches/kiosk-settings"],
+    refetchOnWindowFocus: true,
+  });
+
   const updateSettingsMutation = useMutation({
     mutationFn: (data: KioskSettings) =>
-      apiRequest("/api/churches/kiosk-settings", "PATCH", data),
+      apiRequest("/api/churches/kiosk-settings", {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      }),
     onSuccess: () => {
       toast({
         title: "Settings Updated",
         description: "Kiosk settings have been updated successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/churches/current"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/churches/kiosk-settings"] });
     },
     onError: () => {
       toast({
@@ -46,13 +55,18 @@ export function KioskSettingsTab() {
   });
 
   useEffect(() => {
-    if (church) {
+    if (kioskSettings) {
       setSettings({
-        kioskModeEnabled: church.kioskModeEnabled || false,
-        kioskSessionTimeout: church.kioskSessionTimeout || 60,
+        kioskModeEnabled: kioskSettings.kioskModeEnabled || false,
+        kioskSessionTimeout: kioskSettings.kioskSessionTimeout || 60,
+      });
+    } else if (church) {
+      setSettings({
+        kioskModeEnabled: (church as any)?.kioskModeEnabled || false,
+        kioskSessionTimeout: (church as any)?.kioskSessionTimeout || 60,
       });
     }
-  }, [church]);
+  }, [kioskSettings, church]);
 
   const handleSave = () => {
     updateSettingsMutation.mutate(settings);
@@ -67,7 +81,7 @@ export function KioskSettingsTab() {
     { value: 480, label: "8 hours" },
   ];
 
-  if (isLoading) {
+  if (isLoading || isLoadingKiosk) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
