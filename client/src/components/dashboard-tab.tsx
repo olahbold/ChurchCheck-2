@@ -165,25 +165,67 @@ export default function DashboardTab() {
   };
 
   const getAttendanceStatus = (member: MemberWithChildren) => {
-    // Get real attendance status based on recent attendance data
-    const recentAttendance = todaysAttendance.filter(record => 
+    // Get member's attendance records from recent attendance (last 30 days)
+    const memberAttendanceRecords = recentAttendance.filter(record => 
       record.memberId === member.id && !record.isVisitor
     );
     
-    if (recentAttendance.length > 0) {
-      const today = new Date().toISOString().split('T')[0];
-      const hasAttendedToday = recentAttendance.some(record => 
-        record.attendanceDate === today
-      );
-      
-      if (hasAttendedToday) {
-        return { text: 'Present Today', color: 'text-[hsl(142,76%,36%)]' };
-      }
+    if (memberAttendanceRecords.length === 0) {
+      return { 
+        text: 'Absent (4+ weeks)', 
+        color: 'text-[hsl(0,84%,60%)]',
+        lastDate: 'Never attended'
+      };
     }
+
+    // Find most recent attendance
+    const attendanceDates = memberAttendanceRecords.map(record => new Date(record.attendanceDate));
+    const mostRecentAttendance = new Date(Math.max(...attendanceDates.map(d => d.getTime())));
+    const daysSinceLastAttendance = Math.floor((new Date().getTime() - mostRecentAttendance.getTime()) / (1000 * 60 * 60 * 24));
     
-    // For members without today's attendance, show absent status
-    // This is a simplified version - in production, you'd check historical data
-    return { text: 'Absent (4+ weeks)', color: 'text-[hsl(0,84%,60%)]' };
+    const lastDateString = mostRecentAttendance.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+
+    if (daysSinceLastAttendance === 0) {
+      return { 
+        text: 'Present Today', 
+        color: 'text-[hsl(142,76%,36%)]',
+        lastDate: lastDateString
+      };
+    } else if (daysSinceLastAttendance <= 7) {
+      return { 
+        text: `Absent (${daysSinceLastAttendance} days)`, 
+        color: 'text-[hsl(45,93%,47%)]',
+        lastDate: lastDateString
+      };
+    } else if (daysSinceLastAttendance <= 14) {
+      return { 
+        text: 'Absent (1 week)', 
+        color: 'text-[hsl(45,93%,47%)]',
+        lastDate: lastDateString
+      };
+    } else if (daysSinceLastAttendance <= 21) {
+      return { 
+        text: 'Absent (2 weeks)', 
+        color: 'text-[hsl(30,100%,50%)]',
+        lastDate: lastDateString
+      };
+    } else if (daysSinceLastAttendance <= 28) {
+      return { 
+        text: 'Absent (3 weeks)', 
+        color: 'text-[hsl(15,100%,50%)]',
+        lastDate: lastDateString
+      };
+    } else {
+      return { 
+        text: 'Absent (4+ weeks)', 
+        color: 'text-[hsl(0,84%,60%)]',
+        lastDate: lastDateString
+      };
+    }
   };
 
   return (
@@ -329,7 +371,7 @@ export default function DashboardTab() {
                         {attendanceStatus.text}
                       </p>
                       <p className="text-xs text-slate-500">
-                        Last: {new Date().toLocaleDateString()}
+                        Last: {attendanceStatus.lastDate}
                       </p>
                     </div>
                   </div>
