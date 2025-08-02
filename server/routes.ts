@@ -772,16 +772,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const storage = getStorage(req);
       const members = await storage.getAllMembers(req.churchId!);
       
-      // Convert to CSV format with full member details
-      const csvHeader = "Member Name,Title,Gender,Age Group,Phone,Email,WhatsApp Number,Address,Date of Birth,Wedding Anniversary,Current Member,Fingerprint ID,Parent ID,Created At,Updated At\n";
+      // Get recent attendance to calculate attendance comments
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+      const endDate = new Date().toISOString().split('T')[0];
+      const recentAttendance = await storage.getAttendanceHistory(startDate, endDate);
+      
+      // Create attendance lookup
+      const memberAttendance = new Map<string, Date[]>();
+      recentAttendance.forEach(record => {
+        if (record.memberId && !record.isVisitor) {
+          if (!memberAttendance.has(record.memberId)) {
+            memberAttendance.set(record.memberId, []);
+          }
+          memberAttendance.get(record.memberId)!.push(new Date(record.attendanceDate));
+        }
+      });
+      
+      // Helper function to get attendance comment
+      const getAttendanceComment = (memberId: string): string => {
+        const attendanceDates = memberAttendance.get(memberId) || [];
+        if (attendanceDates.length === 0) {
+          return "Absent (4+ weeks)";
+        }
+        
+        const mostRecentAttendance = new Date(Math.max(...attendanceDates.map(d => d.getTime())));
+        const daysSinceLastAttendance = Math.floor((new Date().getTime() - mostRecentAttendance.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysSinceLastAttendance <= 7) {
+          return "Present Today";
+        } else if (daysSinceLastAttendance <= 14) {
+          return "Absent (1 week)";
+        } else if (daysSinceLastAttendance <= 21) {
+          return "Absent (2 weeks)";
+        } else if (daysSinceLastAttendance <= 28) {
+          return "Absent (3 weeks)";
+        } else {
+          return "Absent (4+ weeks)";
+        }
+      };
+      
+      // Convert to CSV format with full member details including Member ID and attendance comments
+      const csvHeader = "Member ID,Member Name,Title,Gender,Age Group,Phone,Email,WhatsApp Number,Address,Date of Birth,Wedding Anniversary,Current Member,Fingerprint ID,Parent ID,Created At,Updated At,Attendance Comments\n";
       const csvData = members.map(member => {
         const memberName = `${member.firstName} ${member.surname}`;
         const dateOfBirth = member.dateOfBirth ? new Date(member.dateOfBirth).toISOString().split('T')[0] : '';
         const weddingAnniversary = member.weddingAnniversary ? new Date(member.weddingAnniversary).toISOString().split('T')[0] : '';
         const createdAt = member.createdAt ? new Date(member.createdAt).toISOString().replace('T', ' ').replace('Z', '') : '';
         const updatedAt = member.updatedAt ? new Date(member.updatedAt).toISOString().replace('T', ' ').replace('Z', '') : '';
+        const attendanceComment = getAttendanceComment(member.id);
         
-        return `"${memberName}","${member.title || ''}","${member.gender}","${member.ageGroup}","${member.phone || ''}","${member.email || ''}","${member.whatsappNumber || ''}","${member.address || ''}","${dateOfBirth}","${weddingAnniversary}","${member.isCurrentMember}","${member.fingerprintId || ''}","${member.parentId || ''}","${createdAt}","${updatedAt}"`;
+        return `"${member.id}","${memberName}","${member.title || ''}","${member.gender}","${member.ageGroup}","${member.phone || ''}","${member.email || ''}","${member.whatsappNumber || ''}","${member.address || ''}","${dateOfBirth}","${weddingAnniversary}","${member.isCurrentMember}","${member.fingerprintId || ''}","${member.parentId || ''}","${createdAt}","${updatedAt}","${attendanceComment}"`;
       }).join('\n');
       
       const date = new Date().toISOString().split('T')[0];
@@ -1222,53 +1264,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Export routes
-  app.get("/api/export/members", authenticateToken, async (req: AuthenticatedRequest, res) => {
-    try {
-      const storage = getStorage(req);
-      const members = await storage.getAllMembers(req.churchId!);
-      
-      // Convert to CSV format
-      const headers = [
-        'ID', 'Title', 'First Name', 'Surname', 'Gender', 'Age Group', 
-        'Phone', 'Email', 'WhatsApp', 'Address', 'Date of Birth', 
-        'Wedding Anniversary', 'Current Member', 'Fingerprint ID', 
-        'Parent ID'
-      ];
-      
-      const csvRows = [headers.join(',')];
-      
-      members.forEach(member => {
-        const row = [
-          member.id,
-          `"${member.title || ''}"`,
-          `"${member.firstName}"`,
-          `"${member.surname}"`,
-          member.gender,
-          member.ageGroup,
-          `"${member.phone || ''}"`,
-          `"${member.email || ''}"`,
-          `"${member.whatsappNumber || ''}"`,
-          `"${member.address || ''}"`,
-          member.dateOfBirth || '',
-          member.weddingAnniversary || '',
-          member.isCurrentMember,
-          `"${member.fingerprintId || ''}"`,
-          `"${member.parentId || ''}"`,
-        ];
-        csvRows.push(row.join(','));
-      });
 
-      const csv = csvRows.join('\n');
-      const date = new Date().toISOString().split('T')[0];
-      
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="members_export_${date}.csv"`);
-      res.send(csv);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to export members" });
-    }
-  });
 
   app.get("/api/export/visitors", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
