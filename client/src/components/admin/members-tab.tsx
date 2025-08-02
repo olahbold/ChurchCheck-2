@@ -319,113 +319,173 @@ export function MembersTab() {
         variants={containerVariants}
       >
         <motion.div variants={statsVariants}>
-          <Card className="stat-card-hover h-[140px]">
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
             <CardContent className="p-6 h-full flex flex-col justify-between">
-              <div className="flex items-center">
-                <motion.div 
-                  className="rounded-lg bg-blue-100 dark:bg-blue-900 p-3"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.3, type: "spring", stiffness: 500 }}
-                >
-                  <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-                </motion.div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Members</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Total Members</p>
                   <motion.p 
-                    className="text-2xl font-bold text-gray-900 dark:text-white"
+                    className="text-3xl font-bold text-slate-900"
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.5, duration: 0.6 }}
                   >
-                    {stats.total}
+                    <AnimatedCounter target={stats.total} />
                   </motion.p>
                 </div>
+                <motion.div 
+                  className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.3, type: "spring", stiffness: 300 }}
+                >
+                  <Users className="text-blue-500 text-xl pulse-icon" />
+                </motion.div>
               </div>
+              <motion.p 
+                className="text-sm text-blue-600 mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <Users className="inline h-3 w-3 mr-1" />
+                All registered members
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-blue-500 to-blue-600"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1, duration: 1.2 }}
+              />
             </CardContent>
           </Card>
         </motion.div>
 
         <motion.div variants={statsVariants}>
-          <Card className="stat-card-hover h-[140px]">
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
             <CardContent className="p-6 h-full flex flex-col justify-between">
-              <div className="flex items-center">
-                <motion.div 
-                  className="rounded-lg bg-green-100 dark:bg-green-900 p-3"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.4, type: "spring", stiffness: 500 }}
-                >
-                  <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
-                </motion.div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Members</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Active Members</p>
                   <motion.p 
-                    className="text-2xl font-bold text-gray-900 dark:text-white"
+                    className="text-3xl font-bold text-slate-900"
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.6, duration: 0.6 }}
                   >
-                    {stats.active}
+                    <AnimatedCounter target={stats.active} />
                   </motion.p>
                 </div>
+                <motion.div 
+                  className="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.4, type: "spring", stiffness: 300 }}
+                >
+                  <Users className="text-green-500 text-xl pulse-icon" />
+                </motion.div>
               </div>
+              <motion.p 
+                className="text-sm text-green-600 mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.9 }}
+              >
+                <Users className="inline h-3 w-3 mr-1" />
+                Currently active
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-green-500 to-green-600"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1.1, duration: 1.2 }}
+              />
             </CardContent>
           </Card>
         </motion.div>
 
         <motion.div variants={statsVariants}>
-          <Card className="stat-card-hover h-[140px]">
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
             <CardContent className="p-6 h-full flex flex-col justify-between">
-              <div className="flex items-center">
-                <motion.div 
-                  className="rounded-lg bg-purple-100 dark:bg-purple-900 p-3"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.5, type: "spring", stiffness: 500 }}
-                >
-                  <UserPlus className="h-6 w-6 text-purple-600 dark:text-purple-400" />
-                </motion.div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">New This Month</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">New This Month</p>
                   <motion.p 
-                    className="text-2xl font-bold text-gray-900 dark:text-white"
+                    className="text-3xl font-bold text-slate-900"
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.7, duration: 0.6 }}
                   >
-                    {stats.newThisMonth}
+                    <AnimatedCounter target={stats.newThisMonth} />
                   </motion.p>
                 </div>
+                <motion.div 
+                  className="w-12 h-12 bg-[hsl(258,90%,66%)]/10 rounded-lg flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.5, type: "spring", stiffness: 300 }}
+                >
+                  <UserPlus className="text-[hsl(258,90%,66%)] text-xl pulse-icon" />
+                </motion.div>
               </div>
+              <motion.p 
+                className="text-sm text-[hsl(258,90%,66%)] mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.0 }}
+              >
+                <UserPlus className="inline h-3 w-3 mr-1" />
+                Recent registrations
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[hsl(258,90%,66%)] to-[hsl(271,91%,65%)]"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1.2, duration: 1.2 }}
+              />
             </CardContent>
           </Card>
         </motion.div>
 
         <motion.div variants={statsVariants}>
-          <Card className="stat-card-hover h-[140px]">
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
             <CardContent className="p-6 h-full flex flex-col justify-between">
-              <div className="flex items-center">
-                <motion.div 
-                  className="rounded-lg bg-orange-100 dark:bg-orange-900 p-3"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.6, type: "spring", stiffness: 500 }}
-                >
-                  <Calendar className="h-6 w-6 text-orange-600 dark:text-orange-400" />
-                </motion.div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Last 30 Days</p>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Last 30 Days</p>
                   <motion.p 
-                    className="text-2xl font-bold text-gray-900 dark:text-white"
+                    className="text-3xl font-bold text-slate-900"
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.8, duration: 0.6 }}
                   >
-                    {stats.lastThirtyDays}
+                    <AnimatedCounter target={stats.lastThirtyDays} />
                   </motion.p>
                 </div>
+                <motion.div 
+                  className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.6, type: "spring", stiffness: 300 }}
+                >
+                  <Calendar className="text-orange-500 text-xl pulse-icon" />
+                </motion.div>
               </div>
+              <motion.p 
+                className="text-sm text-orange-600 mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.1 }}
+              >
+                <Calendar className="inline h-3 w-3 mr-1" />
+                Monthly growth
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-orange-500 to-orange-600"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1.3, duration: 1.2 }}
+              />
             </CardContent>
           </Card>
         </motion.div>
