@@ -766,7 +766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Export data route - Updated with cache busting
+  // Export data route - Fixed version
   app.get("/api/export/members", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
       const storage = getStorage(req);
