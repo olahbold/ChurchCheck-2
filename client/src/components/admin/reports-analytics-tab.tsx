@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -27,6 +27,56 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from '@/lib/queryClient';
+
+// Enhanced animated counter with spring effect
+function AnimatedCounter({ target, duration = 2500 }: { target: number; duration?: number }) {
+  const [count, setCount] = useState(0);
+  
+  useEffect(() => {
+    let startTime = Date.now();
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function for spring-like effect
+      const easeOutBack = (t: number) => {
+        const c1 = 1.70158;
+        const c3 = c1 + 1;
+        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      };
+      
+      const easedProgress = easeOutBack(progress);
+      const currentCount = Math.floor(easedProgress * target);
+      setCount(Math.min(currentCount, target));
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    const timer = setTimeout(() => {
+      requestAnimationFrame(animate);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [target, duration]);
+  
+  return (
+    <motion.span
+      key={target}
+      initial={{ scale: 1.2, opacity: 0.8 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ 
+        type: "spring",
+        damping: 20,
+        stiffness: 300,
+        duration: 0.6
+      }}
+    >
+      {count}
+    </motion.span>
+  );
+}
 
 const REPORT_CONFIGS = [
   {
@@ -303,73 +353,224 @@ export default function ReportsAnalyticsTab() {
   return (
     <div className="space-y-6">
       {/* Analytics Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card 
-          className="church-stat-card cursor-pointer hover:shadow-md transition-shadow" 
-          onClick={() => handleSummaryCardClick('total')}
+      <motion.div 
+        className="grid grid-cols-1 md:grid-cols-4 gap-6"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+            transition: {
+              staggerChildren: 0.1
+            }
+          }
+        }}
+      >
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">Total Reports</p>
-              <p className="text-3xl font-bold text-slate-900">{REPORT_CONFIGS.length}</p>
-            </div>
-            <div className="w-12 h-12 bg-[hsl(258,90%,66%)]/10 rounded-lg flex items-center justify-center">
-              <BarChart3 className="text-[hsl(258,90%,66%)] text-xl" />
-            </div>
-          </div>
-        </Card>
+          <Card 
+            className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]" 
+            onClick={() => handleSummaryCardClick('total')}
+          >
+            <CardContent className="p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Total Reports</p>
+                  <motion.p 
+                    className="text-3xl font-bold text-slate-900"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.5, duration: 0.6 }}
+                  >
+                    <AnimatedCounter target={REPORT_CONFIGS.length} />
+                  </motion.p>
+                </div>
+                <motion.div 
+                  className="w-12 h-12 bg-[hsl(258,90%,66%)]/10 rounded-lg flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.3, type: "spring", stiffness: 300 }}
+                >
+                  <BarChart3 className="text-[hsl(258,90%,66%)] text-xl pulse-icon" />
+                </motion.div>
+              </div>
+              <motion.p 
+                className="text-sm text-[hsl(258,90%,66%)] mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <BarChart3 className="inline h-3 w-3 mr-1" />
+                Available analytics
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[hsl(258,90%,66%)] to-[hsl(271,91%,65%)]"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1, duration: 1.2 }}
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card 
-          className="church-stat-card cursor-pointer hover:shadow-md transition-shadow" 
-          onClick={() => handleSummaryCardClick('weekly')}
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">Weekly Reports</p>
-              <p className="text-3xl font-bold text-slate-900">
-                {REPORT_CONFIGS.filter(r => r.frequency === 'weekly').length}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-[hsl(142,76%,36%)]/10 rounded-lg flex items-center justify-center">
-              <Calendar className="text-[hsl(142,76%,36%)] text-xl" />
-            </div>
-          </div>
-        </Card>
+          <Card 
+            className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]" 
+            onClick={() => handleSummaryCardClick('weekly')}
+          >
+            <CardContent className="p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Weekly Reports</p>
+                  <motion.p 
+                    className="text-3xl font-bold text-slate-900"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.6, duration: 0.6 }}
+                  >
+                    <AnimatedCounter target={REPORT_CONFIGS.filter(r => r.frequency === 'weekly').length} />
+                  </motion.p>
+                </div>
+                <motion.div 
+                  className="w-12 h-12 bg-[hsl(142,76%,36%)]/10 rounded-lg flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.4, type: "spring", stiffness: 300 }}
+                >
+                  <Calendar className="text-[hsl(142,76%,36%)] text-xl pulse-icon" />
+                </motion.div>
+              </div>
+              <motion.p 
+                className="text-sm text-[hsl(142,76%,36%)] mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.9 }}
+              >
+                <Calendar className="inline h-3 w-3 mr-1" />
+                Weekly frequency
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[hsl(142,76%,36%)] to-[hsl(142,76%,46%)]"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1.1, duration: 1.2 }}
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card 
-          className="church-stat-card cursor-pointer hover:shadow-md transition-shadow" 
-          onClick={() => handleSummaryCardClick('monthly')}
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">Monthly Reports</p>
-              <p className="text-3xl font-bold text-slate-900">
-                {REPORT_CONFIGS.filter(r => r.frequency === 'monthly').length}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-[hsl(45,93%,47%)]/10 rounded-lg flex items-center justify-center">
-              <Clock className="text-[hsl(45,93%,47%)] text-xl" />
-            </div>
-          </div>
-        </Card>
+          <Card 
+            className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]" 
+            onClick={() => handleSummaryCardClick('monthly')}
+          >
+            <CardContent className="p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Monthly Reports</p>
+                  <motion.p 
+                    className="text-3xl font-bold text-slate-900"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.7, duration: 0.6 }}
+                  >
+                    <AnimatedCounter target={REPORT_CONFIGS.filter(r => r.frequency === 'monthly').length} />
+                  </motion.p>
+                </div>
+                <motion.div 
+                  className="w-12 h-12 bg-[hsl(45,93%,47%)]/10 rounded-lg flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.5, type: "spring", stiffness: 300 }}
+                >
+                  <Clock className="text-[hsl(45,93%,47%)] text-xl pulse-icon" />
+                </motion.div>
+              </div>
+              <motion.p 
+                className="text-sm text-[hsl(45,93%,47%)] mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.0 }}
+              >
+                <Clock className="inline h-3 w-3 mr-1" />
+                Monthly schedule
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[hsl(45,93%,47%)] to-[hsl(45,93%,57%)]"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1.2, duration: 1.2 }}
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card 
-          className="church-stat-card cursor-pointer hover:shadow-md transition-shadow" 
-          onClick={() => handleSummaryCardClick('on-demand')}
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
         >
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-slate-600">On-Demand</p>
-              <p className="text-3xl font-bold text-slate-900">
-                {REPORT_CONFIGS.filter(r => r.frequency === 'on-demand').length}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-[hsl(271,91%,65%)]/10 rounded-lg flex items-center justify-center">
-              <Play className="text-[hsl(271,91%,65%)] text-xl" />
-            </div>
-          </div>
-        </Card>
-      </div>
+          <Card 
+            className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]" 
+            onClick={() => handleSummaryCardClick('on-demand')}
+          >
+            <CardContent className="p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-slate-600">On-Demand</p>
+                  <motion.p 
+                    className="text-3xl font-bold text-slate-900"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.8, duration: 0.6 }}
+                  >
+                    <AnimatedCounter target={REPORT_CONFIGS.filter(r => r.frequency === 'on-demand').length} />
+                  </motion.p>
+                </div>
+                <motion.div 
+                  className="w-12 h-12 bg-[hsl(271,91%,65%)]/10 rounded-lg flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.6, type: "spring", stiffness: 300 }}
+                >
+                  <Play className="text-[hsl(271,91%,65%)] text-xl pulse-icon" />
+                </motion.div>
+              </div>
+              <motion.p 
+                className="text-sm text-[hsl(271,91%,65%)] mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.1 }}
+              >
+                <Play className="inline h-3 w-3 mr-1" />
+                Generate anytime
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[hsl(271,91%,65%)] to-[hsl(271,91%,75%)]"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1.3, duration: 1.2 }}
+              />
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
 
       <Tabs defaultValue="reports" className="space-y-6">
         <TabsList className="grid w-full grid-cols-2 h-12">

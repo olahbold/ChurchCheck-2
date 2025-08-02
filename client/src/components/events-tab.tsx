@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,11 +7,61 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, Users, Edit, Trash2, Plus } from "lucide-react";
+import { Calendar, Clock, Users, Edit, Trash2, Plus, Activity, Pause } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+
+// Enhanced animated counter with spring effect
+function AnimatedCounter({ target, duration = 2500 }: { target: number; duration?: number }) {
+  const [count, setCount] = useState(0);
+  
+  useEffect(() => {
+    let startTime = Date.now();
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function for spring-like effect
+      const easeOutBack = (t: number) => {
+        const c1 = 1.70158;
+        const c3 = c1 + 1;
+        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      };
+      
+      const easedProgress = easeOutBack(progress);
+      const currentCount = Math.floor(easedProgress * target);
+      setCount(Math.min(currentCount, target));
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    const timer = setTimeout(() => {
+      requestAnimationFrame(animate);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [target, duration]);
+  
+  return (
+    <motion.span
+      key={target}
+      initial={{ scale: 1.2, opacity: 0.8 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ 
+        type: "spring",
+        damping: 20,
+        stiffness: 300,
+        duration: 0.6
+      }}
+    >
+      {count}
+    </motion.span>
+  );
+}
 
 interface EventFormData {
   name: string;
@@ -467,24 +517,164 @@ export function EventsTab() {
               )}
             </CardContent>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="text-center">
-                  <div className="text-2xl font-bold">{events.length}</div>
-                  <div className="text-sm text-muted-foreground">Total Events</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">
-                    {events.filter((e: any) => e.isActive).length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Active Events</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold">
-                    {events.filter((e: any) => !e.isActive).length}
-                  </div>
-                  <div className="text-sm text-muted-foreground">Inactive Events</div>
-                </div>
-              </div>
+              <motion.div 
+                className="grid gap-4 md:grid-cols-3"
+                initial="hidden"
+                animate="visible"
+                variants={{
+                  hidden: { opacity: 0 },
+                  visible: {
+                    opacity: 1,
+                    transition: {
+                      staggerChildren: 0.1
+                    }
+                  }
+                }}
+              >
+                <motion.div
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0 }
+                  }}
+                >
+                  <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
+                    <CardContent className="p-6 h-full flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-600">Total Events</p>
+                          <motion.p 
+                            className="text-3xl font-bold text-slate-900"
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: 0.5, duration: 0.6 }}
+                          >
+                            <AnimatedCounter target={(events as any[]).length} />
+                          </motion.p>
+                        </div>
+                        <motion.div 
+                          className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.3, type: "spring", stiffness: 300 }}
+                        >
+                          <Calendar className="text-blue-500 text-xl pulse-icon" />
+                        </motion.div>
+                      </div>
+                      <motion.p 
+                        className="text-sm text-blue-600 mt-2"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.8 }}
+                      >
+                        <Calendar className="inline h-3 w-3 mr-1" />
+                        All created events
+                      </motion.p>
+                      <motion.div
+                        className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-blue-500 to-blue-600"
+                        initial={{ width: 0 }}
+                        animate={{ width: "100%" }}
+                        transition={{ delay: 1, duration: 1.2 }}
+                      />
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0 }
+                  }}
+                >
+                  <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
+                    <CardContent className="p-6 h-full flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-600">Active Events</p>
+                          <motion.p 
+                            className="text-3xl font-bold text-slate-900"
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: 0.6, duration: 0.6 }}
+                          >
+                            <AnimatedCounter target={(events as any[]).filter((e: any) => e.isActive).length} />
+                          </motion.p>
+                        </div>
+                        <motion.div 
+                          className="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.4, type: "spring", stiffness: 300 }}
+                        >
+                          <Activity className="text-green-500 text-xl pulse-icon" />
+                        </motion.div>
+                      </div>
+                      <motion.p 
+                        className="text-sm text-green-600 mt-2"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.9 }}
+                      >
+                        <Activity className="inline h-3 w-3 mr-1" />
+                        Currently running
+                      </motion.p>
+                      <motion.div
+                        className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-green-500 to-green-600"
+                        initial={{ width: 0 }}
+                        animate={{ width: "100%" }}
+                        transition={{ delay: 1.1, duration: 1.2 }}
+                      />
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0 }
+                  }}
+                >
+                  <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
+                    <CardContent className="p-6 h-full flex flex-col justify-between">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium text-slate-600">Inactive Events</p>
+                          <motion.p 
+                            className="text-3xl font-bold text-slate-900"
+                            initial={{ scale: 0.8, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ delay: 0.7, duration: 0.6 }}
+                          >
+                            <AnimatedCounter target={(events as any[]).filter((e: any) => !e.isActive).length} />
+                          </motion.p>
+                        </div>
+                        <motion.div 
+                          className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center"
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: 0.5, type: "spring", stiffness: 300 }}
+                        >
+                          <Pause className="text-orange-500 text-xl pulse-icon" />
+                        </motion.div>
+                      </div>
+                      <motion.p 
+                        className="text-sm text-orange-600 mt-2"
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 1.0 }}
+                      >
+                        <Pause className="inline h-3 w-3 mr-1" />
+                        Not currently active
+                      </motion.p>
+                      <motion.div
+                        className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-orange-500 to-orange-600"
+                        initial={{ width: 0 }}
+                        animate={{ width: "100%" }}
+                        transition={{ delay: 1.2, duration: 1.2 }}
+                      />
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </motion.div>
             </CardContent>
           </Card>
         </TabsContent>
