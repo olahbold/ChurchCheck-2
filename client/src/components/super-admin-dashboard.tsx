@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { motion } from "framer-motion";
 import { 
   Building2, 
   Users, 
@@ -18,6 +19,56 @@ import {
   CheckCircle,
   TrendingUp
 } from "lucide-react";
+
+// Enhanced animated counter with spring effect
+function AnimatedCounter({ target, duration = 2500 }: { target: number; duration?: number }) {
+  const [count, setCount] = useState(0);
+  
+  useEffect(() => {
+    let startTime = Date.now();
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function for spring-like effect
+      const easeOutBack = (t: number) => {
+        const c1 = 1.70158;
+        const c3 = c1 + 1;
+        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      };
+      
+      const easedProgress = easeOutBack(progress);
+      const currentCount = Math.floor(easedProgress * target);
+      setCount(Math.min(currentCount, target));
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    const timer = setTimeout(() => {
+      requestAnimationFrame(animate);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [target, duration]);
+  
+  return (
+    <motion.span
+      key={target}
+      initial={{ scale: 1.2, opacity: 0.8 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ 
+        type: "spring",
+        damping: 20,
+        stiffness: 300,
+        duration: 0.6
+      }}
+    >
+      {count}
+    </motion.span>
+  );
+}
 
 interface PlatformStats {
   totalChurches: number;
@@ -245,51 +296,121 @@ export function SuperAdminDashboard({ admin, onLogout, onNavigateToBusinessOps, 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Platform Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Churches</CardTitle>
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalChurches || 0}</div>
-              <p className="text-xs text-muted-foreground">
-                {stats?.activeChurches || 0} active this month
-              </p>
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            <Card className="h-[140px] stat-card-hover bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">Total Churches</CardTitle>
+                <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400 pulse-icon" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-blue-900 dark:text-blue-100 mb-2">
+                  <AnimatedCounter target={stats?.totalChurches || 0} />
+                </div>
+                <p className="text-xs text-blue-600 dark:text-blue-400">
+                  <AnimatedCounter target={stats?.activeChurches || 0} /> active this month
+                </p>
+                <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-1.5 mt-3">
+                  <motion.div
+                    className="bg-gradient-to-r from-blue-500 to-indigo-500 h-1.5 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(((stats?.activeChurches || 0) / Math.max(stats?.totalChurches || 1, 1)) * 100, 100)}%` }}
+                    transition={{ duration: 2, delay: 0.8, ease: "easeOut" }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Members</CardTitle>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalMembers || 0}</div>
-              <p className="text-xs text-muted-foreground">Across all churches</p>
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <Card className="h-[140px] stat-card-hover bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border-green-200 dark:border-green-800 hover:shadow-lg transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">Total Members</CardTitle>
+                <Users className="h-5 w-5 text-green-600 dark:text-green-400 pulse-icon" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-green-900 dark:text-green-100 mb-2">
+                  <AnimatedCounter target={stats?.totalMembers || 0} />
+                </div>
+                <p className="text-xs text-green-600 dark:text-green-400">
+                  Across all churches
+                </p>
+                <div className="w-full bg-green-200 dark:bg-green-800 rounded-full h-1.5 mt-3">
+                  <motion.div
+                    className="bg-gradient-to-r from-green-500 to-emerald-500 h-1.5 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: "85%" }}
+                    transition={{ duration: 2, delay: 0.8, ease: "easeOut" }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Attendance</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.totalAttendance || 0}</div>
-              <p className="text-xs text-muted-foreground">All-time records</p>
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <Card className="h-[140px] stat-card-hover bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950 dark:to-violet-950 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">Total Attendance</CardTitle>
+                <Calendar className="h-5 w-5 text-purple-600 dark:text-purple-400 pulse-icon" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-purple-900 dark:text-purple-100 mb-2">
+                  <AnimatedCounter target={stats?.totalAttendance || 0} />
+                </div>
+                <p className="text-xs text-purple-600 dark:text-purple-400">
+                  All-time records
+                </p>
+                <div className="w-full bg-purple-200 dark:bg-purple-800 rounded-full h-1.5 mt-3">
+                  <motion.div
+                    className="bg-gradient-to-r from-purple-500 to-violet-500 h-1.5 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: "75%" }}
+                    transition={{ duration: 2, delay: 0.8, ease: "easeOut" }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Churches</CardTitle>
-              <Activity className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats?.activeChurches || 0}</div>
-              <p className="text-xs text-muted-foreground">Last 30 days</p>
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <Card className="h-[140px] stat-card-hover bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950 dark:to-red-950 border-orange-200 dark:border-orange-800 hover:shadow-lg transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">Active Churches</CardTitle>
+                <Activity className="h-5 w-5 text-orange-600 dark:text-orange-400 pulse-icon" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-orange-900 dark:text-orange-100 mb-2">
+                  <AnimatedCounter target={stats?.activeChurches || 0} />
+                </div>
+                <p className="text-xs text-orange-600 dark:text-orange-400">
+                  Last 30 days
+                </p>
+                <div className="w-full bg-orange-200 dark:bg-orange-800 rounded-full h-1.5 mt-3">
+                  <motion.div
+                    className="bg-gradient-to-r from-orange-500 to-red-500 h-1.5 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min(((stats?.activeChurches || 0) / Math.max(stats?.totalChurches || 1, 1)) * 100, 100)}%` }}
+                    transition={{ duration: 2, delay: 0.8, ease: "easeOut" }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
 
         {/* Churches Management */}
