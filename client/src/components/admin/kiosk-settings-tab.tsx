@@ -65,6 +65,7 @@ export function KioskSettingsTab() {
 
   useEffect(() => {
     if (kioskSettings) {
+      console.log('Kiosk Settings received:', kioskSettings);
       setSettings({
         kioskModeEnabled: kioskSettings.kioskModeEnabled || false,
         kioskSessionTimeout: kioskSettings.kioskSessionTimeout || 60,
@@ -73,6 +74,7 @@ export function KioskSettingsTab() {
       
       // Set initial time remaining if session is active
       if (kioskSettings.activeSession?.isActive) {
+        console.log('Active session found, time remaining:', kioskSettings.activeSession.timeRemaining);
         setTimeRemaining(kioskSettings.activeSession.timeRemaining);
       } else {
         setTimeRemaining(null);
