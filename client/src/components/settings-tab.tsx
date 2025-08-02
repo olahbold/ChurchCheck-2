@@ -47,7 +47,11 @@ export default function SettingsTab() {
 
   const handleExportMembers = async () => {
     try {
-      const response = await fetch('/api/export/members');
+      const response = await fetch('/api/export/members', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+      });
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');

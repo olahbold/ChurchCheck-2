@@ -35,7 +35,11 @@ export default function RegisterTab() {
   // Export function
   const handleExportMembers = async () => {
     try {
-      const response = await fetch('/api/export/members');
+      const response = await fetch('/api/export/members', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+      });
       if (!response.ok) {
         throw new Error('Export failed');
       }
