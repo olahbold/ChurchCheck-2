@@ -523,73 +523,111 @@ export function SuperAdminBusinessOps({ onBack }: SuperAdminBusinessOpsProps) {
         )}
 
         {/* Report Generation */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Generate Business Reports</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Generate comprehensive reports for business analysis
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Button
-                onClick={() => generateReport('revenue')}
-                disabled={generatingReport === 'revenue'}
-                className="h-20 flex flex-col items-center justify-center space-y-2"
-                variant="outline"
-              >
-                {generatingReport === 'revenue' ? (
-                  <Clock className="h-5 w-5 animate-spin" />
-                ) : (
-                  <DollarSign className="h-5 w-5" />
-                )}
-                <span className="text-sm">Revenue Report</span>
-              </Button>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.9 }}
+        >
+          <Card>
+            <CardHeader>
+              <CardTitle>Generate Business Reports</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Generate comprehensive reports for business analysis
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 1.0 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Button
+                    onClick={() => generateReport('revenue')}
+                    disabled={generatingReport === 'revenue'}
+                    className="w-full h-[100px] flex flex-col items-center justify-center space-y-3 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border-green-200 dark:border-green-800 hover:shadow-lg transition-all duration-300 text-green-700 dark:text-green-300 hover:text-green-800 dark:hover:text-green-200"
+                    variant="outline"
+                  >
+                    {generatingReport === 'revenue' ? (
+                      <Clock className="h-6 w-6 animate-spin text-green-600 dark:text-green-400" />
+                    ) : (
+                      <DollarSign className="h-6 w-6 text-green-600 dark:text-green-400 pulse-icon" />
+                    )}
+                    <span className="text-sm font-medium">Revenue Report</span>
+                  </Button>
+                </motion.div>
 
-              <Button
-                onClick={() => generateReport('subscription')}
-                disabled={generatingReport === 'subscription'}
-                className="h-20 flex flex-col items-center justify-center space-y-2"
-                variant="outline"
-              >
-                {generatingReport === 'subscription' ? (
-                  <Clock className="h-5 w-5 animate-spin" />
-                ) : (
-                  <CreditCard className="h-5 w-5" />
-                )}
-                <span className="text-sm">Subscription Report</span>
-              </Button>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 1.1 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Button
+                    onClick={() => generateReport('subscription')}
+                    disabled={generatingReport === 'subscription'}
+                    className="w-full h-[100px] flex flex-col items-center justify-center space-y-3 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all duration-300 text-blue-700 dark:text-blue-300 hover:text-blue-800 dark:hover:text-blue-200"
+                    variant="outline"
+                  >
+                    {generatingReport === 'subscription' ? (
+                      <Clock className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
+                    ) : (
+                      <CreditCard className="h-6 w-6 text-blue-600 dark:text-blue-400 pulse-icon" />
+                    )}
+                    <span className="text-sm font-medium">Subscription Report</span>
+                  </Button>
+                </motion.div>
 
-              <Button
-                onClick={() => generateReport('churn')}
-                disabled={generatingReport === 'churn'}
-                className="h-20 flex flex-col items-center justify-center space-y-2"
-                variant="outline"
-              >
-                {generatingReport === 'churn' ? (
-                  <Clock className="h-5 w-5 animate-spin" />
-                ) : (
-                  <AlertTriangle className="h-5 w-5" />
-                )}
-                <span className="text-sm">Churn Analysis</span>
-              </Button>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 1.2 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Button
+                    onClick={() => generateReport('churn')}
+                    disabled={generatingReport === 'churn'}
+                    className="w-full h-[100px] flex flex-col items-center justify-center space-y-3 bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950 dark:to-orange-950 border-red-200 dark:border-red-800 hover:shadow-lg transition-all duration-300 text-red-700 dark:text-red-300 hover:text-red-800 dark:hover:text-red-200"
+                    variant="outline"
+                  >
+                    {generatingReport === 'churn' ? (
+                      <Clock className="h-6 w-6 animate-spin text-red-600 dark:text-red-400" />
+                    ) : (
+                      <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400 pulse-icon" />
+                    )}
+                    <span className="text-sm font-medium">Churn Analysis</span>
+                  </Button>
+                </motion.div>
 
-              <Button
-                onClick={() => generateReport('usage')}
-                disabled={generatingReport === 'usage'}
-                className="h-20 flex flex-col items-center justify-center space-y-2"
-                variant="outline"
-              >
-                {generatingReport === 'usage' ? (
-                  <Clock className="h-5 w-5 animate-spin" />
-                ) : (
-                  <BarChart3 className="h-5 w-5" />
-                )}
-                <span className="text-sm">Usage Report</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 1.3 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Button
+                    onClick={() => generateReport('usage')}
+                    disabled={generatingReport === 'usage'}
+                    className="w-full h-[100px] flex flex-col items-center justify-center space-y-3 bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950 dark:to-violet-950 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all duration-300 text-purple-700 dark:text-purple-300 hover:text-purple-800 dark:hover:text-purple-200"
+                    variant="outline"
+                  >
+                    {generatingReport === 'usage' ? (
+                      <Clock className="h-6 w-6 animate-spin text-purple-600 dark:text-purple-400" />
+                    ) : (
+                      <BarChart3 className="h-6 w-6 text-purple-600 dark:text-purple-400 pulse-icon" />
+                    )}
+                    <span className="text-sm font-medium">Usage Report</span>
+                  </Button>
+                </motion.div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Recent Reports */}
         {reports.length > 0 && (
