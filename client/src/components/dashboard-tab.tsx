@@ -11,8 +11,8 @@ import { Users, Calendar, AlertTriangle, TrendingUp, Download, Search, MessageSq
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
-// Animated counter component
-function AnimatedCounter({ target, duration = 2000 }: { target: number; duration?: number }) {
+// Enhanced animated counter with spring effect
+function AnimatedCounter({ target, duration = 2500 }: { target: number; duration?: number }) {
   const [count, setCount] = useState(0);
   
   useEffect(() => {
@@ -20,8 +20,17 @@ function AnimatedCounter({ target, duration = 2000 }: { target: number; duration
     const animate = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      const currentCount = Math.floor(progress * target);
-      setCount(currentCount);
+      
+      // Easing function for spring-like effect
+      const easeOutBack = (t: number) => {
+        const c1 = 1.70158;
+        const c3 = c1 + 1;
+        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      };
+      
+      const easedProgress = easeOutBack(progress);
+      const currentCount = Math.floor(easedProgress * target);
+      setCount(Math.min(currentCount, target));
       
       if (progress < 1) {
         requestAnimationFrame(animate);
@@ -30,12 +39,26 @@ function AnimatedCounter({ target, duration = 2000 }: { target: number; duration
     
     const timer = setTimeout(() => {
       requestAnimationFrame(animate);
-    }, 100);
+    }, 300); // Longer delay to make animation more noticeable
     
     return () => clearTimeout(timer);
   }, [target, duration]);
   
-  return <span>{count}</span>;
+  return (
+    <motion.span
+      key={target}
+      initial={{ scale: 1.2, opacity: 0.8 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ 
+        type: "spring",
+        damping: 20,
+        stiffness: 300,
+        duration: 0.6
+      }}
+    >
+      {count}
+    </motion.span>
+  );
 }
 
 export default function DashboardTab() {

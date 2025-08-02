@@ -1,4 +1,54 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+// Enhanced animated counter with spring effect
+function AnimatedCounter({ target, duration = 2500 }: { target: number; duration?: number }) {
+  const [count, setCount] = useState(0);
+  
+  useEffect(() => {
+    let startTime = Date.now();
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function for spring-like effect
+      const easeOutBack = (t: number) => {
+        const c1 = 1.70158;
+        const c3 = c1 + 1;
+        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      };
+      
+      const easedProgress = easeOutBack(progress);
+      const currentCount = Math.floor(easedProgress * target);
+      setCount(Math.min(currentCount, target));
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    const timer = setTimeout(() => {
+      requestAnimationFrame(animate);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [target, duration]);
+  
+  return (
+    <motion.span
+      key={target}
+      initial={{ scale: 1.2, opacity: 0.8 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ 
+        type: "spring",
+        damping: 20,
+        stiffness: 300,
+        duration: 0.6
+      }}
+    >
+      {count}
+    </motion.span>
+  );
+}
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -375,7 +425,7 @@ export default function VisitorsTab() {
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.5, duration: 0.6 }}
                   >
-                    {visitors.length}
+                    <AnimatedCounter target={visitors.length} />
                   </motion.p>
                 </div>
               </div>
@@ -402,7 +452,7 @@ export default function VisitorsTab() {
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.6, duration: 0.6 }}
                   >
-                    {statusCounts.pending || 0}
+                    <AnimatedCounter target={statusCounts.pending || 0} />
                   </motion.p>
                 </div>
               </div>
@@ -429,7 +479,7 @@ export default function VisitorsTab() {
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.7, duration: 0.6 }}
                   >
-                    {statusCounts.contacted || 0}
+                    <AnimatedCounter target={statusCounts.contacted || 0} />
                   </motion.p>
                 </div>
               </div>
@@ -456,7 +506,7 @@ export default function VisitorsTab() {
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.8, duration: 0.6 }}
                   >
-                    {statusCounts.member || 0}
+                    <AnimatedCounter target={statusCounts.member || 0} />
                   </motion.p>
                 </div>
               </div>

@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,56 @@ import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+
+// Enhanced animated counter with spring effect
+function AnimatedCounter({ target, duration = 2500 }: { target: number; duration?: number }) {
+  const [count, setCount] = useState(0);
+  
+  useEffect(() => {
+    let startTime = Date.now();
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function for spring-like effect
+      const easeOutBack = (t: number) => {
+        const c1 = 1.70158;
+        const c3 = c1 + 1;
+        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      };
+      
+      const easedProgress = easeOutBack(progress);
+      const currentCount = Math.floor(easedProgress * target);
+      setCount(Math.min(currentCount, target));
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    const timer = setTimeout(() => {
+      requestAnimationFrame(animate);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [target, duration]);
+  
+  return (
+    <motion.span
+      key={target}
+      initial={{ scale: 1.2, opacity: 0.8 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ 
+        type: "spring",
+        damping: 20,
+        stiffness: 300,
+        duration: 0.6
+      }}
+    >
+      {count}
+    </motion.span>
+  );
+}
 
 interface AttendanceRecord {
   id: string;
@@ -443,7 +494,7 @@ export default function HistoryTab() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-600">Total Attendance</p>
-                    <p className="text-3xl font-bold text-slate-900">{rangeStats.totalAttendance}</p>
+                    <p className="text-3xl font-bold text-slate-900"><AnimatedCounter target={rangeStats.totalAttendance} /></p>
                   </div>
                   <div className="w-12 h-12 bg-[hsl(258,90%,66%)]/10 rounded-lg flex items-center justify-center">
                     <Users className="text-[hsl(258,90%,66%)] text-xl" />
@@ -462,7 +513,7 @@ export default function HistoryTab() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm font-medium text-slate-600">Daily Average</p>
-                    <p className="text-3xl font-bold text-slate-900">{rangeStats.averagePerDay}</p>
+                    <p className="text-3xl font-bold text-slate-900"><AnimatedCounter target={rangeStats.averagePerDay} /></p>
                   </div>
                   <div className="w-12 h-12 bg-[hsl(142,76%,36%)]/10 rounded-lg flex items-center justify-center">
                     <TrendingUp className="text-[hsl(142,76%,36%)] text-xl" />
@@ -482,7 +533,7 @@ export default function HistoryTab() {
                   <div>
                     <p className="text-sm font-medium text-slate-600">Gender Split</p>
                     <p className="text-3xl font-bold text-slate-900">
-                      {rangeStats.genderBreakdown.male}M / {rangeStats.genderBreakdown.female}F
+                      <AnimatedCounter target={rangeStats.genderBreakdown.male} />M / <AnimatedCounter target={rangeStats.genderBreakdown.female} />F
                     </p>
                   </div>
                   <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center">
@@ -503,7 +554,7 @@ export default function HistoryTab() {
                   <div>
                     <p className="text-sm font-medium text-slate-600">Age Groups</p>
                     <p className="text-lg font-bold text-slate-900">
-                      {rangeStats.ageGroupBreakdown.adult}A / {rangeStats.ageGroupBreakdown.child}C / {rangeStats.ageGroupBreakdown.adolescent}T
+                      <AnimatedCounter target={rangeStats.ageGroupBreakdown.adult} />A / <AnimatedCounter target={rangeStats.ageGroupBreakdown.child} />C / <AnimatedCounter target={rangeStats.ageGroupBreakdown.adolescent} />T
                     </p>
                   </div>
                   <div className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center">
