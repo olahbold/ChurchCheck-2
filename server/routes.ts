@@ -129,7 +129,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         members = await storage.getAllMembers(req.churchId);
       }
       
-      res.json(members);
+      // Add children data for each member to support family check-in
+      const membersWithChildren = await Promise.all(
+        members.map(async (member) => {
+          const children = await storage.getMembersByParent(member.id, req.churchId);
+          return {
+            ...member,
+            children: children.length > 0 ? children : undefined
+          };
+        })
+      );
+      
+      res.json(membersWithChildren);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch members" });
     }
