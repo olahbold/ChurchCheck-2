@@ -20,8 +20,25 @@ export interface AuthenticatedRequest extends Request {
 }
 
 // JWT token utilities
-export const generateToken = (payload: ChurchUserPayload): string => {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+export const generateToken = (payload: ChurchUserPayload, expiresIn: string = '7d'): string => {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn });
+};
+
+// Generate extended token for kiosk sessions  
+export const generateKioskToken = (payload: ChurchUserPayload, kioskTimeoutMinutes: number): string => {
+  const extendedMinutes = Math.max(kioskTimeoutMinutes + 30, 90); // Add 30 min buffer, minimum 90 min
+  
+  // Create clean payload excluding JWT reserved claims
+  const cleanPayload = {
+    id: payload.id,
+    churchId: payload.churchId,
+    email: payload.email,
+    role: payload.role,
+    firstName: payload.firstName,
+    lastName: payload.lastName,
+  };
+  
+  return jwt.sign(cleanPayload, JWT_SECRET, { expiresIn: `${extendedMinutes}m` });
 };
 
 export const verifyToken = (token: string): ChurchUserPayload | null => {
@@ -41,7 +58,7 @@ export const verifyPassword = async (password: string, hash: string): Promise<bo
   return await bcrypt.compare(password, hash);
 };
 
-// Authentication middleware
+// Authentication middleware with kiosk session extension
 export const authenticateToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
@@ -50,8 +67,37 @@ export const authenticateToken = async (req: AuthenticatedRequest, res: Response
     return res.status(401).json({ error: 'Access token required' });
   }
 
-  const user = verifyToken(token);
+  let user = verifyToken(token);
+  
+  // If token is expired but kiosk session is active, extend the session
   if (!user) {
+    try {
+      // Try to decode the token without verification to get user info
+      const decoded = jwt.decode(token) as ChurchUserPayload | null;
+      if (decoded?.churchId) {
+        const { churchStorage } = await import('./church-storage.js');
+        const church = await churchStorage.getChurchById(decoded.churchId);
+        
+        if (church && church.kioskModeEnabled && church.kioskActiveEventId && church.kioskSessionStartTime) {
+          const sessionStart = new Date(church.kioskSessionStartTime);
+          const now = new Date();
+          const sessionTimeout = (church.kioskSessionTimeout || 60) * 60 * 1000;
+          const sessionEnd = new Date(sessionStart.getTime() + sessionTimeout);
+          
+          // If kiosk session is still active, allow expired token to continue
+          if (now < sessionEnd) {
+            const extendedToken = generateKioskToken(decoded, church.kioskSessionTimeout || 60);
+            res.setHeader('X-Extended-Token', extendedToken);
+            req.user = decoded;
+            req.churchId = decoded.churchId;
+            return next();
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Kiosk session extension failed:', error);
+    }
+    
     return res.status(403).json({ error: 'Invalid or expired token' });
   }
 

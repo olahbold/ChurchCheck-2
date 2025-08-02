@@ -14,6 +14,7 @@ import {
 import { eq } from "drizzle-orm";
 import { db } from "./db.js";
 import { insertChurchSchema, insertChurchUserSchema, kioskSettingsSchema, events } from '../shared/schema.js';
+import { generateKioskToken, type ChurchUserPayload } from './auth.js';
 
 const router = Router();
 
@@ -353,6 +354,17 @@ router.post('/kiosk-session/start', authenticateToken, requireRole(['admin']), a
       console.error('Error fetching event:', e);
     }
 
+    // Generate extended token for kiosk session persistence
+    const userPayload: ChurchUserPayload = {
+      id: req.user!.id,
+      churchId: req.user!.churchId,
+      email: req.user!.email,
+      role: req.user!.role,
+      firstName: req.user!.firstName,
+      lastName: req.user!.lastName,
+    };
+    const extendedToken = generateKioskToken(userPayload, church.kioskSessionTimeout || 60);
+
     res.json({ 
       success: true, 
       message: 'Kiosk session started successfully',
@@ -361,7 +373,8 @@ router.post('/kiosk-session/start', authenticateToken, requireRole(['admin']), a
         eventName: eventName,
         startTime: church.kioskSessionStartTime,
         timeoutMinutes: church.kioskSessionTimeout
-      }
+      },
+      extendedToken // Send back extended token for session persistence
     });
   } catch (error) {
     console.error('Start kiosk session error:', error);
@@ -389,10 +402,22 @@ router.post('/kiosk-session/extend', authenticateToken, requireRole(['admin']), 
       return res.status(404).json({ error: 'Church not found' });
     }
 
+    // Generate new extended token for session extension
+    const userPayload: ChurchUserPayload = {
+      id: req.user!.id,
+      churchId: req.user!.churchId,
+      email: req.user!.email,
+      role: req.user!.role,
+      firstName: req.user!.firstName,
+      lastName: req.user!.lastName,
+    };
+    const extendedToken = generateKioskToken(userPayload, church.kioskSessionTimeout || 60);
+
     res.json({ 
       success: true, 
       message: 'Kiosk session extended successfully',
-      newStartTime: church.kioskSessionStartTime
+      newStartTime: church.kioskSessionStartTime,
+      extendedToken // Send back new extended token
     });
   } catch (error) {
     console.error('Extend kiosk session error:', error);

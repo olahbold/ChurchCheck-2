@@ -275,11 +275,15 @@ export function KioskSettingsTab() {
                   // Extend session
                   apiRequest("/api/churches/kiosk-session/extend", {
                     method: "POST",
-                  }).then(() => {
+                  }).then((response: any) => {
+                    // Update token for extended session
+                    if (response.extendedToken) {
+                      localStorage.setItem('auth_token', response.extendedToken);
+                    }
                     queryClient.invalidateQueries({ queryKey: ["/api/churches/kiosk-settings"] });
                     toast({
                       title: "Session Extended",
-                      description: "Kiosk session has been extended successfully.",
+                      description: "Kiosk session and admin authentication extended successfully.",
                     });
                   }).catch(() => {
                     toast({
@@ -359,11 +363,15 @@ export function KioskSettingsTab() {
                           apiRequest("/api/churches/kiosk-session/start", {
                             method: "POST",
                             body: JSON.stringify({ eventId: event.id }),
-                          }).then(() => {
+                          }).then((response: any) => {
+                            // Store extended token for session persistence
+                            if (response.extendedToken) {
+                              localStorage.setItem('auth_token', response.extendedToken);
+                            }
                             queryClient.invalidateQueries({ queryKey: ["/api/churches/kiosk-settings"] });
                             toast({
                               title: "Kiosk Session Started",
-                              description: `Members can now self check-in to "${event.name}".`,
+                              description: `Members can now self check-in to "${event.name}". Admin session extended for kiosk duration.`,
                             });
                           }).catch(() => {
                             toast({
