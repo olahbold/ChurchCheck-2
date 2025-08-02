@@ -45,9 +45,10 @@ export default function CheckInTab() {
     refetchInterval: 30000,
   });
 
-  // Get today's attendance records
+  // Get today's attendance records (filtered by selected event)
   const { data: todayAttendance = [] } = useQuery<any[]>({
-    queryKey: ['/api/attendance/today'],
+    queryKey: ['/api/attendance/today', selectedEventId],
+    queryFn: () => apiRequest(`/api/attendance/today${selectedEventId ? `?eventId=${selectedEventId}` : ''}`),
     refetchInterval: 10000,
   });
 
@@ -330,7 +331,12 @@ export default function CheckInTab() {
       {/* Today's Attendance */}
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Today's Attendance ({formatTodayDate()})</CardTitle>
+          <CardTitle>
+            {selectedEventId ? 
+              `${activeEvents.find(e => e.id === selectedEventId)?.name || 'Event'} Attendance` : 
+              "Today's Attendance"
+            } ({formatTodayDate()})
+          </CardTitle>
           {todayAttendance.length > 0 && (
             <Button variant="outline" size="sm" onClick={handleExportAttendance}>
               <Download className="h-4 w-4 mr-2" />
@@ -342,7 +348,7 @@ export default function CheckInTab() {
           {todayAttendance.length === 0 ? (
             <div className="text-center py-8 text-slate-500">
               <UserCheck className="h-16 w-16 mx-auto mb-4 text-slate-300" />
-              <p>No check-ins yet today</p>
+              <p>{selectedEventId ? 'No attendees for this event yet' : 'No check-ins yet today'}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -362,8 +368,14 @@ export default function CheckInTab() {
                         <p className="font-medium text-gray-900 truncate">
                           {memberName}
                         </p>
+                        <Badge 
+                          variant={record.visitorId ? "destructive" : "default"} 
+                          className="text-xs"
+                        >
+                          {record.visitorId ? 'Visitor' : 'Member'}
+                        </Badge>
                         <Badge variant="secondary" className="text-xs">
-                          {record.member?.ageGroup || record.visitorAgeGroup || 'N/A'}
+                          {record.member?.ageGroup || 'N/A'}
                         </Badge>
                       </div>
                       <p className="text-sm text-gray-600">

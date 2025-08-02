@@ -374,8 +374,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const storage = getStorage(req);
       const today = new Date().toISOString().split('T')[0];
+      const eventId = req.query.eventId as string;
       const attendance = await storage.getAttendanceForDate(today);
-      res.json(attendance);
+      
+      // Filter by church if churchId exists
+      let churchAttendance = req.churchId ? 
+        attendance.filter(record => record.churchId === req.churchId) : 
+        attendance;
+      
+      // Filter by event if eventId is provided
+      if (eventId) {
+        churchAttendance = churchAttendance.filter(record => record.eventId === eventId);
+      }
+      
+      res.json(churchAttendance);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch today's attendance" });
     }
