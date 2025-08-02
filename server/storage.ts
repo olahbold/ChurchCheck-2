@@ -833,10 +833,10 @@ export class DatabaseStorage implements IStorage {
         email: members.email,
         whatsappNumber: members.whatsappNumber,
         address: members.address,
-        dateOfBirth: sql`TO_CHAR(${members.dateOfBirth}, 'YYYY-MM-DD')`,
-        weddingAnniversary: sql`TO_CHAR(${members.weddingAnniversary}, 'YYYY-MM-DD')`,
+        dateOfBirth: members.dateOfBirth,
+        weddingAnniversary: members.weddingAnniversary,
         lastAttendance: sql`MAX(${attendanceRecords.attendanceDate})`,
-        createdAt: sql`TO_CHAR(${members.createdAt}, 'YYYY-MM-DD HH24:MI:SS')`,
+        createdAt: members.createdAt,
       })
       .from(members)
       .leftJoin(
@@ -886,10 +886,10 @@ export class DatabaseStorage implements IStorage {
         email: members.email,
         whatsappNumber: members.whatsappNumber,
         address: members.address,
-        dateOfBirth: sql`TO_CHAR(${members.dateOfBirth}, 'YYYY-MM-DD')`,
-        weddingAnniversary: sql`TO_CHAR(${members.weddingAnniversary}, 'YYYY-MM-DD')`,
+        dateOfBirth: members.dateOfBirth,
+        weddingAnniversary: members.weddingAnniversary,
         isCurrentMember: members.isCurrentMember,
-        lastAttendance: sql`TO_CHAR(${members.createdAt}, 'YYYY-MM-DD')`,
+        lastAttendance: members.createdAt,
       })
       .from(members)
       .where(
@@ -916,9 +916,9 @@ export class DatabaseStorage implements IStorage {
         email: members.email,
         whatsappNumber: members.whatsappNumber,
         address: members.address,
-        dateOfBirth: sql`TO_CHAR(${members.dateOfBirth}, 'YYYY-MM-DD')`,
-        weddingAnniversary: sql`TO_CHAR(${members.weddingAnniversary}, 'YYYY-MM-DD')`,
-        lastAttendance: sql`COALESCE(TO_CHAR(MAX(${attendanceRecords.attendanceDate}), 'YYYY-MM-DD'), 'Never')`,
+        dateOfBirth: members.dateOfBirth,
+        weddingAnniversary: members.weddingAnniversary,
+        lastAttendance: sql`COALESCE(MAX(${attendanceRecords.attendanceDate}), 'Never')`,
       })
       .from(members)
       .leftJoin(attendanceRecords, and(
