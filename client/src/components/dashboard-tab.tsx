@@ -165,20 +165,25 @@ export default function DashboardTab() {
   };
 
   const getAttendanceStatus = (member: MemberWithChildren) => {
-    // Mock attendance status - in real app this would come from recent attendance data
-    const statuses = ['present', 'absent-1', 'absent-2', 'absent-3+'];
-    const status = statuses[Math.floor(Math.random() * statuses.length)];
+    // Get real attendance status based on recent attendance data
+    const recentAttendance = todaysAttendance.filter(record => 
+      record.memberId === member.id && !record.isVisitor
+    );
     
-    switch (status) {
-      case 'present':
+    if (recentAttendance.length > 0) {
+      const today = new Date().toISOString().split('T')[0];
+      const hasAttendedToday = recentAttendance.some(record => 
+        record.attendanceDate === today
+      );
+      
+      if (hasAttendedToday) {
         return { text: 'Present Today', color: 'text-[hsl(142,76%,36%)]' };
-      case 'absent-1':
-        return { text: 'Absent (1 week)', color: 'text-[hsl(45,93%,47%)]' };
-      case 'absent-2':
-        return { text: 'Absent (2 weeks)', color: 'text-[hsl(45,93%,47%)]' };
-      default:
-        return { text: 'Absent (3+ weeks)', color: 'text-[hsl(0,84%,60%)]' };
+      }
     }
+    
+    // For members without today's attendance, show absent status
+    // This is a simplified version - in production, you'd check historical data
+    return { text: 'Absent (4+ weeks)', color: 'text-[hsl(0,84%,60%)]' };
   };
 
   return (

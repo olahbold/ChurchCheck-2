@@ -766,7 +766,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Export data route
+  // Export data route - Updated with cache busting
   app.get("/api/export/members", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
       const storage = getStorage(req);
@@ -840,15 +840,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const date = now.toISOString().split('T')[0];
       const time = now.toTimeString().split(' ')[0].replace(/:/g, '');
       
-      // Add strong cache-busting headers
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+      // Add strong cache-busting headers and unique response
+      const uniqueId = Math.random().toString(36).substring(7);
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0, private');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       res.setHeader('Last-Modified', new Date().toUTCString());
-      res.setHeader('ETag', `"${Date.now()}"`);
-      res.setHeader('Content-Disposition', `attachment; filename="UPDATED_members_with_attendance_${date}_${time}.csv"`);
-      res.send(csvHeader + csvData);
+      res.setHeader('ETag', `"${Date.now()}-${uniqueId}"`);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Disposition', `attachment; filename="NEW_FORMAT_members_${date}_${time}_${uniqueId}.csv"`);
+      
+      // Add BOM for proper Excel UTF-8 support and ensure fresh content
+      const csvWithBOM = '\ufeff' + csvHeader + csvData + `\n# Generated at ${new Date().toISOString()}`;
+      res.send(csvWithBOM);
     } catch (error) {
       console.error('Members export error:', error);
       res.status(500).json({ error: "Export failed" });
