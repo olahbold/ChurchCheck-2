@@ -42,8 +42,18 @@ export default function DashboardTab() {
   // Member data successfully loaded
 
   // Get recent attendance history (last 30 days) for proper attendance status calculation
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+  const endDate = new Date().toISOString().split('T')[0];
+  
   const { data: recentAttendanceData = [] } = useQuery<any[]>({
-    queryKey: ['/api/attendance/history'],
+    queryKey: ['/api/attendance/history', startDate, endDate],
+    queryFn: () => fetch(`/api/attendance/history?startDate=${startDate}&endDate=${endDate}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+      },
+    }).then(res => res.json()),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
