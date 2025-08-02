@@ -22,6 +22,13 @@ interface AttendanceRecord {
   checkInMethod: string;
   isGuest: boolean;
   isVisitor: boolean;
+  visitorName?: string;
+  visitorAgeGroup?: string;
+  event?: {
+    id: string;
+    name: string;
+    eventType: string;
+  };
   member: {
     id: string;
     firstName: string;
@@ -111,8 +118,10 @@ export default function HistoryTab() {
   // Filter records by search query
   const filteredHistory = attendanceHistory.filter(record => {
     if (!searchQuery) return true;
-    const fullName = `${record.member?.firstName || ''} ${record.member?.surname || ''}`.toLowerCase();
-    return fullName.includes(searchQuery.toLowerCase());
+    const memberName = record.member ? 
+      `${record.member.firstName} ${record.member.surname}` : 
+      record.visitorName || 'Unknown';
+    return memberName.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
   // Export filtered data as CSV
@@ -120,17 +129,22 @@ export default function HistoryTab() {
     if (filteredHistory.length === 0) return;
 
     const csvHeaders = ['Date', 'Name', 'Gender', 'Age Group', 'Check-in Time', 'Method', 'Type', 'Phone', 'Email'];
-    const csvData = filteredHistory.map(record => [
-      record.attendanceDate,
-      `${record.member?.firstName || ''} ${record.member?.surname || ''}`.trim(),
-      record.member?.gender || '',
-      record.member?.ageGroup || '',
-      new Date(record.checkInTime).toLocaleString(),
-      record.checkInMethod,
-      record.isVisitor ? 'Visitor' : 'Member',
-      record.member?.phone || '',
-      record.member?.email || ''
-    ]);
+    const csvData = filteredHistory.map(record => {
+      const memberName = record.member ? 
+        `${record.member.firstName} ${record.member.surname}` : 
+        record.visitorName || 'Unknown';
+      return [
+        record.attendanceDate,
+        memberName,
+        record.member?.gender || '',
+        record.member?.ageGroup || '',
+        new Date(record.checkInTime).toLocaleString(),
+        record.checkInMethod,
+        record.isVisitor ? 'Visitor' : 'Member',
+        record.member?.phone || '',
+        record.member?.email || ''
+      ];
+    });
 
     const csvContent = [
       [`Church Attendance History - ${startDateStr} to ${endDateStr}`],
@@ -598,54 +612,61 @@ export default function HistoryTab() {
               </div>
             ) : (
               <div className="space-y-3 max-h-96 overflow-y-auto">
-                {filteredHistory.map((record) => (
-                  <div key={record.id} className="flex items-center space-x-4 p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors">
-                    <div className="w-10 h-10 bg-[hsl(142,76%,36%)] rounded-full flex items-center justify-center">
-                      <span className="text-white font-medium text-sm">
-                        {record.member?.firstName?.[0] || 'U'}{record.member?.surname?.[0] || 'M'}
-                      </span>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium text-slate-900">
-                          {record.member?.firstName || 'Unknown'} {record.member?.surname || 'Member'}
-                          <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                {filteredHistory.map((record) => {
+                  const memberName = record.member ? 
+                    `${record.member.firstName} ${record.member.surname}` : 
+                    record.visitorName || 'Unknown';
+                  const initials = memberName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+                  
+                  return (
+                    <div key={record.id} className="flex items-center gap-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                        {initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <p className="font-medium text-gray-900 truncate">
+                            {memberName}
+                          </p>
+                          <span className={`px-2 py-1 text-xs rounded-full ${
                             record.isVisitor 
-                              ? 'bg-blue-100 text-blue-700' 
-                              : 'bg-purple-100 text-purple-700'
+                              ? 'bg-red-100 text-red-700' 
+                              : 'bg-blue-100 text-blue-700'
                           }`}>
                             {record.isVisitor ? 'Visitor' : 'Member'}
                           </span>
+                          <span className="px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-700">
+                            {record.member?.ageGroup || record.visitorAgeGroup || 'N/A'}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600">
+                          {formatTime(record.checkInTime)} • {record.checkInMethod} • {record.member?.phone || 'No phone'}
                         </p>
-                        <p className="text-sm text-slate-600">
-                          {formatDate(record.attendanceDate)}
-                        </p>
-                      </div>
-                      <p className="text-sm text-slate-500">
-                        {formatTime(record.checkInTime)} • {record.member?.gender} • {record.member?.ageGroup}
-                        {record.member?.phone && (
-                          <span className="ml-2">• {record.member.phone}</span>
+                        {record.event && (
+                          <p className="text-xs text-blue-600 mt-1">
+                            Event: {record.event.name}
+                          </p>
                         )}
-                      </p>
-                      {record.event && (
-                        <p className="text-xs text-blue-600 mt-1">
-                          Event: {record.event.name}
-                        </p>
-                      )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-500">
+                          {formatDate(record.attendanceDate)}
+                        </span>
+                        {!selectedMember && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => setSelectedMember(record.memberId || record.visitorId || null)}
+                            className="text-xs"
+                          >
+                            <User className="h-3 w-3 mr-1" />
+                            Timeline
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    {!selectedMember && (
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={() => setSelectedMember(record.memberId || record.visitorId || null)}
-                        className="text-xs"
-                      >
-                        <User className="h-3 w-3 mr-1" />
-                        Timeline
-                      </Button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>
