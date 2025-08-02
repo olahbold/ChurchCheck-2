@@ -41,6 +41,12 @@ export default function DashboardTab() {
   
   // Member data successfully loaded
 
+  // Get recent attendance history (last 30 days) for proper attendance status calculation
+  const { data: recentAttendanceData = [] } = useQuery<any[]>({
+    queryKey: ['/api/attendance/history'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
   // Get members needing follow-up
   const { data: followUpMembers = [] } = useQuery<any[]>({
     queryKey: ['/api/follow-up'],
@@ -165,8 +171,8 @@ export default function DashboardTab() {
   };
 
   const getAttendanceStatus = (member: MemberWithChildren) => {
-    // Get member's attendance records from recent attendance (last 30 days)
-    const memberAttendanceRecords = recentAttendance.filter(record => 
+    // Get member's attendance records from recent attendance data (last 30 days)
+    const memberAttendanceRecords = recentAttendanceData.filter(record => 
       record.memberId === member.id && !record.isVisitor
     );
     
