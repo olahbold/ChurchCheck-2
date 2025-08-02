@@ -624,7 +624,7 @@ export default function HistoryTab() {
                   <div>
                     <p className="text-sm font-medium text-slate-600">Age Groups</p>
                     <motion.p 
-                      className="text-3xl font-bold text-slate-900"
+                      className="text-2xl font-bold text-slate-900"
                       initial={{ scale: 0.8, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ delay: 0.8, duration: 0.6 }}
