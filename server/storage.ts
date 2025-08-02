@@ -447,23 +447,27 @@ export class DatabaseStorage implements IStorage {
 
   // Get attendance stats for a specific event
   async getEventAttendanceStats(churchId: string, eventId: string): Promise<any> {
+    const today = new Date().toISOString().split('T')[0];
+    
     const result = await db
       .select({
         total: sql<number>`count(*)`,
-        male: sql<number>`sum(case when coalesce(${members.gender}, ${attendanceRecords.visitorGender}) = 'male' then 1 else 0 end)`,
-        female: sql<number>`sum(case when coalesce(${members.gender}, ${attendanceRecords.visitorGender}) = 'female' then 1 else 0 end)`,
-        child: sql<number>`sum(case when coalesce(${members.ageGroup}, ${attendanceRecords.visitorAgeGroup}) = 'child' then 1 else 0 end)`,
-        adolescent: sql<number>`sum(case when coalesce(${members.ageGroup}, ${attendanceRecords.visitorAgeGroup}) = 'adolescent' then 1 else 0 end)`,
-        adult: sql<number>`sum(case when coalesce(${members.ageGroup}, ${attendanceRecords.visitorAgeGroup}) = 'adult' then 1 else 0 end)`,
+        male: sql<number>`sum(case when coalesce(${members.gender}, ${attendanceRecords.visitorGender}, ${visitors.gender}) = 'male' then 1 else 0 end)`,
+        female: sql<number>`sum(case when coalesce(${members.gender}, ${attendanceRecords.visitorGender}, ${visitors.gender}) = 'female' then 1 else 0 end)`,
+        child: sql<number>`sum(case when coalesce(${members.ageGroup}, ${attendanceRecords.visitorAgeGroup}, ${visitors.ageGroup}) = 'child' then 1 else 0 end)`,
+        adolescent: sql<number>`sum(case when coalesce(${members.ageGroup}, ${attendanceRecords.visitorAgeGroup}, ${visitors.ageGroup}) = 'adolescent' then 1 else 0 end)`,
+        adult: sql<number>`sum(case when coalesce(${members.ageGroup}, ${attendanceRecords.visitorAgeGroup}, ${visitors.ageGroup}) = 'adult' then 1 else 0 end)`,
         members: sql<number>`sum(case when ${attendanceRecords.memberId} is not null then 1 else 0 end)`,
         visitors: sql<number>`sum(case when ${attendanceRecords.visitorId} is not null then 1 else 0 end)`,
       })
       .from(attendanceRecords)
       .leftJoin(members, eq(attendanceRecords.memberId, members.id))
+      .leftJoin(visitors, eq(attendanceRecords.visitorId, visitors.id))
       .where(
         and(
           eq(attendanceRecords.churchId, churchId),
-          eq(attendanceRecords.eventId, eventId)
+          eq(attendanceRecords.eventId, eventId),
+          eq(attendanceRecords.attendanceDate, today)
         )
       );
 
