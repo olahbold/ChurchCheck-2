@@ -417,7 +417,7 @@ export function KioskSettingsTab() {
         </CardHeader>
         <CardContent className="text-orange-700 space-y-2">
           <p>• Sessions automatically expire after the set timeout</p>
-          <p>• Only active events selected by admin are available</p>
+          <p>• All active events are available for member self check-in</p>
           <p>• All check-ins are still recorded under your church account</p>
           <p>• Family check-ins require admin assistance</p>
           <p>• Visitor registration still requires admin approval</p>
