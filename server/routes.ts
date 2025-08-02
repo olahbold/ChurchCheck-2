@@ -840,12 +840,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const date = now.toISOString().split('T')[0];
       const time = now.toTimeString().split(' ')[0].replace(/:/g, '');
       
-      // Add cache-busting headers
+      // Add strong cache-busting headers
       res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
-      res.setHeader('Content-Disposition', `attachment; filename="members_with_attendance_${date}_${time}.csv"`);
+      res.setHeader('Last-Modified', new Date().toUTCString());
+      res.setHeader('ETag', `"${Date.now()}"`);
+      res.setHeader('Content-Disposition', `attachment; filename="UPDATED_members_with_attendance_${date}_${time}.csv"`);
       res.send(csvHeader + csvData);
     } catch (error) {
       console.error('Members export error:', error);
