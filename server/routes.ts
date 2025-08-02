@@ -790,7 +790,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
-      // Helper function to get attendance comment
+      // Helper functions for attendance data
+      const getLastAttendanceDate = (memberId: string): string => {
+        const attendanceDates = memberAttendance.get(memberId) || [];
+        if (attendanceDates.length === 0) {
+          return "Never attended";
+        }
+        
+        const mostRecentAttendance = new Date(Math.max(...attendanceDates.map(d => d.getTime())));
+        return mostRecentAttendance.toISOString().split('T')[0];
+      };
+
       const getAttendanceComment = (memberId: string): string => {
         const attendanceDates = memberAttendance.get(memberId) || [];
         if (attendanceDates.length === 0) {
@@ -813,17 +823,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
       
-      // Convert to CSV format with full member details including Member ID and attendance comments
-      const csvHeader = "Member ID,Member Name,Title,Gender,Age Group,Phone,Email,WhatsApp Number,Address,Date of Birth,Wedding Anniversary,Current Member,Fingerprint ID,Parent ID,Created At,Updated At,Attendance Comments\n";
+      // Convert to CSV format with full member details including Member ID and last attendance date
+      const csvHeader = "Member ID,Member Name,Title,Gender,Age Group,Phone,Email,WhatsApp Number,Address,Date of Birth,Wedding Anniversary,Current Member,Fingerprint ID,Parent ID,Created At,Last Attendance Date,Attendance Comments\n";
       const csvData = members.map(member => {
         const memberName = `${member.firstName} ${member.surname}`;
         const dateOfBirth = member.dateOfBirth ? new Date(member.dateOfBirth).toISOString().split('T')[0] : '';
         const weddingAnniversary = member.weddingAnniversary ? new Date(member.weddingAnniversary).toISOString().split('T')[0] : '';
         const createdAt = member.createdAt ? new Date(member.createdAt).toISOString().replace('T', ' ').replace('Z', '') : '';
-        const updatedAt = member.updatedAt ? new Date(member.updatedAt).toISOString().replace('T', ' ').replace('Z', '') : '';
+        const lastAttendanceDate = getLastAttendanceDate(member.id);
         const attendanceComment = getAttendanceComment(member.id);
         
-        return `"${member.id}","${memberName}","${member.title || ''}","${member.gender}","${member.ageGroup}","${member.phone || ''}","${member.email || ''}","${member.whatsappNumber || ''}","${member.address || ''}","${dateOfBirth}","${weddingAnniversary}","${member.isCurrentMember}","${member.fingerprintId || ''}","${member.parentId || ''}","${createdAt}","${updatedAt}","${attendanceComment}"`;
+        return `"${member.id}","${memberName}","${member.title || ''}","${member.gender}","${member.ageGroup}","${member.phone || ''}","${member.email || ''}","${member.whatsappNumber || ''}","${member.address || ''}","${dateOfBirth}","${weddingAnniversary}","${member.isCurrentMember}","${member.fingerprintId || ''}","${member.parentId || ''}","${createdAt}","${lastAttendanceDate}","${attendanceComment}"`;
       }).join('\n');
       
       const date = new Date().toISOString().split('T')[0];
