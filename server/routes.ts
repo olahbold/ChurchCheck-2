@@ -860,6 +860,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // BRAND NEW Export Route - Guaranteed Fresh Download
+  app.get("/api/export/members-fresh", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
+    try {
+      const storage = getStorage(req);
+      const members = await storage.getAllMembers(req.churchId!);
+      
+      // Create simple CSV with just the new format
+      const csvHeader = "Member ID,Member Name,Title,Gender,Age Group,Phone,Email,WhatsApp Number,Address,Date of Birth,Wedding Anniversary,Current Member,Fingerprint ID,Parent ID,Created At,Last Attendance Date,Attendance Comments\n";
+      const csvData = members.map(member => {
+        const memberName = `${member.firstName} ${member.surname}`;
+        const createdAt = member.createdAt ? new Date(member.createdAt).toISOString().replace('T', ' ').replace('Z', '') : '';
+        
+        return `"${member.id}","${memberName}","${member.title || ''}","${member.gender}","${member.ageGroup}","${member.phone || ''}","${member.email || ''}","${member.whatsappNumber || ''}","${member.address || ''}","","","${member.isCurrentMember}","${member.fingerprintId || ''}","${member.parentId || ''}","${createdAt}","Never attended","Absent (4+ weeks)"`;
+      }).join('\n');
+      
+      const timestamp = Date.now();
+      
+      // Force completely fresh download
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+      res.setHeader('Content-Disposition', `attachment; filename="FIXED_FORMAT_${timestamp}.csv"`);
+      
+      const csvWithBOM = '\ufeff' + csvHeader + csvData;
+      res.send(csvWithBOM);
+    } catch (error) {
+      res.status(500).json({ error: "Export failed" });
+    }
+  });
+
   app.get("/api/export/attendance", async (req, res) => {
     try {
       const { startDate, endDate } = req.query;
