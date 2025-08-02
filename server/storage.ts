@@ -168,7 +168,7 @@ export class DatabaseStorage implements IStorage {
     if (churchId) {
       query = query.where(eq(members.churchId, churchId));
     }
-    return await query.orderBy(members.firstName, members.surname);
+    return await query.orderBy(members.firstName);
   }
 
   async getMembersByParent(parentId: string): Promise<Member[]> {
