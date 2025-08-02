@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Shield, Users, Info, Activity, Timer } from "lucide-react";
+import { Clock, Shield, Users, Info, Activity, Timer, Play } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface KioskSettings {
@@ -33,6 +33,10 @@ export function KioskSettingsTab() {
 
   const { data: church, isLoading } = useQuery({
     queryKey: ["/api/churches/current"],
+  });
+
+  const { data: activeEvents } = useQuery({
+    queryKey: ["/api/events/active"],
   });
 
   const { data: kioskSettings, isLoading: isLoadingKiosk } = useQuery<KioskSettings>({
@@ -316,6 +320,73 @@ export function KioskSettingsTab() {
                 End Session
               </Button>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {settings.kioskModeEnabled && !settings.activeSession?.isActive && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-blue-800">
+              <Play className="h-5 w-5" />
+              Start Kiosk Session
+            </CardTitle>
+            <CardDescription className="text-blue-600">
+              Select an active event to enable member self check-in
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {activeEvents && activeEvents.length > 0 ? (
+              <div className="space-y-3">
+                <Label htmlFor="event-select" className="text-blue-700 font-medium">
+                  Choose Event for Kiosk Mode
+                </Label>
+                <div className="grid gap-3">
+                  {activeEvents.map((event: any) => (
+                    <div
+                      key={event.id}
+                      className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-200"
+                    >
+                      <div>
+                        <p className="font-medium text-blue-900">{event.name}</p>
+                        <p className="text-sm text-blue-600">
+                          {event.eventType.replace('_', ' ')} • {event.location}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          apiRequest("/api/churches/kiosk-session/start", {
+                            method: "POST",
+                            body: JSON.stringify({ eventId: event.id }),
+                          }).then(() => {
+                            queryClient.invalidateQueries({ queryKey: ["/api/churches/kiosk-settings"] });
+                            toast({
+                              title: "Kiosk Session Started",
+                              description: `Members can now self check-in to "${event.name}".`,
+                            });
+                          }).catch(() => {
+                            toast({
+                              title: "Start Failed",
+                              description: "Failed to start kiosk session.",
+                              variant: "destructive",
+                            });
+                          });
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        Start Session
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-6 text-blue-600">
+                <p className="mb-2">No active events available</p>
+                <p className="text-sm">Create and activate events in Event Management first</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
