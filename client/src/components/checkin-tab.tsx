@@ -148,27 +148,65 @@ export default function CheckInTab() {
   const handleFamilyCheckInSubmit = async () => {
     if (!selectedParent || !selectedEventId) return;
     
+    const results: { success: string[], failed: string[] } = { success: [], failed: [] };
+    
     try {
       // Check in parent
-      await manualCheckInMutation.mutateAsync(selectedParent.id);
+      try {
+        await manualCheckInMutation.mutateAsync(selectedParent.id);
+        results.success.push(selectedParent.firstName + ' ' + selectedParent.surname);
+      } catch (error: any) {
+        if (error?.isDuplicate || error?.message?.includes('already checked in')) {
+          results.failed.push(`${selectedParent.firstName} ${selectedParent.surname} (already checked in)`);
+        } else {
+          results.failed.push(`${selectedParent.firstName} ${selectedParent.surname} (error)`);
+        }
+      }
       
       // Check in selected children
       for (const childId of selectedChildren) {
-        await manualCheckInMutation.mutateAsync(childId);
+        const child = selectedParent.children?.find(c => c.id === childId);
+        if (child) {
+          try {
+            await manualCheckInMutation.mutateAsync(childId);
+            results.success.push(child.firstName + ' ' + child.surname);
+          } catch (error: any) {
+            if (error?.isDuplicate || error?.message?.includes('already checked in')) {
+              results.failed.push(`${child.firstName} ${child.surname} (already checked in)`);
+            } else {
+              results.failed.push(`${child.firstName} ${child.surname} (error)`);
+            }
+          }
+        }
       }
       
-      toast({
-        title: "Family Check-in Successful!",
-        description: `${selectedParent.firstName} ${selectedParent.surname} and ${selectedChildren.length} children checked in`,
-      });
+      // Show appropriate message based on results
+      if (results.success.length > 0 && results.failed.length === 0) {
+        toast({
+          title: "Family Check-in Successful!",
+          description: `Successfully checked in: ${results.success.join(', ')}`,
+        });
+      } else if (results.success.length > 0 && results.failed.length > 0) {
+        toast({
+          title: "Partial Family Check-in",
+          description: `✓ Checked in: ${results.success.join(', ')}\n✗ Failed: ${results.failed.join(', ')}`,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Family Check-in Failed",
+          description: `All members failed: ${results.failed.join(', ')}`,
+          variant: "destructive",
+        });
+      }
       
       setIsFamilyDialogOpen(false);
       setSelectedParent(null);
       setSelectedChildren([]);
     } catch (error) {
       toast({
-        title: "Family Check-in Failed",
-        description: "Some family members could not be checked in",
+        title: "Family Check-in Error",
+        description: "An unexpected error occurred during family check-in",
         variant: "destructive",
       });
     }
