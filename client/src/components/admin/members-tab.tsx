@@ -144,7 +144,7 @@ export function MembersTab() {
 
   const handleExportMembers = async () => {
     try {
-      const response = await fetch('/api/export/members', {
+      const response = await fetch('/api/export/members-fresh', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
         },

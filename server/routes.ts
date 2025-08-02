@@ -866,13 +866,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const storage = getStorage(req);
       const members = await storage.getAllMembers(req.churchId!);
       
-      // Create simple CSV with just the new format
+      // Get recent attendance to calculate attendance comments
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const startDate = thirtyDaysAgo.toISOString().split('T')[0];
+      const endDate = new Date().toISOString().split('T')[0];
+      const recentAttendance = await storage.getAttendanceHistory(startDate, endDate);
+      
+      // Create attendance lookup
+      const memberAttendance = new Map<string, Date[]>();
+      recentAttendance.forEach(record => {
+        if (record.memberId && !record.isVisitor) {
+          if (!memberAttendance.has(record.memberId)) {
+            memberAttendance.set(record.memberId, []);
+          }
+          memberAttendance.get(record.memberId)!.push(new Date(record.attendanceDate));
+        }
+      });
+      
+      // Helper functions for attendance data
+      const getLastAttendanceDate = (memberId: string): string => {
+        const attendanceDates = memberAttendance.get(memberId) || [];
+        if (attendanceDates.length === 0) {
+          return "Never attended";
+        }
+        
+        const mostRecentAttendance = new Date(Math.max(...attendanceDates.map(d => d.getTime())));
+        return mostRecentAttendance.toISOString().split('T')[0];
+      };
+
+      const getAttendanceComment = (memberId: string): string => {
+        const attendanceDates = memberAttendance.get(memberId) || [];
+        if (attendanceDates.length === 0) {
+          return "Absent (4+ weeks)";
+        }
+        
+        const mostRecentAttendance = new Date(Math.max(...attendanceDates.map(d => d.getTime())));
+        const daysSinceLastAttendance = Math.floor((new Date().getTime() - mostRecentAttendance.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysSinceLastAttendance === 0) {
+          return "Present Today";
+        } else if (daysSinceLastAttendance <= 7) {
+          return `Absent (${daysSinceLastAttendance} days)`;
+        } else if (daysSinceLastAttendance <= 14) {
+          return "Absent (1 week)";
+        } else if (daysSinceLastAttendance <= 21) {
+          return "Absent (2 weeks)";
+        } else if (daysSinceLastAttendance <= 28) {
+          return "Absent (3 weeks)";
+        } else {
+          return "Absent (4+ weeks)";
+        }
+      };
+      
       const csvHeader = "Member ID,Member Name,Title,Gender,Age Group,Phone,Email,WhatsApp Number,Address,Date of Birth,Wedding Anniversary,Current Member,Fingerprint ID,Parent ID,Created At,Last Attendance Date,Attendance Comments\n";
       const csvData = members.map(member => {
         const memberName = `${member.firstName} ${member.surname}`;
+        const dateOfBirth = member.dateOfBirth ? new Date(member.dateOfBirth).toISOString().split('T')[0] : '';
+        const weddingAnniversary = member.weddingAnniversary ? new Date(member.weddingAnniversary).toISOString().split('T')[0] : '';
         const createdAt = member.createdAt ? new Date(member.createdAt).toISOString().replace('T', ' ').replace('Z', '') : '';
+        const lastAttendanceDate = getLastAttendanceDate(member.id);
+        const attendanceComment = getAttendanceComment(member.id);
         
-        return `"${member.id}","${memberName}","${member.title || ''}","${member.gender}","${member.ageGroup}","${member.phone || ''}","${member.email || ''}","${member.whatsappNumber || ''}","${member.address || ''}","","","${member.isCurrentMember}","${member.fingerprintId || ''}","${member.parentId || ''}","${createdAt}","Never attended","Absent (4+ weeks)"`;
+        return `"${member.id}","${memberName}","${member.title || ''}","${member.gender}","${member.ageGroup}","${member.phone || ''}","${member.email || ''}","${member.whatsappNumber || ''}","${member.address || ''}","${dateOfBirth}","${weddingAnniversary}","${member.isCurrentMember}","${member.fingerprintId || ''}","${member.parentId || ''}","${createdAt}","${lastAttendanceDate}","${attendanceComment}"`;
       }).join('\n');
       
       const timestamp = Date.now();
@@ -880,11 +936,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Force completely fresh download
       res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
-      res.setHeader('Content-Disposition', `attachment; filename="FIXED_FORMAT_${timestamp}.csv"`);
+      res.setHeader('Content-Disposition', `attachment; filename="COMPLETE_FIXED_FORMAT_${timestamp}.csv"`);
       
       const csvWithBOM = '\ufeff' + csvHeader + csvData;
       res.send(csvWithBOM);
     } catch (error) {
+      console.error('Fresh export error:', error);
       res.status(500).json({ error: "Export failed" });
     }
   });
