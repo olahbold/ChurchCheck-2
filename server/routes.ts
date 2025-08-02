@@ -328,20 +328,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         churchId: req.churchId
       });
       
-      // Check if member/visitor already checked in today
+      // Check if member/visitor already checked in to this specific event today
       const today = attendanceData.attendanceDate || new Date().toISOString().split('T')[0];
       const existingAttendance = await storage.getAttendanceForDate(today);
       
-      // Check for duplicate check-in
+      // Check for duplicate check-in to the same event
       const isDuplicate = existingAttendance.some(record => 
-        (attendanceData.memberId && record.memberId === attendanceData.memberId) ||
-        (attendanceData.visitorId && record.visitorId === attendanceData.visitorId)
+        record.eventId === attendanceData.eventId &&
+        ((attendanceData.memberId && record.memberId === attendanceData.memberId) ||
+         (attendanceData.visitorId && record.visitorId === attendanceData.visitorId))
       );
       
       if (isDuplicate) {
         const personType = attendanceData.memberId ? 'Member' : 'Visitor';
         return res.status(400).json({ 
-          error: `${personType} has already checked in today. Only one check-in per day is allowed.`,
+          error: `${personType} has already checked in to this event today. Only one check-in per event per day is allowed.`,
           isDuplicate: true
         });
       }
