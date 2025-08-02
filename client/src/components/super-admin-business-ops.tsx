@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { motion } from "framer-motion";
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -20,6 +21,56 @@ import {
   BarChart3,
   RefreshCw
 } from "lucide-react";
+
+// Enhanced animated counter with spring effect
+function AnimatedCounter({ target, duration = 2500, prefix = "", suffix = "" }: { target: number; duration?: number; prefix?: string; suffix?: string }) {
+  const [count, setCount] = useState(0);
+  
+  useEffect(() => {
+    let startTime = Date.now();
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function for spring-like effect
+      const easeOutBack = (t: number) => {
+        const c1 = 1.70158;
+        const c3 = c1 + 1;
+        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      };
+      
+      const easedProgress = easeOutBack(progress);
+      const currentCount = Math.floor(easedProgress * target);
+      setCount(Math.min(currentCount, target));
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    const timer = setTimeout(() => {
+      requestAnimationFrame(animate);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [target, duration]);
+  
+  return (
+    <motion.span
+      key={target}
+      initial={{ scale: 1.2, opacity: 0.8 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ 
+        type: "spring",
+        damping: 20,
+        stiffness: 300,
+        duration: 0.6
+      }}
+    >
+      {prefix}{count}{suffix}
+    </motion.span>
+  );
+}
 
 interface RevenueMetrics {
   monthlyRecurringRevenue: number;
@@ -253,110 +304,222 @@ export function SuperAdminBusinessOps({ onBack }: SuperAdminBusinessOpsProps) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         {/* Revenue Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Monthly Recurring Revenue</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {revenueMetrics ? formatCurrency(revenueMetrics.monthlyRecurringRevenue) : '$0'}
-              </div>
-              <div className="flex items-center text-xs text-muted-foreground">
-                {revenueMetrics && revenueMetrics.revenueGrowthRate > 0 ? (
-                  <>
-                    <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
-                    <span className="text-green-500">
-                      +{formatPercentage(revenueMetrics.revenueGrowthRate)} from last month
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <TrendingDown className="h-3 w-3 mr-1 text-red-500" />
-                    <span className="text-red-500">
-                      {revenueMetrics ? formatPercentage(revenueMetrics.revenueGrowthRate) : '0%'} from last month
-                    </span>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            <Card className="h-[140px] stat-card-hover bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border-green-200 dark:border-green-800 hover:shadow-lg transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">Monthly Recurring Revenue</CardTitle>
+                <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400 pulse-icon" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-green-900 dark:text-green-100 mb-2">
+                  <AnimatedCounter 
+                    target={revenueMetrics?.monthlyRecurringRevenue || 0} 
+                    prefix="$" 
+                  />
+                </div>
+                <div className="flex items-center text-xs">
+                  {revenueMetrics && revenueMetrics.revenueGrowthRate > 0 ? (
+                    <>
+                      <TrendingUp className="h-3 w-3 mr-1 text-green-500 pulse-icon" />
+                      <span className="text-green-600 dark:text-green-400">
+                        +{formatPercentage(revenueMetrics.revenueGrowthRate)} from last month
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <TrendingDown className="h-3 w-3 mr-1 text-red-500" />
+                      <span className="text-red-600 dark:text-red-400">
+                        {revenueMetrics ? formatPercentage(revenueMetrics.revenueGrowthRate) : '0%'} from last month
+                      </span>
+                    </>
+                  )}
+                </div>
+                <div className="w-full bg-green-200 dark:bg-green-800 rounded-full h-1.5 mt-3">
+                  <motion.div
+                    className="bg-gradient-to-r from-green-500 to-emerald-500 h-1.5 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: "90%" }}
+                    transition={{ duration: 2, delay: 0.8, ease: "easeOut" }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Annual Recurring Revenue</CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {revenueMetrics ? formatCurrency(revenueMetrics.annualRecurringRevenue) : '$0'}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Projected annual revenue
-              </p>
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <Card className="h-[140px] stat-card-hover bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">Annual Recurring Revenue</CardTitle>
+                <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400 pulse-icon" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-blue-900 dark:text-blue-100 mb-2">
+                  <AnimatedCounter 
+                    target={revenueMetrics?.annualRecurringRevenue || 0} 
+                    prefix="$" 
+                  />
+                </div>
+                <p className="text-xs text-blue-600 dark:text-blue-400">
+                  Projected annual revenue
+                </p>
+                <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-1.5 mt-3">
+                  <motion.div
+                    className="bg-gradient-to-r from-blue-500 to-indigo-500 h-1.5 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: "85%" }}
+                    transition={{ duration: 2, delay: 0.8, ease: "easeOut" }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {subscriptionMetrics ? subscriptionMetrics.activeSubscriptions : 0}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {subscriptionMetrics ? subscriptionMetrics.trialUsers : 0} trial users
-              </p>
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <Card className="h-[140px] stat-card-hover bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950 dark:to-violet-950 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">Active Subscriptions</CardTitle>
+                <CreditCard className="h-5 w-5 text-purple-600 dark:text-purple-400 pulse-icon" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-purple-900 dark:text-purple-100 mb-2">
+                  <AnimatedCounter target={subscriptionMetrics?.activeSubscriptions || 0} />
+                </div>
+                <p className="text-xs text-purple-600 dark:text-purple-400">
+                  <AnimatedCounter target={subscriptionMetrics?.trialUsers || 0} /> trial users
+                </p>
+                <div className="w-full bg-purple-200 dark:bg-purple-800 rounded-full h-1.5 mt-3">
+                  <motion.div
+                    className="bg-gradient-to-r from-purple-500 to-violet-500 h-1.5 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: "75%" }}
+                    transition={{ duration: 2, delay: 0.8, ease: "easeOut" }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Churn Rate</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {revenueMetrics ? formatPercentage(revenueMetrics.churnRate) : '0%'}
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Monthly customer churn
-              </p>
-            </CardContent>
-          </Card>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <Card className="h-[140px] stat-card-hover bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950 dark:to-orange-950 border-red-200 dark:border-red-800 hover:shadow-lg transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-red-700 dark:text-red-300">Churn Rate</CardTitle>
+                <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 pulse-icon" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-red-900 dark:text-red-100 mb-2">
+                  <AnimatedCounter 
+                    target={revenueMetrics?.churnRate || 0} 
+                    suffix="%" 
+                  />
+                </div>
+                <p className="text-xs text-red-600 dark:text-red-400">
+                  Monthly customer churn
+                </p>
+                <div className="w-full bg-red-200 dark:bg-red-800 rounded-full h-1.5 mt-3">
+                  <motion.div
+                    className="bg-gradient-to-r from-red-500 to-orange-500 h-1.5 rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${Math.min((revenueMetrics?.churnRate || 0) * 10, 100)}%` }}
+                    transition={{ duration: 2, delay: 0.8, ease: "easeOut" }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
 
         {/* Subscription Breakdown */}
         {subscriptionMetrics && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Subscription Tier Distribution</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                    {subscriptionMetrics.subscriptionsByTier.starter}
-                  </div>
-                  <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Starter Plans</p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+          >
+            <Card>
+              <CardHeader>
+                <CardTitle>Subscription Tier Distribution</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.6 }}
+                    className="text-center p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 rounded-lg border border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all duration-300"
+                  >
+                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400 mb-2">
+                      <AnimatedCounter target={subscriptionMetrics.subscriptionsByTier.starter} />
+                    </div>
+                    <p className="text-sm text-blue-600 dark:text-blue-400 font-medium">Starter Plans</p>
+                    <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-1.5 mt-3">
+                      <motion.div
+                        className="bg-gradient-to-r from-blue-500 to-indigo-500 h-1.5 rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(subscriptionMetrics.subscriptionsByTier.starter / Math.max(subscriptionMetrics.totalSubscriptions, 1)) * 100}%` }}
+                        transition={{ duration: 2, delay: 1, ease: "easeOut" }}
+                      />
+                    </div>
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.7 }}
+                    className="text-center p-6 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 rounded-lg border border-green-200 dark:border-green-800 hover:shadow-lg transition-all duration-300"
+                  >
+                    <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
+                      <AnimatedCounter target={subscriptionMetrics.subscriptionsByTier.growth} />
+                    </div>
+                    <p className="text-sm text-green-600 dark:text-green-400 font-medium">Growth Plans</p>
+                    <div className="w-full bg-green-200 dark:bg-green-800 rounded-full h-1.5 mt-3">
+                      <motion.div
+                        className="bg-gradient-to-r from-green-500 to-emerald-500 h-1.5 rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(subscriptionMetrics.subscriptionsByTier.growth / Math.max(subscriptionMetrics.totalSubscriptions, 1)) * 100}%` }}
+                        transition={{ duration: 2, delay: 1, ease: "easeOut" }}
+                      />
+                    </div>
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.5, delay: 0.8 }}
+                    className="text-center p-6 bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950 dark:to-violet-950 rounded-lg border border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all duration-300"
+                  >
+                    <div className="text-3xl font-bold text-purple-600 dark:text-purple-400 mb-2">
+                      <AnimatedCounter target={subscriptionMetrics.subscriptionsByTier.enterprise} />
+                    </div>
+                    <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">Enterprise Plans</p>
+                    <div className="w-full bg-purple-200 dark:bg-purple-800 rounded-full h-1.5 mt-3">
+                      <motion.div
+                        className="bg-gradient-to-r from-purple-500 to-violet-500 h-1.5 rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${(subscriptionMetrics.subscriptionsByTier.enterprise / Math.max(subscriptionMetrics.totalSubscriptions, 1)) * 100}%` }}
+                        transition={{ duration: 2, delay: 1, ease: "easeOut" }}
+                      />
+                    </div>
+                  </motion.div>
                 </div>
-                <div className="text-center p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600 dark:text-green-400">
-                    {subscriptionMetrics.subscriptionsByTier.growth}
-                  </div>
-                  <p className="text-sm text-green-600 dark:text-green-400 font-medium">Growth Plans</p>
-                </div>
-                <div className="text-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                    {subscriptionMetrics.subscriptionsByTier.enterprise}
-                  </div>
-                  <p className="text-sm text-purple-600 dark:text-purple-400 font-medium">Enterprise Plans</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
 
         {/* Report Generation */}
