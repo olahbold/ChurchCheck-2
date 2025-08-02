@@ -836,9 +836,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return `"${member.id}","${memberName}","${member.title || ''}","${member.gender}","${member.ageGroup}","${member.phone || ''}","${member.email || ''}","${member.whatsappNumber || ''}","${member.address || ''}","${dateOfBirth}","${weddingAnniversary}","${member.isCurrentMember}","${member.fingerprintId || ''}","${member.parentId || ''}","${createdAt}","${lastAttendanceDate}","${attendanceComment}"`;
       }).join('\n');
       
-      const date = new Date().toISOString().split('T')[0];
+      const now = new Date();
+      const date = now.toISOString().split('T')[0];
+      const time = now.toTimeString().split(' ')[0].replace(/:/g, '');
+      
+      // Add cache-busting headers
       res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', `attachment; filename="church_members_full_${date}.csv"`);
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      res.setHeader('Content-Disposition', `attachment; filename="members_with_attendance_${date}_${time}.csv"`);
       res.send(csvHeader + csvData);
     } catch (error) {
       console.error('Members export error:', error);
