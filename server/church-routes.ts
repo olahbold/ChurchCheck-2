@@ -11,7 +11,9 @@ import {
   ensureChurchContext,
   type AuthenticatedRequest 
 } from './auth.js';
-import { insertChurchSchema, insertChurchUserSchema, kioskSettingsSchema } from '../shared/schema.js';
+import { eq } from "drizzle-orm";
+import { db } from "./db.js";
+import { insertChurchSchema, insertChurchUserSchema, kioskSettingsSchema, events } from '../shared/schema.js';
 
 const router = Router();
 
@@ -283,13 +285,140 @@ router.get('/kiosk-settings', authenticateToken, async (req: AuthenticatedReques
       return res.status(404).json({ error: 'Church not found' });
     }
 
+    // Calculate remaining time if session is active
+    let timeRemaining = null;
+    let activeEventName = null;
+    
+    if (church.kioskActiveEventId && church.kioskSessionStartTime) {
+      const sessionStart = new Date(church.kioskSessionStartTime);
+      const sessionTimeout = church.kioskSessionTimeout || 60;
+      const sessionEnd = new Date(sessionStart.getTime() + sessionTimeout * 60 * 1000);
+      const now = new Date();
+      
+      if (now < sessionEnd) {
+        timeRemaining = Math.max(0, Math.floor((sessionEnd.getTime() - now.getTime()) / 1000));
+        
+        // Get event name
+        try {
+          const event = await db.select().from(events).where(eq(events.id, church.kioskActiveEventId)).limit(1);
+          if (event.length > 0) {
+            activeEventName = event[0].name;
+          }
+        } catch (e) {
+          // Event might have been deleted, continue without name
+        }
+      }
+    }
+
     res.json({
       kioskModeEnabled: church.kioskModeEnabled || false,
       kioskSessionTimeout: church.kioskSessionTimeout || 60,
+      activeSession: church.kioskActiveEventId ? {
+        eventId: church.kioskActiveEventId,
+        eventName: activeEventName,
+        timeRemaining: timeRemaining,
+        isActive: timeRemaining > 0
+      } : null
     });
   } catch (error) {
     console.error('Get kiosk settings error:', error);
     res.status(500).json({ error: 'Failed to get kiosk settings' });
+  }
+});
+
+// POST /api/churches/kiosk-session/start - Start a kiosk session for an event
+router.post('/kiosk-session/start', authenticateToken, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
+  try {
+    const { eventId } = z.object({
+      eventId: z.string().min(1, "Event ID is required")
+    }).parse(req.body);
+    
+    const church = await churchStorage.updateChurch(req.churchId!, {
+      kioskActiveEventId: eventId,
+      kioskSessionStartTime: new Date(),
+    });
+
+    if (!church) {
+      return res.status(404).json({ error: 'Church not found' });
+    }
+
+    // Get event name
+    let eventName = 'Unknown Event';
+    try {
+      const event = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
+      if (event.length > 0) {
+        eventName = event[0].name;
+      }
+    } catch (e) {
+      console.error('Error fetching event:', e);
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Kiosk session started successfully',
+      session: {
+        eventId: eventId,
+        eventName: eventName,
+        startTime: church.kioskSessionStartTime,
+        timeoutMinutes: church.kioskSessionTimeout
+      }
+    });
+  } catch (error) {
+    console.error('Start kiosk session error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: 'Validation error', 
+        details: error.errors 
+      });
+    }
+
+    res.status(500).json({ error: 'Failed to start kiosk session' });
+  }
+});
+
+// POST /api/churches/kiosk-session/extend - Extend current kiosk session
+router.post('/kiosk-session/extend', authenticateToken, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
+  try {
+    // Reset session start time to extend the session
+    const church = await churchStorage.updateChurch(req.churchId!, {
+      kioskSessionStartTime: new Date(),
+    });
+
+    if (!church) {
+      return res.status(404).json({ error: 'Church not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Kiosk session extended successfully',
+      newStartTime: church.kioskSessionStartTime
+    });
+  } catch (error) {
+    console.error('Extend kiosk session error:', error);
+    res.status(500).json({ error: 'Failed to extend kiosk session' });
+  }
+});
+
+// POST /api/churches/kiosk-session/end - End current kiosk session
+router.post('/kiosk-session/end', authenticateToken, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
+  try {
+    const church = await churchStorage.updateChurch(req.churchId!, {
+      kioskActiveEventId: null,
+      kioskSessionStartTime: null,
+    });
+
+    if (!church) {
+      return res.status(404).json({ error: 'Church not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Kiosk session ended successfully'
+    });
+  } catch (error) {
+    console.error('End kiosk session error:', error);
+    res.status(500).json({ error: 'Failed to end kiosk session' });
   }
 });
 

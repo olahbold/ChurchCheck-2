@@ -7,12 +7,18 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
-import { Clock, Shield, Users, Info } from "lucide-react";
+import { Clock, Shield, Users, Info, Activity, Timer } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface KioskSettings {
   kioskModeEnabled: boolean;
   kioskSessionTimeout: number;
+  activeSession?: {
+    eventId: string;
+    eventName: string;
+    timeRemaining: number;
+    isActive: boolean;
+  } | null;
 }
 
 export function KioskSettingsTab() {
@@ -20,7 +26,10 @@ export function KioskSettingsTab() {
   const [settings, setSettings] = useState<KioskSettings>({
     kioskModeEnabled: false,
     kioskSessionTimeout: 60,
+    activeSession: null,
   });
+
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
 
   const { data: church, isLoading } = useQuery({
     queryKey: ["/api/churches/current"],
@@ -59,14 +68,52 @@ export function KioskSettingsTab() {
       setSettings({
         kioskModeEnabled: kioskSettings.kioskModeEnabled || false,
         kioskSessionTimeout: kioskSettings.kioskSessionTimeout || 60,
+        activeSession: kioskSettings.activeSession || null,
       });
+      
+      // Set initial time remaining if session is active
+      if (kioskSettings.activeSession?.isActive) {
+        setTimeRemaining(kioskSettings.activeSession.timeRemaining);
+      } else {
+        setTimeRemaining(null);
+      }
     } else if (church) {
       setSettings({
         kioskModeEnabled: (church as any)?.kioskModeEnabled || false,
         kioskSessionTimeout: (church as any)?.kioskSessionTimeout || 60,
+        activeSession: null,
       });
     }
   }, [kioskSettings, church]);
+
+  // Live countdown timer
+  useEffect(() => {
+    if (timeRemaining === null || timeRemaining <= 0) return;
+
+    const timer = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev === null || prev <= 1) {
+          // Session expired, refetch data
+          queryClient.invalidateQueries({ queryKey: ["/api/churches/kiosk-settings"] });
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [timeRemaining]);
+
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const handleSave = () => {
     updateSettingsMutation.mutate(settings);
@@ -187,6 +234,86 @@ export function KioskSettingsTab() {
             <p>3. <strong>Members self check-in</strong> by searching their names</p>
             <p>4. <strong>Session auto-expires</strong> after the timeout period</p>
             <p>5. <strong>Admin can extend</strong> or disable the session anytime</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {settings.activeSession?.isActive && timeRemaining !== null && (
+        <Card className="border-green-200 bg-green-50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-green-800">
+              <Activity className="h-5 w-5" />
+              Active Kiosk Session
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-green-700 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Event: {settings.activeSession.eventName}</p>
+                <p className="text-sm">Members can check themselves in</p>
+              </div>
+              <div className="text-right">
+                <div className="flex items-center gap-2 text-lg font-mono">
+                  <Timer className="h-4 w-4" />
+                  {formatTime(timeRemaining)}
+                </div>
+                <p className="text-xs">Time remaining</p>
+              </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  // Extend session
+                  apiRequest("/api/churches/kiosk-session/extend", {
+                    method: "POST",
+                  }).then(() => {
+                    queryClient.invalidateQueries({ queryKey: ["/api/churches/kiosk-settings"] });
+                    toast({
+                      title: "Session Extended",
+                      description: "Kiosk session has been extended successfully.",
+                    });
+                  }).catch(() => {
+                    toast({
+                      title: "Extension Failed",
+                      description: "Failed to extend kiosk session.",
+                      variant: "destructive",
+                    });
+                  });
+                }}
+                className="bg-white text-green-700 border-green-300 hover:bg-green-100"
+              >
+                Extend Session
+              </Button>
+              
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  // End session
+                  apiRequest("/api/churches/kiosk-session/end", {
+                    method: "POST",
+                  }).then(() => {
+                    queryClient.invalidateQueries({ queryKey: ["/api/churches/kiosk-settings"] });
+                    toast({
+                      title: "Session Ended",
+                      description: "Kiosk session has been ended successfully.",
+                    });
+                  }).catch(() => {
+                    toast({
+                      title: "End Session Failed",
+                      description: "Failed to end kiosk session.",
+                      variant: "destructive",
+                    });
+                  });
+                }}
+                className="bg-white text-red-600 border-red-300 hover:bg-red-50"
+              >
+                End Session
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}
