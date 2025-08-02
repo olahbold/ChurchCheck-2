@@ -407,20 +407,13 @@ export default function VisitorsTab() {
         variants={containerVariants}
       >
         <motion.div variants={statsVariants}>
-          <Card className="stat-card-hover h-[140px]">
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
             <CardContent className="p-6 h-full flex flex-col justify-between">
-              <div className="flex items-center space-x-2">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.3, type: "spring", stiffness: 500 }}
-                >
-                  <Users className="h-5 w-5 text-slate-500" />
-                </motion.div>
+              <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">Total Visitors</p>
                   <motion.p 
-                    className="text-2xl font-bold"
+                    className="text-3xl font-bold text-slate-900"
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.5, duration: 0.6 }}
@@ -428,26 +421,42 @@ export default function VisitorsTab() {
                     <AnimatedCounter target={visitors.length} />
                   </motion.p>
                 </div>
+                <motion.div 
+                  className="w-12 h-12 bg-[hsl(258,90%,66%)]/10 rounded-lg flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.3, type: "spring", stiffness: 300 }}
+                >
+                  <Users className="text-[hsl(258,90%,66%)] text-xl pulse-icon" />
+                </motion.div>
               </div>
+              <motion.p 
+                className="text-sm text-[hsl(142,76%,36%)] mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <Users className="inline h-3 w-3 mr-1" />
+                Registered visitors
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-[hsl(258,90%,66%)] to-[hsl(271,91%,65%)]"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1, duration: 1.2 }}
+              />
             </CardContent>
           </Card>
         </motion.div>
 
         <motion.div variants={statsVariants}>
-          <Card className="stat-card-hover h-[140px]">
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
             <CardContent className="p-6 h-full flex flex-col justify-between">
-              <div className="flex items-center space-x-2">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.4, type: "spring", stiffness: 500 }}
-                >
-                  <Clock className="h-5 w-5 text-yellow-500" />
-                </motion.div>
+              <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">Pending Follow-up</p>
                   <motion.p 
-                    className="text-2xl font-bold"
+                    className="text-3xl font-bold text-slate-900"
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.6, duration: 0.6 }}
@@ -455,26 +464,42 @@ export default function VisitorsTab() {
                     <AnimatedCounter target={statusCounts.pending || 0} />
                   </motion.p>
                 </div>
+                <motion.div 
+                  className="w-12 h-12 bg-yellow-500/10 rounded-lg flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.4, type: "spring", stiffness: 300 }}
+                >
+                  <Clock className="text-yellow-500 text-xl pulse-icon" />
+                </motion.div>
               </div>
+              <motion.p 
+                className="text-sm text-yellow-600 mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.9 }}
+              >
+                <Clock className="inline h-3 w-3 mr-1" />
+                Awaiting contact
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-yellow-500 to-yellow-600"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1.1, duration: 1.2 }}
+              />
             </CardContent>
           </Card>
         </motion.div>
 
         <motion.div variants={statsVariants}>
-          <Card className="stat-card-hover h-[140px]">
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
             <CardContent className="p-6 h-full flex flex-col justify-between">
-              <div className="flex items-center space-x-2">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.5, type: "spring", stiffness: 500 }}
-                >
-                  <Phone className="h-5 w-5 text-blue-500" />
-                </motion.div>
+              <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">Contacted</p>
                   <motion.p 
-                    className="text-2xl font-bold"
+                    className="text-3xl font-bold text-slate-900"
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.7, duration: 0.6 }}
@@ -482,26 +507,42 @@ export default function VisitorsTab() {
                     <AnimatedCounter target={statusCounts.contacted || 0} />
                   </motion.p>
                 </div>
+                <motion.div 
+                  className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.5, type: "spring", stiffness: 300 }}
+                >
+                  <Phone className="text-blue-500 text-xl pulse-icon" />
+                </motion.div>
               </div>
+              <motion.p 
+                className="text-sm text-blue-600 mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.0 }}
+              >
+                <Phone className="inline h-3 w-3 mr-1" />
+                Follow-up completed
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-blue-500 to-blue-600"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1.2, duration: 1.2 }}
+              />
             </CardContent>
           </Card>
         </motion.div>
 
         <motion.div variants={statsVariants}>
-          <Card className="stat-card-hover h-[140px]">
+          <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
             <CardContent className="p-6 h-full flex flex-col justify-between">
-              <div className="flex items-center space-x-2">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.6, type: "spring", stiffness: 500 }}
-                >
-                  <UserCheck className="h-5 w-5 text-green-500" />
-                </motion.div>
+              <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">Became Members</p>
                   <motion.p 
-                    className="text-2xl font-bold"
+                    className="text-3xl font-bold text-slate-900"
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.8, duration: 0.6 }}
@@ -509,7 +550,30 @@ export default function VisitorsTab() {
                     <AnimatedCounter target={statusCounts.member || 0} />
                   </motion.p>
                 </div>
+                <motion.div 
+                  className="w-12 h-12 bg-green-500/10 rounded-lg flex items-center justify-center"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.6, type: "spring", stiffness: 300 }}
+                >
+                  <UserCheck className="text-green-500 text-xl pulse-icon" />
+                </motion.div>
               </div>
+              <motion.p 
+                className="text-sm text-green-600 mt-2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 1.1 }}
+              >
+                <UserCheck className="inline h-3 w-3 mr-1" />
+                Successful conversions
+              </motion.p>
+              <motion.div
+                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-green-500 to-green-600"
+                initial={{ width: 0 }}
+                animate={{ width: "100%" }}
+                transition={{ delay: 1.3, duration: 1.2 }}
+              />
             </CardContent>
           </Card>
         </motion.div>
