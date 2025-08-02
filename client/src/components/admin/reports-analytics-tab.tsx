@@ -25,6 +25,7 @@ import {
   Activity,
   X
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from '@/lib/queryClient';
 
 const REPORT_CONFIGS = [

@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 import { format, parseISO, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface AttendanceRecord {
   id: string;
@@ -63,6 +64,42 @@ export default function HistoryTab() {
   const [viewMode, setViewMode] = useState<"list" | "calendar" | "analytics">("list");
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
   const [analyticsView, setAnalyticsView] = useState<"overview" | "trends" | "top-performers" | "insights">("overview");
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        duration: 0.6
+      }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: "easeOut"
+      }
+    }
+  };
+
+  const statsVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: {
+        duration: 0.6,
+        ease: "backOut"
+      }
+    }
+  };
 
   // Format dates for API calls
   const formatDateForAPI = (date: Date | undefined) => {
@@ -321,14 +358,41 @@ export default function HistoryTab() {
   };
 
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+      <motion.div 
+        className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4"
+        variants={cardVariants}
+      >
         <div>
-          <h2 className="text-2xl font-semibold text-slate-900">Attendance History</h2>
-          <p className="text-slate-600">View and analyze attendance patterns over time</p>
+          <motion.h2 
+            className="text-2xl font-semibold text-slate-900"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            Attendance History
+          </motion.h2>
+          <motion.p 
+            className="text-slate-600"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            View and analyze attendance patterns over time
+          </motion.p>
         </div>
-        <div className="flex gap-2">
+        <motion.div 
+          className="flex gap-2"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
           <div className="flex bg-slate-100 rounded-lg p-1">
             <Button
               variant={viewMode === "list" ? "default" : "ghost"}
@@ -364,74 +428,93 @@ export default function HistoryTab() {
               Export CSV ({filteredHistory.length})
             </Button>
           )}
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       {/* Statistics Summary */}
       {rangeStats && (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="church-stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600">Total Attendance</p>
-                <p className="text-3xl font-bold text-slate-900">{rangeStats.totalAttendance}</p>
-              </div>
-              <div className="w-12 h-12 bg-[hsl(258,90%,66%)]/10 rounded-lg flex items-center justify-center">
-                <Users className="text-[hsl(258,90%,66%)] text-xl" />
-              </div>
-            </div>
-            <p className="text-sm text-slate-500 mt-2">
-              Over {rangeStats.totalDays} day{rangeStats.totalDays !== 1 ? 's' : ''}
-            </p>
-          </Card>
-
-          <Card className="church-stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600">Daily Average</p>
-                <p className="text-3xl font-bold text-slate-900">{rangeStats.averagePerDay}</p>
-              </div>
-              <div className="w-12 h-12 bg-[hsl(142,76%,36%)]/10 rounded-lg flex items-center justify-center">
-                <TrendingUp className="text-[hsl(142,76%,36%)] text-xl" />
-              </div>
-            </div>
-            <p className="text-sm text-blue-600 mt-2">
-              {rangeStats.memberAttendance} members + {rangeStats.visitorAttendance} visitors
-            </p>
-          </Card>
-
-          <Card className="church-stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600">Gender Split</p>
-                <p className="text-3xl font-bold text-slate-900">
-                  {rangeStats.genderBreakdown.male}M / {rangeStats.genderBreakdown.female}F
+        <motion.div 
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
+          variants={containerVariants}
+        >
+          <motion.div variants={statsVariants}>
+            <Card className="church-stat-card stat-card-hover h-[140px]">
+              <CardContent className="p-6 h-full flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Total Attendance</p>
+                    <p className="text-3xl font-bold text-slate-900">{rangeStats.totalAttendance}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-[hsl(258,90%,66%)]/10 rounded-lg flex items-center justify-center">
+                    <Users className="text-[hsl(258,90%,66%)] text-xl" />
+                  </div>
+                </div>
+                <p className="text-sm text-slate-500 mt-2">
+                  Over {rangeStats.totalDays} day{rangeStats.totalDays !== 1 ? 's' : ''}
                 </p>
-              </div>
-              <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                <BarChart3 className="text-blue-500 text-xl" />
-              </div>
-            </div>
-            <p className="text-sm text-slate-500 mt-2">
-              {Math.round((rangeStats.genderBreakdown.male / (rangeStats.genderBreakdown.male + rangeStats.genderBreakdown.female)) * 100)}% Male
-            </p>
-          </Card>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-          <Card className="church-stat-card">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-slate-600">Age Groups</p>
-                <p className="text-lg font-bold text-slate-900">
-                  {rangeStats.ageGroupBreakdown.adult}A / {rangeStats.ageGroupBreakdown.child}C / {rangeStats.ageGroupBreakdown.adolescent}T
+          <motion.div variants={statsVariants}>
+            <Card className="church-stat-card stat-card-hover h-[140px]">
+              <CardContent className="p-6 h-full flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Daily Average</p>
+                    <p className="text-3xl font-bold text-slate-900">{rangeStats.averagePerDay}</p>
+                  </div>
+                  <div className="w-12 h-12 bg-[hsl(142,76%,36%)]/10 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="text-[hsl(142,76%,36%)] text-xl" />
+                  </div>
+                </div>
+                <p className="text-sm text-blue-600 mt-2">
+                  {rangeStats.memberAttendance} members + {rangeStats.visitorAttendance} visitors
                 </p>
-              </div>
-              <div className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center">
-                <Clock className="text-orange-500 text-xl" />
-              </div>
-            </div>
-            <p className="text-sm text-slate-500 mt-2">Adult / Child / Teen</p>
-          </Card>
-        </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div variants={statsVariants}>
+            <Card className="church-stat-card stat-card-hover h-[140px]">
+              <CardContent className="p-6 h-full flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Gender Split</p>
+                    <p className="text-3xl font-bold text-slate-900">
+                      {rangeStats.genderBreakdown.male}M / {rangeStats.genderBreakdown.female}F
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-blue-500/10 rounded-lg flex items-center justify-center">
+                    <BarChart3 className="text-blue-500 text-xl" />
+                  </div>
+                </div>
+                <p className="text-sm text-slate-500 mt-2">
+                  {Math.round((rangeStats.genderBreakdown.male / (rangeStats.genderBreakdown.male + rangeStats.genderBreakdown.female)) * 100)}% Male
+                </p>
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          <motion.div variants={statsVariants}>
+            <Card className="church-stat-card stat-card-hover h-[140px]">
+              <CardContent className="p-6 h-full flex flex-col justify-between">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600">Age Groups</p>
+                    <p className="text-lg font-bold text-slate-900">
+                      {rangeStats.ageGroupBreakdown.adult}A / {rangeStats.ageGroupBreakdown.child}C / {rangeStats.ageGroupBreakdown.adolescent}T
+                    </p>
+                  </div>
+                  <div className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center">
+                    <Clock className="text-orange-500 text-xl" />
+                  </div>
+                </div>
+                <p className="text-sm text-slate-500 mt-2">Adult / Child / Teen</p>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
       )}
 
       {/* Date Range and Filters */}
@@ -1219,6 +1302,6 @@ export default function HistoryTab() {
       ) : (
         <div>No view selected</div>
       )}
-    </div>
+    </motion.div>
   );
 }

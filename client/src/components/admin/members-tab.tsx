@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Search, Users, UserPlus, Download, Edit, Calendar, Phone, Mail, MapPin } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -51,6 +52,42 @@ export function MembersTab() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        duration: 0.6
+      }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: "easeOut"
+      }
+    }
+  };
+
+  const statsVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: {
+        duration: 0.6,
+        ease: "backOut"
+      }
+    }
+  };
 
   useEffect(() => {
     loadMembers();
@@ -201,75 +238,154 @@ export function MembersTab() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Members Management</h2>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
+    <motion.div 
+      className="space-y-6"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
+      <motion.div variants={cardVariants}>
+        <motion.h2 
+          className="text-2xl font-bold text-gray-900 dark:text-white"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          Members Management
+        </motion.h2>
+        <motion.p 
+          className="text-gray-600 dark:text-gray-400 mt-1"
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+        >
           Manage and view your church members
-        </p>
-      </div>
+        </motion.p>
+      </motion.div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="rounded-lg bg-blue-100 dark:bg-blue-900 p-3">
-                <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+      <motion.div 
+        className="grid grid-cols-1 md:grid-cols-4 gap-4"
+        variants={containerVariants}
+      >
+        <motion.div variants={statsVariants}>
+          <Card className="stat-card-hover h-[140px]">
+            <CardContent className="p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center">
+                <motion.div 
+                  className="rounded-lg bg-blue-100 dark:bg-blue-900 p-3"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.3, type: "spring", stiffness: 500 }}
+                >
+                  <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                </motion.div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Members</p>
+                  <motion.p 
+                    className="text-2xl font-bold text-gray-900 dark:text-white"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.5, duration: 0.6 }}
+                  >
+                    {stats.total}
+                  </motion.p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Members</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="rounded-lg bg-green-100 dark:bg-green-900 p-3">
-                <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
+        <motion.div variants={statsVariants}>
+          <Card className="stat-card-hover h-[140px]">
+            <CardContent className="p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center">
+                <motion.div 
+                  className="rounded-lg bg-green-100 dark:bg-green-900 p-3"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.4, type: "spring", stiffness: 500 }}
+                >
+                  <Users className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </motion.div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Members</p>
+                  <motion.p 
+                    className="text-2xl font-bold text-gray-900 dark:text-white"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.6, duration: 0.6 }}
+                  >
+                    {stats.active}
+                  </motion.p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Members</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.active}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="rounded-lg bg-purple-100 dark:bg-purple-900 p-3">
-                <UserPlus className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+        <motion.div variants={statsVariants}>
+          <Card className="stat-card-hover h-[140px]">
+            <CardContent className="p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center">
+                <motion.div 
+                  className="rounded-lg bg-purple-100 dark:bg-purple-900 p-3"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.5, type: "spring", stiffness: 500 }}
+                >
+                  <UserPlus className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                </motion.div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">New This Month</p>
+                  <motion.p 
+                    className="text-2xl font-bold text-gray-900 dark:text-white"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.7, duration: 0.6 }}
+                  >
+                    {stats.newThisMonth}
+                  </motion.p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">New This Month</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.newThisMonth}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center">
-              <div className="rounded-lg bg-orange-100 dark:bg-orange-900 p-3">
-                <Calendar className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+        <motion.div variants={statsVariants}>
+          <Card className="stat-card-hover h-[140px]">
+            <CardContent className="p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center">
+                <motion.div 
+                  className="rounded-lg bg-orange-100 dark:bg-orange-900 p-3"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.6, type: "spring", stiffness: 500 }}
+                >
+                  <Calendar className="h-6 w-6 text-orange-600 dark:text-orange-400" />
+                </motion.div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Last 30 Days</p>
+                  <motion.p 
+                    className="text-2xl font-bold text-gray-900 dark:text-white"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.8, duration: 0.6 }}
+                  >
+                    {stats.lastThirtyDays}
+                  </motion.p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Last 30 Days</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{stats.lastThirtyDays}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+      <motion.div 
+        className="flex flex-col sm:flex-row gap-4 items-center justify-between"
+        variants={cardVariants}
+      >
         <div className="flex flex-col sm:flex-row gap-2 flex-1">
           <div className="relative flex-1 max-w-sm">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -322,10 +438,11 @@ export function MembersTab() {
             Export Members
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Members Table */}
-      <Card>
+      <motion.div variants={cardVariants}>
+        <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
@@ -429,7 +546,8 @@ export function MembersTab() {
             </div>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
 
       {/* Edit Member Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -449,6 +567,6 @@ export function MembersTab() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }

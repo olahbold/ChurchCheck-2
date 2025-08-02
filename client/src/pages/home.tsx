@@ -15,6 +15,7 @@ import AdminTab from "@/components/admin-tab";
 import VisitorsTab from "@/components/visitors-tab";
 import HistoryTab from "@/components/history-tab";
 import LoginModal from "@/components/login-modal";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<TabType>('register');

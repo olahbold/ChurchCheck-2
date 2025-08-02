@@ -13,6 +13,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AttendanceStats, CheckInResult, MemberWithChildren } from "@/lib/types";
 import { Search, Users, Check, UserPlus, Baby, UserCheck, X, AlertCircle, Fingerprint, Download, Trash2, Monitor, Clock } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function CheckInTab() {
   const [searchQuery, setSearchQuery] = useState("");

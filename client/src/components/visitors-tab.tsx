@@ -17,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
 import { User, Phone, Mail, Calendar, Heart, MessageSquare, Filter, Users, UserCheck, Clock, Search, Edit, Plus, UserPlus, Save, X, Download } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function VisitorsTab() {
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "contacted" | "member">("all");
@@ -26,6 +27,42 @@ export default function VisitorsTab() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editNotes, setEditNotes] = useState("");
   const [editStatus, setEditStatus] = useState<"pending" | "contacted" | "member">("pending");
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        duration: 0.6
+      }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: "easeOut"
+      }
+    }
+  };
+
+  const statsVariants = {
+    hidden: { opacity: 0, scale: 0.8 },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      transition: {
+        duration: 0.6,
+        ease: "backOut"
+      }
+    }
+  };
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -308,60 +345,131 @@ export default function VisitorsTab() {
   }
 
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Users className="h-5 w-5 text-slate-500" />
-              <div>
-                <p className="text-sm font-medium text-slate-600">Total Visitors</p>
-                <p className="text-2xl font-bold">{visitors.length}</p>
+      <motion.div 
+        className="grid grid-cols-1 md:grid-cols-4 gap-4"
+        variants={containerVariants}
+      >
+        <motion.div variants={statsVariants}>
+          <Card className="stat-card-hover h-[140px]">
+            <CardContent className="p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center space-x-2">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.3, type: "spring", stiffness: 500 }}
+                >
+                  <Users className="h-5 w-5 text-slate-500" />
+                </motion.div>
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Total Visitors</p>
+                  <motion.p 
+                    className="text-2xl font-bold"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.5, duration: 0.6 }}
+                  >
+                    {visitors.length}
+                  </motion.p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Clock className="h-5 w-5 text-yellow-500" />
-              <div>
-                <p className="text-sm font-medium text-slate-600">Pending Follow-up</p>
-                <p className="text-2xl font-bold">{statusCounts.pending || 0}</p>
+        <motion.div variants={statsVariants}>
+          <Card className="stat-card-hover h-[140px]">
+            <CardContent className="p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center space-x-2">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.4, type: "spring", stiffness: 500 }}
+                >
+                  <Clock className="h-5 w-5 text-yellow-500" />
+                </motion.div>
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Pending Follow-up</p>
+                  <motion.p 
+                    className="text-2xl font-bold"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.6, duration: 0.6 }}
+                  >
+                    {statusCounts.pending || 0}
+                  </motion.p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Phone className="h-5 w-5 text-blue-500" />
-              <div>
-                <p className="text-sm font-medium text-slate-600">Contacted</p>
-                <p className="text-2xl font-bold">{statusCounts.contacted || 0}</p>
+        <motion.div variants={statsVariants}>
+          <Card className="stat-card-hover h-[140px]">
+            <CardContent className="p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center space-x-2">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.5, type: "spring", stiffness: 500 }}
+                >
+                  <Phone className="h-5 w-5 text-blue-500" />
+                </motion.div>
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Contacted</p>
+                  <motion.p 
+                    className="text-2xl font-bold"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.7, duration: 0.6 }}
+                  >
+                    {statusCounts.contacted || 0}
+                  </motion.p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <UserCheck className="h-5 w-5 text-green-500" />
-              <div>
-                <p className="text-sm font-medium text-slate-600">Became Members</p>
-                <p className="text-2xl font-bold">{statusCounts.member || 0}</p>
+        <motion.div variants={statsVariants}>
+          <Card className="stat-card-hover h-[140px]">
+            <CardContent className="p-6 h-full flex flex-col justify-between">
+              <div className="flex items-center space-x-2">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.6, type: "spring", stiffness: 500 }}
+                >
+                  <UserCheck className="h-5 w-5 text-green-500" />
+                </motion.div>
+                <div>
+                  <p className="text-sm font-medium text-slate-600">Became Members</p>
+                  <motion.p 
+                    className="text-2xl font-bold"
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ delay: 0.8, duration: 0.6 }}
+                  >
+                    {statusCounts.member || 0}
+                  </motion.p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </motion.div>
 
       {/* Actions Bar */}
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
+      <motion.div 
+        className="flex flex-col sm:flex-row justify-between gap-4"
+        variants={cardVariants}
+      >
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex items-center space-x-2">
             <Search className="h-4 w-4 text-slate-500" />
@@ -406,10 +514,11 @@ export default function VisitorsTab() {
             Add Visitor
           </Button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Visitors Table */}
-      <Card>
+      <motion.div variants={cardVariants}>
+        <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
             <Users className="h-5 w-5" />
@@ -521,7 +630,8 @@ export default function VisitorsTab() {
             </div>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
 
       {/* Edit Visitor Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -1198,6 +1308,6 @@ export default function VisitorsTab() {
           </Form>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }
