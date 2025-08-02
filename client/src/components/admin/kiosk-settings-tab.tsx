@@ -14,10 +14,14 @@ interface KioskSettings {
   kioskModeEnabled: boolean;
   kioskSessionTimeout: number;
   activeSession?: {
-    eventId: string;
-    eventName: string;
     timeRemaining: number;
     isActive: boolean;
+    availableEvents: Array<{
+      id: string;
+      name: string;
+      eventType: string;
+      location: string;
+    }>;
   } | null;
 }
 
@@ -255,8 +259,17 @@ export function KioskSettingsTab() {
           <CardContent className="text-green-700 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="font-medium">Event: {settings.activeSession.eventName}</p>
-                <p className="text-sm">Members can check themselves in</p>
+                <p className="font-medium">
+                  Active for {settings.activeSession.availableEvents?.length || 0} events
+                </p>
+                <p className="text-sm">Members can check themselves into any active event</p>
+                <div className="mt-2 text-xs space-y-1">
+                  {settings.activeSession.availableEvents?.map(event => (
+                    <div key={event.id} className="text-green-600">
+                      • {event.name} ({event.eventType.replace('_', ' ')})
+                    </div>
+                  )) || []}
+                </div>
               </div>
               <div className="text-right">
                 <div className="flex items-center gap-2 text-lg font-mono">
@@ -336,58 +349,54 @@ export function KioskSettingsTab() {
               Start Kiosk Session
             </CardTitle>
             <CardDescription className="text-blue-600">
-              Select an active event to enable member self check-in
+              Enable member self check-in for all active events
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             {activeEvents && activeEvents.length > 0 ? (
-              <div className="space-y-3">
-                <Label htmlFor="event-select" className="text-blue-700 font-medium">
-                  Choose Event for Kiosk Mode
-                </Label>
-                <div className="grid gap-3">
-                  {activeEvents.map((event: any) => (
-                    <div
-                      key={event.id}
-                      className="flex items-center justify-between p-3 bg-white rounded-lg border border-blue-200"
-                    >
-                      <div>
-                        <p className="font-medium text-blue-900">{event.name}</p>
-                        <p className="text-sm text-blue-600">
+              <div className="space-y-4">
+                <div className="bg-white rounded-lg border border-blue-200 p-4">
+                  <p className="font-medium text-blue-900 mb-2">
+                    Available Events ({activeEvents.length})
+                  </p>
+                  <div className="space-y-2 text-sm text-blue-700">
+                    {activeEvents.map((event: any) => (
+                      <div key={event.id} className="flex items-center justify-between">
+                        <span>• {event.name}</span>
+                        <span className="text-blue-500">
                           {event.eventType.replace('_', ' ')} • {event.location}
-                        </p>
+                        </span>
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          apiRequest("/api/churches/kiosk-session/start", {
-                            method: "POST",
-                            body: JSON.stringify({ eventId: event.id }),
-                          }).then((response: any) => {
-                            // Store extended token for session persistence
-                            if (response.extendedToken) {
-                              localStorage.setItem('auth_token', response.extendedToken);
-                            }
-                            queryClient.invalidateQueries({ queryKey: ["/api/churches/kiosk-settings"] });
-                            toast({
-                              title: "Kiosk Session Started",
-                              description: `Members can now self check-in to "${event.name}". Admin session extended for kiosk duration.`,
-                            });
-                          }).catch(() => {
-                            toast({
-                              title: "Start Failed",
-                              description: "Failed to start kiosk session.",
-                              variant: "destructive",
-                            });
-                          });
-                        }}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        Start Session
-                      </Button>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
+                
+                <Button
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  onClick={() => {
+                    apiRequest("/api/churches/kiosk-session/start", {
+                      method: "POST",
+                    }).then((response: any) => {
+                      // Store extended token for session persistence
+                      if (response.extendedToken) {
+                        localStorage.setItem('auth_token', response.extendedToken);
+                      }
+                      queryClient.invalidateQueries({ queryKey: ["/api/churches/kiosk-settings"] });
+                      toast({
+                        title: "Kiosk Session Started",
+                        description: `Members can now self check-in to any of ${activeEvents.length} active events. Admin session extended for kiosk duration.`,
+                      });
+                    }).catch(() => {
+                      toast({
+                        title: "Start Failed",
+                        description: "Failed to start kiosk session.",
+                        variant: "destructive",
+                      });
+                    });
+                  }}
+                >
+                  Start Kiosk Session for All Events
+                </Button>
               </div>
             ) : (
               <div className="text-center py-6 text-blue-600">

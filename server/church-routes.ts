@@ -288,9 +288,9 @@ router.get('/kiosk-settings', authenticateToken, async (req: AuthenticatedReques
 
     // Calculate remaining time if session is active
     let timeRemaining = null;
-    let activeEventName = null;
+    let isSessionActive = false;
     
-    if (church.kioskActiveEventId && church.kioskSessionStartTime) {
+    if (church.kioskSessionStartTime) {
       const sessionStart = new Date(church.kioskSessionStartTime);
       const sessionTimeout = church.kioskSessionTimeout || 60;
       const sessionEnd = new Date(sessionStart.getTime() + sessionTimeout * 60 * 1000);
@@ -298,27 +298,31 @@ router.get('/kiosk-settings', authenticateToken, async (req: AuthenticatedReques
       
       if (now < sessionEnd) {
         timeRemaining = Math.max(0, Math.floor((sessionEnd.getTime() - now.getTime()) / 1000));
-        
-        // Get event name
-        try {
-          const event = await db.select().from(events).where(eq(events.id, church.kioskActiveEventId)).limit(1);
-          if (event.length > 0) {
-            activeEventName = event[0].name;
-          }
-        } catch (e) {
-          // Event might have been deleted, continue without name
-        }
+        isSessionActive = true;
       }
+    }
+
+    // Get all active events available for kiosk mode
+    let availableEvents = [];
+    try {
+      const allEvents = await db.select().from(events).where(eq(events.churchId, req.churchId!));
+      availableEvents = allEvents.filter(event => event.isActive).map(event => ({
+        id: event.id,
+        name: event.name,
+        eventType: event.eventType,
+        location: event.location
+      }));
+    } catch (e) {
+      console.error('Error fetching active events:', e);
     }
 
     res.json({
       kioskModeEnabled: church.kioskModeEnabled || false,
       kioskSessionTimeout: church.kioskSessionTimeout || 60,
-      activeSession: church.kioskActiveEventId ? {
-        eventId: church.kioskActiveEventId,
-        eventName: activeEventName,
+      activeSession: isSessionActive ? {
         timeRemaining: timeRemaining,
-        isActive: timeRemaining > 0
+        isActive: true,
+        availableEvents: availableEvents
       } : null
     });
   } catch (error) {
@@ -327,15 +331,11 @@ router.get('/kiosk-settings', authenticateToken, async (req: AuthenticatedReques
   }
 });
 
-// POST /api/churches/kiosk-session/start - Start a kiosk session for an event
+// POST /api/churches/kiosk-session/start - Start a kiosk session for all active events
 router.post('/kiosk-session/start', authenticateToken, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
   try {
-    const { eventId } = z.object({
-      eventId: z.string().min(1, "Event ID is required")
-    }).parse(req.body);
-    
+    // No validation needed - kiosk mode applies to all active events
     const church = await churchStorage.updateChurch(req.churchId!, {
-      kioskActiveEventId: eventId,
       kioskSessionStartTime: new Date(),
     });
 
@@ -343,15 +343,13 @@ router.post('/kiosk-session/start', authenticateToken, requireRole(['admin']), a
       return res.status(404).json({ error: 'Church not found' });
     }
 
-    // Get event name
-    let eventName = 'Unknown Event';
+    // Get all active events for display
+    let availableEvents = [];
     try {
-      const event = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
-      if (event.length > 0) {
-        eventName = event[0].name;
-      }
+      const allEvents = await db.select().from(events).where(eq(events.churchId, req.churchId!));
+      availableEvents = allEvents.filter(event => event.isActive);
     } catch (e) {
-      console.error('Error fetching event:', e);
+      console.error('Error fetching active events:', e);
     }
 
     // Generate extended token for kiosk session persistence
@@ -367,25 +365,16 @@ router.post('/kiosk-session/start', authenticateToken, requireRole(['admin']), a
 
     res.json({ 
       success: true, 
-      message: 'Kiosk session started successfully',
+      message: 'Kiosk session started successfully for all active events',
       session: {
-        eventId: eventId,
-        eventName: eventName,
         startTime: church.kioskSessionStartTime,
-        timeoutMinutes: church.kioskSessionTimeout
+        timeoutMinutes: church.kioskSessionTimeout,
+        availableEvents: availableEvents.length
       },
       extendedToken // Send back extended token for session persistence
     });
   } catch (error) {
     console.error('Start kiosk session error:', error);
-    
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ 
-        error: 'Validation error', 
-        details: error.errors 
-      });
-    }
-
     res.status(500).json({ error: 'Failed to start kiosk session' });
   }
 });
@@ -429,7 +418,6 @@ router.post('/kiosk-session/extend', authenticateToken, requireRole(['admin']), 
 router.post('/kiosk-session/end', authenticateToken, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
   try {
     const church = await churchStorage.updateChurch(req.churchId!, {
-      kioskActiveEventId: null,
       kioskSessionStartTime: null,
     });
 

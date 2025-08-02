@@ -18,7 +18,7 @@ export const churches = pgTable("churches", {
   maxMembers: integer("max_members").default(100), // Based on subscription tier
   kioskSessionTimeout: integer("kiosk_session_timeout").default(60), // minutes
   kioskModeEnabled: boolean("kiosk_mode_enabled").default(false),
-  kioskActiveEventId: varchar("kiosk_active_event_id"), // Which event is currently active in kiosk
+
   kioskSessionStartTime: timestamp("kiosk_session_start_time"), // When kiosk session started
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
