@@ -736,20 +736,35 @@ export default function CheckInTab() {
             </div>
           ) : (
             <div className="space-y-3">
-              {todayAttendance.map((record: any) => {
+              {todayAttendance.map((record: any, index: number) => {
                 const memberName = record.member ? 
                   `${record.member.firstName} ${record.member.surname}` : 
                   record.visitorName || 'Unknown';
                 const initials = memberName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
                 
                 return (
-                  <div key={record.id} className="flex items-center gap-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                  <motion.div 
+                    key={record.id} 
+                    className="flex items-center gap-4 p-4 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg transition-all duration-300 hover:bg-green-100 dark:hover:bg-green-900/30 hover:shadow-md hover:scale-[1.02] cursor-pointer"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.05 }}
+                    whileHover={{ 
+                      scale: 1.02, 
+                      y: -2,
+                      transition: { duration: 0.2 }
+                    }}
+                  >
+                    <motion.div 
+                      className="w-10 h-10 bg-green-600 dark:bg-green-700 rounded-full flex items-center justify-center text-white font-medium text-sm"
+                      whileHover={{ scale: 1.1 }}
+                      transition={{ duration: 0.2 }}
+                    >
                       {initials}
-                    </div>
+                    </motion.div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <p className="font-medium text-gray-900 truncate">
+                        <p className="font-medium text-gray-900 dark:text-gray-100 truncate">
                           {memberName}
                         </p>
                         <Badge 
@@ -762,30 +777,35 @@ export default function CheckInTab() {
                           {record.member?.ageGroup || 'N/A'}
                         </Badge>
                       </div>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
                         {formatTime(record.checkInTime)} • {record.checkInMethod} • {record.member?.phone || 'No phone'}
                       </p>
                       {record.event && (
-                        <p className="text-xs text-blue-600 mt-1">
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                           Event: {record.event.name}
                         </p>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-500">
+                      <span className="text-sm text-gray-500 dark:text-gray-400">
                         {formatTodayDate()}
                       </span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteRecordMutation.mutate(record.id)}
-                        disabled={deleteRecordMutation.isPending}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      <motion.div
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
                       >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteRecordMutation.mutate(record.id)}
+                          disabled={deleteRecordMutation.isPending}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </motion.div>
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>
