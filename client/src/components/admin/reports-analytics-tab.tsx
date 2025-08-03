@@ -196,12 +196,20 @@ export default function ReportsAnalyticsTab() {
       console.log('Starting server-side CSV download...');
       
       // Use server-side download endpoint for better browser compatibility
+      const token = localStorage.getItem('auth_token');
+      console.log('Using token for download:', token ? 'Token found' : 'No token');
+      
+      if (!token) {
+        throw new Error('Authentication token not found. Please login again.');
+      }
+
       const response = await fetch('/api/reports/download-csv', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
+        credentials: 'include',
         body: JSON.stringify({
           reportType: selectedReport,
           startDate: dateRange.startDate,
@@ -210,7 +218,9 @@ export default function ReportsAnalyticsTab() {
       });
 
       if (!response.ok) {
-        throw new Error(`Download failed: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.error || response.statusText || 'Unknown error';
+        throw new Error(`Download failed: ${errorMessage}`);
       }
 
       // Get the CSV content as blob
