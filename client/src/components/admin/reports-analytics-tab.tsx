@@ -186,15 +186,24 @@ export default function ReportsAnalyticsTab() {
   };
 
   const handleExportReport = async () => {
-    if (!reportData) return;
+    if (!reportData) {
+      console.error('No report data available');
+      return;
+    }
 
     try {
       setIsDownloading(true);
+      console.log('Starting export with data:', reportData);
       
       // Add a small delay to show the progress indicator
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 800));
       
       const csvContent = convertToCSV(reportData, selectedReportConfig?.title || 'Report');
+      console.log('CSV content generated, length:', csvContent.length);
+      
+      if (!csvContent || csvContent.length < 10) {
+        throw new Error('Generated CSV content is empty or too short');
+      }
       
       // Create BOM for proper UTF-8 encoding in Excel
       const BOM = '\uFEFF';
@@ -203,6 +212,7 @@ export default function ReportsAnalyticsTab() {
       const blob = new Blob([csvWithBOM], { 
         type: 'text/csv;charset=utf-8' 
       });
+      console.log('Blob created, size:', blob.size);
       
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -212,6 +222,9 @@ export default function ReportsAnalyticsTab() {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
       const filename = `${selectedReportConfig?.title?.replace(/\s+/g, '_').toLowerCase()}_${timestamp}_${Date.now().toString().slice(-6)}.csv`;
       a.download = filename;
+      a.style.display = 'none';
+      
+      console.log('Triggering download for file:', filename);
       
       // Force download
       document.body.appendChild(a);
@@ -219,13 +232,21 @@ export default function ReportsAnalyticsTab() {
       
       // Cleanup
       setTimeout(() => {
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }, 100);
+        try {
+          window.URL.revokeObjectURL(url);
+          if (document.body.contains(a)) {
+            document.body.removeChild(a);
+          }
+        } catch (cleanupError) {
+          console.warn('Cleanup error:', cleanupError);
+        }
+      }, 1000);
+      
+      console.log('Download triggered successfully');
       
     } catch (error) {
       console.error('Export error:', error);
-      alert('Failed to download report. Please try again.');
+      alert(`Failed to download report: ${error.message}. Please try again.`);
     } finally {
       setIsDownloading(false);
     }
