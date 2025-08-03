@@ -1242,13 +1242,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const storage = getStorage(req);
       const { memberId, startDate, endDate } = req.query;
+      
+      // For matrix format, we don't pass memberId - we want all members
       const report = await storage.getMemberAttendanceLog(
-        memberId as string,
+        undefined, // Don't pass memberId to get matrix format for all members
         startDate as string,
         endDate as string
       );
       res.json(report);
     } catch (error) {
+      console.error('Member attendance log error:', error);
       res.status(500).json({ error: "Failed to generate member attendance log" });
     }
   });
