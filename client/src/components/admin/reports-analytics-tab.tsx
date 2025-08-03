@@ -202,13 +202,76 @@ export default function ReportsAnalyticsTab() {
   const convertToCSV = (data: ReportData, title: string): string => {
     if (!data) return `${title}\nNo data available`;
     
+    // Handle matrix format for Member Attendance Log
+    if (typeof data === 'object' && data.type === 'matrix' && title.includes('Member Attendance Log')) {
+      const matrixData = data.data;
+      const summary = data.summary;
+      const attendanceDates = data.attendanceDates;
+      
+      if (!matrixData || matrixData.length === 0) {
+        return `${title}\nNo attendance data available`;
+      }
+
+      // Create comprehensive header with summary statistics
+      let csvContent = `"${title}"\n`;
+      csvContent += `"Date Range: ${summary?.dateRange?.startDate || 'N/A'} to ${summary?.dateRange?.endDate || 'N/A'}"\n`;
+      csvContent += `"Total Members: ${summary?.totalMembers || 0}"\n`;
+      csvContent += `"Total Dates: ${summary?.totalDates || 0}"\n`;
+      csvContent += `"Total Attendance Records: ${summary?.totalAttendanceRecords || 0}"\n\n`;
+
+      // Build headers
+      const baseHeaders = ['No.', 'Member Name', 'First Name', 'Surname', 'Gender', 'Age Group', 'Phone', 'Title'];
+      const dateHeaders = attendanceDates?.map(date => {
+        const formattedDate = new Date(date).toLocaleDateString('en-US', { 
+          month: '2-digit', 
+          day: '2-digit', 
+          year: 'numeric' 
+        });
+        return formattedDate;
+      }) || [];
+      const summaryHeaders = ['Total Present', 'Total Absent', 'Attendance %'];
+      
+      const allHeaders = [...baseHeaders, ...dateHeaders, ...summaryHeaders];
+      csvContent += allHeaders.join(',') + '\n';
+
+      // Add data rows
+      matrixData.forEach((member: any, index: number) => {
+        const baseData = [
+          `"${index + 1}"`,
+          `"${member.memberName || ''}"`,
+          `"${member.firstName || ''}"`,
+          `"${member.surname || ''}"`,
+          `"${member.gender || ''}"`,
+          `"${member.ageGroup || ''}"`,
+          `"${member.phone || ''}"`,
+          `"${member.title || ''}"`
+        ];
+
+        const dateData = attendanceDates?.map(date => {
+          const dateKey = `date_${date.replace(/-/g, '_')}`;
+          return `"${member[dateKey] || 'NO'}"`;
+        }) || [];
+
+        const summaryData = [
+          `"${member.totalPresent || 0}"`,
+          `"${member.totalAbsent || 0}"`,
+          `"${member.attendancePercentage || '0%'}"`
+        ];
+
+        const rowData = [...baseData, ...dateData, ...summaryData];
+        csvContent += rowData.join(',') + '\n';
+      });
+
+      return csvContent;
+    }
+    
     // Handle array data
     if (Array.isArray(data)) {
       if (data.length === 0) return `${title}\nNo data available`;
       
       const headers = Object.keys(data[0]);
       
-      // Add sequential numbering for Member Attendance Log
+      // Add sequential numbering for traditional Member Attendance Log
       if (title.includes('Member Attendance Log')) {
         const csvData = data.map((row, index) => {
           const rowData = [`"${index + 1}"`]; // Sequential number
@@ -304,6 +367,105 @@ export default function ReportsAnalyticsTab() {
           <FileText className="h-12 w-12 text-slate-400 mx-auto mb-4" />
           <p className="text-slate-500">No data available for this report</p>
           <p className="text-sm text-slate-400">Try adjusting the date range or parameters</p>
+        </div>
+      );
+    }
+
+    // Handle matrix format for Member Attendance Log
+    if (typeof reportData === 'object' && reportData.type === 'matrix') {
+      const matrixData = reportData.data;
+      const summary = reportData.summary;
+      const attendanceDates = reportData.attendanceDates;
+
+      return (
+        <div className="space-y-6">
+          {/* Summary Statistics */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{summary?.totalMembers || 0}</div>
+                <div className="text-sm text-slate-600">Total Members</div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{summary?.totalDates || 0}</div>
+                <div className="text-sm text-slate-600">Attendance Dates</div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">{summary?.totalAttendanceRecords || 0}</div>
+                <div className="text-sm text-slate-600">Total Records</div>
+              </div>
+            </Card>
+            <Card className="p-4">
+              <div className="text-center">
+                <div className="text-sm font-medium text-slate-700">Date Range</div>
+                <div className="text-xs text-slate-500">
+                  {summary?.dateRange?.startDate || 'N/A'} to {summary?.dateRange?.endDate || 'N/A'}
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Matrix Table */}
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse border border-slate-200 text-sm">
+              <thead>
+                <tr className="bg-slate-50">
+                  <th className="border border-slate-200 p-2 text-left font-medium text-slate-900 sticky left-0 bg-slate-50">No.</th>
+                  <th className="border border-slate-200 p-2 text-left font-medium text-slate-900 sticky left-8 bg-slate-50">Member Name</th>
+                  <th className="border border-slate-200 p-2 text-left font-medium text-slate-900">Gender</th>
+                  <th className="border border-slate-200 p-2 text-left font-medium text-slate-900">Age Group</th>
+                  <th className="border border-slate-200 p-2 text-left font-medium text-slate-900">Phone</th>
+                  {attendanceDates?.map((date, index) => (
+                    <th key={index} className="border border-slate-200 p-2 text-center font-medium text-slate-900 min-w-[80px]">
+                      {new Date(date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })}
+                    </th>
+                  ))}
+                  <th className="border border-slate-200 p-2 text-center font-medium text-slate-900">Present</th>
+                  <th className="border border-slate-200 p-2 text-center font-medium text-slate-900">Absent</th>
+                  <th className="border border-slate-200 p-2 text-center font-medium text-slate-900">%</th>
+                </tr>
+              </thead>
+              <tbody>
+                {matrixData?.slice(0, 100).map((member: any, index: number) => (
+                  <tr key={index} className="hover:bg-slate-50">
+                    <td className="border border-slate-200 p-2 text-slate-700 sticky left-0 bg-white">{index + 1}</td>
+                    <td className="border border-slate-200 p-2 text-slate-700 sticky left-8 bg-white font-medium">{member.memberName}</td>
+                    <td className="border border-slate-200 p-2 text-slate-700">{member.gender}</td>
+                    <td className="border border-slate-200 p-2 text-slate-700">{member.ageGroup}</td>
+                    <td className="border border-slate-200 p-2 text-slate-700">{member.phone}</td>
+                    {attendanceDates?.map((date, dateIndex) => {
+                      const dateKey = `date_${date.replace(/-/g, '_')}`;
+                      const status = member[dateKey];
+                      const isPresent = status === 'YES';
+                      return (
+                        <td key={dateIndex} className="border border-slate-200 p-2 text-center">
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            isPresent 
+                              ? 'bg-green-100 text-green-800' 
+                              : 'bg-red-100 text-red-800'
+                          }`}>
+                            {status || 'NO'}
+                          </span>
+                        </td>
+                      );
+                    })}
+                    <td className="border border-slate-200 p-2 text-center text-green-600 font-medium">{member.totalPresent}</td>
+                    <td className="border border-slate-200 p-2 text-center text-red-600 font-medium">{member.totalAbsent}</td>
+                    <td className="border border-slate-200 p-2 text-center text-blue-600 font-medium">{member.attendancePercentage}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {matrixData && matrixData.length > 100 && (
+            <p className="text-sm text-slate-500 text-center">
+              Showing first 100 rows of {matrixData.length} total records
+            </p>
+          )}
         </div>
       );
     }

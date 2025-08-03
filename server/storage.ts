@@ -781,38 +781,159 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMemberAttendanceLog(memberId?: string, startDate?: string, endDate?: string): Promise<any> {
-    let conditions = [];
-    if (memberId) conditions.push(eq(attendanceRecords.memberId, memberId));
-    if (startDate) conditions.push(gte(attendanceRecords.attendanceDate, startDate));
-    if (endDate) conditions.push(lte(attendanceRecords.attendanceDate, endDate));
+    // If specific member is requested, return traditional format
+    if (memberId) {
+      let conditions = [eq(attendanceRecords.memberId, memberId)];
+      if (startDate) conditions.push(gte(attendanceRecords.attendanceDate, startDate));
+      if (endDate) conditions.push(lte(attendanceRecords.attendanceDate, endDate));
 
-    const queryBuilder = db
-      .select({
-        memberName: sql`${members.firstName} || ' ' || ${members.surname}`,
-        gender: members.gender,
-        ageGroup: members.ageGroup,
-        attendanceDate: attendanceRecords.attendanceDate,
-        checkInTime: sql`TO_CHAR(${attendanceRecords.checkInTime}, 'HH24:MI:SS')`,
-        checkInMethod: sql`
-          CASE 
-            WHEN ${attendanceRecords.checkInMethod} = 'family' THEN 'Family (manual)'
-            WHEN ${attendanceRecords.checkInMethod} = 'manual' THEN 'Manual'
-            WHEN ${attendanceRecords.checkInMethod} = 'fingerprint' THEN 'Fingerprint'
-            WHEN ${attendanceRecords.checkInMethod} = 'visitor' THEN 'Visitor'
-            ELSE ${attendanceRecords.checkInMethod}
-          END
-        `,
-      })
-      .from(attendanceRecords)
-      .innerJoin(members, eq(attendanceRecords.memberId, members.id));
-
-    if (conditions.length > 0) {
-      return await queryBuilder
+      return await db
+        .select({
+          memberName: sql`${members.firstName} || ' ' || ${members.surname}`,
+          gender: members.gender,
+          ageGroup: members.ageGroup,
+          attendanceDate: attendanceRecords.attendanceDate,
+          checkInTime: sql`EXTRACT(HOUR FROM ${attendanceRecords.checkInTime}) || ':' || LPAD(EXTRACT(MINUTE FROM ${attendanceRecords.checkInTime})::text, 2, '0')`,
+          checkInMethod: sql`
+            CASE 
+              WHEN ${attendanceRecords.checkInMethod} = 'family' THEN 'Family (manual)'
+              WHEN ${attendanceRecords.checkInMethod} = 'manual' THEN 'Manual'
+              WHEN ${attendanceRecords.checkInMethod} = 'fingerprint' THEN 'Fingerprint'
+              WHEN ${attendanceRecords.checkInMethod} = 'visitor' THEN 'Visitor'
+              ELSE ${attendanceRecords.checkInMethod}
+            END
+          `,
+        })
+        .from(attendanceRecords)
+        .innerJoin(members, eq(attendanceRecords.memberId, members.id))
         .where(and(...conditions))
         .orderBy(desc(attendanceRecords.attendanceDate));
     }
 
-    return await queryBuilder.orderBy(desc(attendanceRecords.attendanceDate));
+    // Enhanced Matrix Format Report for comprehensive view
+    // Step 1: Get all distinct attendance dates in the range
+    let dateConditions = [];
+    if (startDate) dateConditions.push(gte(attendanceRecords.attendanceDate, startDate));
+    if (endDate) dateConditions.push(lte(attendanceRecords.attendanceDate, endDate));
+    
+    let attendanceDatesQuery = db
+      .selectDistinct({
+        attendanceDate: attendanceRecords.attendanceDate
+      })
+      .from(attendanceRecords)
+      .where(eq(attendanceRecords.churchId, this.churchId));
+
+    if (dateConditions.length > 0) {
+      attendanceDatesQuery = attendanceDatesQuery.where(and(...dateConditions));
+    }
+
+    const attendanceDates = await attendanceDatesQuery.orderBy(attendanceRecords.attendanceDate);
+    
+    // Step 2: Get all members
+    const allMembers = await db
+      .select({
+        id: members.id,
+        memberName: sql`${members.firstName} || ' ' || ${members.surname}`,
+        firstName: members.firstName,
+        surname: members.surname,
+        gender: members.gender,
+        ageGroup: members.ageGroup,
+        phone: members.phone,
+        title: members.title
+      })
+      .from(members)
+      .where(eq(members.churchId, this.churchId))
+      .orderBy(members.firstName, members.surname);
+
+    // Step 3: Get all attendance records for the date range
+    let attendanceQuery = db
+      .select({
+        memberId: attendanceRecords.memberId,
+        attendanceDate: attendanceRecords.attendanceDate,
+        checkInTime: sql`EXTRACT(HOUR FROM ${attendanceRecords.checkInTime}) || ':' || LPAD(EXTRACT(MINUTE FROM ${attendanceRecords.checkInTime})::text, 2, '0')`,
+        checkInMethod: attendanceRecords.checkInMethod
+      })
+      .from(attendanceRecords)
+      .where(eq(attendanceRecords.churchId, this.churchId));
+
+    if (dateConditions.length > 0) {
+      attendanceQuery = attendanceQuery.where(and(...dateConditions));
+    }
+
+    const attendanceData = await attendanceQuery;
+
+    // Step 4: Create attendance lookup map
+    const attendanceMap = new Map<string, any>();
+    attendanceData.forEach(record => {
+      const key = `${record.memberId}-${record.attendanceDate}`;
+      attendanceMap.set(key, {
+        checkInTime: record.checkInTime,
+        checkInMethod: record.checkInMethod
+      });
+    });
+
+    // Step 5: Build the matrix report
+    const matrixReport = allMembers.map(member => {
+      const row: any = {
+        memberName: member.memberName,
+        firstName: member.firstName,
+        surname: member.surname,
+        gender: member.gender,
+        ageGroup: member.ageGroup,
+        phone: member.phone,
+        title: member.title,
+        totalPresent: 0,
+        totalAbsent: 0,
+        attendancePercentage: "0%"
+      };
+
+      // Add attendance status for each date
+      attendanceDates.forEach(dateRecord => {
+        const key = `${member.id}-${dateRecord.attendanceDate}`;
+        const attendance = attendanceMap.get(key);
+        const dateKey = `date_${dateRecord.attendanceDate.replace(/-/g, '_')}`;
+        
+        if (attendance) {
+          row[dateKey] = "YES";
+          row[`${dateKey}_time`] = attendance.checkInTime;
+          row[`${dateKey}_method`] = attendance.checkInMethod;
+          row.totalPresent++;
+        } else {
+          row[dateKey] = "NO";
+          row[`${dateKey}_time`] = "";
+          row[`${dateKey}_method`] = "";
+          row.totalAbsent++;
+        }
+      });
+
+      // Calculate attendance percentage
+      const totalDays = attendanceDates.length;
+      if (totalDays > 0) {
+        const percentage = Math.round((row.totalPresent / totalDays) * 100);
+        row.attendancePercentage = `${percentage}%`;
+      }
+
+      return row;
+    });
+
+    // Step 6: Calculate summary statistics
+    const summary = {
+      totalMembers: allMembers.length,
+      totalDates: attendanceDates.length,
+      dateRange: attendanceDates.length > 0 ? {
+        startDate: attendanceDates[0].attendanceDate,
+        endDate: attendanceDates[attendanceDates.length - 1].attendanceDate
+      } : null,
+      attendanceDates: attendanceDates.map(d => d.attendanceDate),
+      totalAttendanceRecords: attendanceData.length
+    };
+
+    return {
+      type: 'matrix',
+      summary,
+      data: matrixReport,
+      attendanceDates: attendanceDates.map(d => d.attendanceDate)
+    };
   }
 
   async getMissedServicesReport(weeks: number): Promise<any> {
