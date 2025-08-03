@@ -214,33 +214,38 @@ export default function ReportsAnalyticsTab() {
       });
       console.log('Blob created, size:', blob.size);
       
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      
       // Generate unique filename with timestamp
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
       const filename = `${selectedReportConfig?.title?.replace(/\s+/g, '_').toLowerCase()}_${timestamp}_${Date.now().toString().slice(-6)}.csv`;
-      a.download = filename;
-      a.style.display = 'none';
       
       console.log('Triggering download for file:', filename);
       
-      // Force download
-      document.body.appendChild(a);
-      a.click();
+      // Use modern download approach with better browser compatibility
+      const url = window.URL.createObjectURL(blob);
       
-      // Cleanup
+      // Create download link with proper attributes
+      const downloadLink = document.createElement('a');
+      downloadLink.href = url;
+      downloadLink.download = filename;
+      downloadLink.style.display = 'none';
+      downloadLink.setAttribute('target', '_self');
+      
+      // Append to body, trigger download, and clean up
+      document.body.appendChild(downloadLink);
+      
+      // Use both click methods for maximum compatibility
+      downloadLink.click();
+      downloadLink.dispatchEvent(new MouseEvent('click', {
+        view: window,
+        bubbles: true,
+        cancelable: false
+      }));
+      
+      // Clean up immediately after click
       setTimeout(() => {
-        try {
-          window.URL.revokeObjectURL(url);
-          if (document.body.contains(a)) {
-            document.body.removeChild(a);
-          }
-        } catch (cleanupError) {
-          console.warn('Cleanup error:', cleanupError);
-        }
-      }, 1000);
+        document.body.removeChild(downloadLink);
+        window.URL.revokeObjectURL(url);
+      }, 100);
       
       console.log('Download triggered successfully');
       
