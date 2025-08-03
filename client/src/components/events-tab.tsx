@@ -599,7 +599,7 @@ export function EventsTab() {
                           >
                             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 px-3 py-1">
                               <Users className="h-4 w-4 mr-2" />
-                              Total: <AnimatedCounter target={details.total} duration={1500} /> Attendees
+                              Total: <AnimatedCounter target={details.total} duration={1500} />{" "}Attendees
                             </Badge>
                           </motion.div>
                         </div>
