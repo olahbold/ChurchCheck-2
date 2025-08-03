@@ -261,19 +261,25 @@ export function EventsTab() {
     setDialogOpen(true);
   };
 
-  const filteredEvents = events.filter((event: any) => {
+  const filteredEvents = (events as any[]).filter((event: any) => {
     if (filterActive === null) return true;
     return event.isActive === filterActive;
   });
 
   // Helper function to get today's attendance count for an event
-  const getEventAttendanceCount = (eventId: string) => {
-    return todayAttendanceCounts[eventId] || 0;
+  const getTodayEventAttendanceCount = (eventId: string) => {
+    return (todayAttendanceCounts as any)[eventId] || 0;
+  };
+
+  // Helper function to get total historical attendance count for an event
+  const getTotalEventAttendanceCount = (eventId: string) => {
+    const attendanceData = (attendanceCounts as any[]).find((count: any) => count.eventId === eventId);
+    return attendanceData ? Number(attendanceData.totalAttendees) : 0;
   };
 
   // Helper function to get attendance details for an event
   const getEventAttendanceDetails = (eventId: string) => {
-    const attendanceData = attendanceCounts.find((count: any) => count.eventId === eventId);
+    const attendanceData = (attendanceCounts as any[]).find((count: any) => count.eventId === eventId);
     if (!attendanceData) return null;
     return {
       total: Number(attendanceData.totalAttendees),
@@ -473,11 +479,21 @@ export function EventsTab() {
                             {event.isActive ? "Active" : "Inactive"}
                           </Badge>
                           
-                          {getEventAttendanceCount(event.id) > 0 && (
-                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                              <Users className="h-3 w-3 mr-1" />
-                              {getEventAttendanceCount(event.id)} attendees
-                            </Badge>
+                          {(getTodayEventAttendanceCount(event.id) > 0 || getTotalEventAttendanceCount(event.id) > 0) && (
+                            <div className="flex gap-1">
+                              {getTodayEventAttendanceCount(event.id) > 0 && (
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                                  <Users className="h-3 w-3 mr-1" />
+                                  {getTodayEventAttendanceCount(event.id)} today
+                                </Badge>
+                              )}
+                              {getTotalEventAttendanceCount(event.id) > 0 && (
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                                  <Users className="h-3 w-3 mr-1" />
+                                  {getTotalEventAttendanceCount(event.id)} total
+                                </Badge>
+                              )}
+                            </div>
                           )}
                         </div>
                         
@@ -524,7 +540,7 @@ export function EventsTab() {
               <CardTitle>Event Attendance Statistics</CardTitle>
             </CardHeader>
             <CardContent>
-              {attendanceCounts.length === 0 ? (
+              {(attendanceCounts as any[]).length === 0 ? (
                 <div className="text-center py-6 text-muted-foreground">
                   <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
                   <p>No attendance data available yet</p>
@@ -545,7 +561,7 @@ export function EventsTab() {
                     }
                   }}
                 >
-                  {attendanceCounts.map((eventData: any, index: number) => {
+                  {(attendanceCounts as any[]).map((eventData: any, index: number) => {
                     const details = getEventAttendanceDetails(eventData.eventId);
                     if (!details || details.total === 0) return null;
                     
