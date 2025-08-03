@@ -545,16 +545,27 @@ export default function CheckInTab() {
       </motion.div>
 
       {/* Biometric Authentication */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold text-slate-900">
-            Biometric Authentication
-          </CardTitle>
-          <p className="text-sm text-slate-600">
-            Use your device biometric authentication to check in
-          </p>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <motion.div
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+        whileHover={{ 
+          scale: 1.01, 
+          y: -4,
+          transition: { duration: 0.2 }
+        }}
+      >
+        <Card className="transition-all duration-300 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold text-slate-900">
+              Biometric Authentication
+            </CardTitle>
+            <p className="text-sm text-slate-600">
+              Use your device biometric authentication to check in
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
           {!selectedEventId && (
             <div className="bg-red-50 border border-red-200 rounded p-3 text-red-700 text-sm">
               Please select an event above before using biometric check-in.
@@ -567,42 +578,53 @@ export default function CheckInTab() {
             </div>
             
             <div className="flex gap-2">
-              <Button 
-                variant="default" 
-                className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700"
-                disabled={!selectedEventId}
-              >
-                Device
-              </Button>
-              <Button 
-                variant="outline"
-                disabled={!selectedEventId}
-              >
-                Simulate
-              </Button>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button 
+                  variant="default" 
+                  className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 hover:shadow-md transition-shadow"
+                  disabled={!selectedEventId}
+                >
+                  Device
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button 
+                  variant="outline"
+                  disabled={!selectedEventId}
+                  className="hover:shadow-md transition-shadow"
+                >
+                  Simulate
+                </Button>
+              </motion.div>
             </div>
             
-            <Button 
-              variant="secondary" 
-              size="sm"
-              disabled={!selectedEventId}
-            >
-              ⚙️ Setup External Scanner
-            </Button>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button 
+                variant="secondary" 
+                size="sm"
+                disabled={!selectedEventId}
+                className="hover:shadow-md transition-shadow"
+              >
+                ⚙️ Setup External Scanner
+              </Button>
+            </motion.div>
             
-            <Button 
-              className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white px-8 py-2"
-              disabled={!selectedEventId}
-            >
-              Start Biometric Scan
-            </Button>
+            <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.95 }}>
+              <Button 
+                className="bg-gradient-to-r from-purple-500 to-blue-600 hover:from-purple-600 hover:to-blue-700 text-white px-8 py-2 hover:shadow-lg transition-all"
+                disabled={!selectedEventId}
+              >
+                Start Biometric Scan
+              </Button>
+            </motion.div>
             
             <p className="text-xs text-gray-500 text-center">
               Supported: Fingerprint, Face Recognition, PIN, or Pattern
             </p>
           </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Kiosk Mode Controls */}
       {isKioskAvailable && (

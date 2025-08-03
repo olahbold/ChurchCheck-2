@@ -17,6 +17,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FingerprintScanner } from "@/components/ui/fingerprint-scanner";
 import { useToast } from "@/hooks/use-toast";
 import { Save, X, Link, Unlink, Fingerprint, Search, RotateCcw, AlertTriangle, CheckCircle, UserPlus, ChevronRight, Download } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function RegisterTab() {
   const [showFingerprintEnroll, setShowFingerprintEnroll] = useState(false);
@@ -389,54 +390,84 @@ export default function RegisterTab() {
   const parentChildren = members.filter(m => m.parentId === selectedParentId);
 
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: 1,
+          transition: {
+            staggerChildren: 0.1
+          }
+        }
+      }}
+    >
       {/* Member Search Section */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Search Existing Members
-          </CardTitle>
-          <p className="text-sm text-slate-600">
-            Search before registering to prevent duplicates. If found, you can update their information instead.
-          </p>
-        </CardHeader>
-        <CardContent>
-          <div className="flex space-x-2">
-            <Input
-              placeholder="Search by name (partial match supported)..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearchMembers()}
-              className="flex-1"
-            />
-            <Button 
-              onClick={handleSearchMembers}
-              disabled={searchMembersMutation.isPending || searchQuery.trim().length < 2}
-              className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white"
-            >
-              <Search className="h-4 w-4 mr-2" />
-              {searchMembersMutation.isPending ? "Searching..." : "Search"}
-            </Button>
-            <Button 
-              onClick={handleExportMembers}
-              variant="outline"
-              className="border-[hsl(258,90%,66%)] text-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,66%)] hover:text-white"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export
-            </Button>
-            {(isUpdateMode || searchResults.length > 0) && (
-              <Button 
-                variant="outline"
-                onClick={handleClearForm}
-                className="border-slate-300"
-              >
-                <RotateCcw className="h-4 w-4 mr-2" />
-                Clear
-              </Button>
-            )}
-          </div>
+      <motion.div
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+        whileHover={{ 
+          scale: 1.01, 
+          y: -4,
+          transition: { duration: 0.2 }
+        }}
+      >
+        <Card className="transition-all duration-300 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="h-5 w-5" />
+              Search Existing Members
+            </CardTitle>
+            <p className="text-sm text-slate-600">
+              Search before registering to prevent duplicates. If found, you can update their information instead.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <div className="flex space-x-2">
+              <Input
+                placeholder="Search by name (partial match supported)..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearchMembers()}
+                className="flex-1"
+              />
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button 
+                  onClick={handleSearchMembers}
+                  disabled={searchMembersMutation.isPending || searchQuery.trim().length < 2}
+                  className="bg-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,60%)] text-white hover:shadow-md transition-shadow"
+                >
+                  <Search className="h-4 w-4 mr-2" />
+                  {searchMembersMutation.isPending ? "Searching..." : "Search"}
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button 
+                  onClick={handleExportMembers}
+                  variant="outline"
+                  className="border-[hsl(258,90%,66%)] text-[hsl(258,90%,66%)] hover:bg-[hsl(258,90%,66%)] hover:text-white hover:shadow-md transition-all"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </motion.div>
+              {(isUpdateMode || searchResults.length > 0) && (
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button 
+                    variant="outline"
+                    onClick={handleClearForm}
+                    className="border-slate-300 hover:shadow-md transition-shadow"
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Clear
+                  </Button>
+                </motion.div>
+              )}
+            </div>
 
           {/* Search Results */}
           {searchResults.length > 0 && (
@@ -478,18 +509,30 @@ export default function RegisterTab() {
               </AlertDescription>
             </Alert>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Registration Form */}
-        <Card className="church-card">
-          <CardHeader>
-            <CardTitle className="text-2xl font-semibold text-slate-900">
-              {isUpdateMode ? 'Update Member Information' : 'Member Registration'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
+          whileHover={{ 
+            scale: 1.01, 
+            y: -4,
+            transition: { duration: 0.2 }
+          }}
+        >
+          <Card className="church-card transition-all duration-300 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600">
+            <CardHeader>
+              <CardTitle className="text-2xl font-semibold text-slate-900">
+                {isUpdateMode ? 'Update Member Information' : 'Member Registration'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -863,35 +906,50 @@ export default function RegisterTab() {
               </div>
 
               <div className="flex space-x-4">
-                <Button 
-                  type="submit" 
-                  disabled={createMemberMutation.isPending || updateMemberMutation.isPending}
-                  className="church-button-primary flex-1"
-
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  {isUpdateMode
-                    ? (updateMemberMutation.isPending ? "Updating..." : "Update Member")
-                    : (createMemberMutation.isPending ? "Registering..." : "Register Member")
-                  }
-                </Button>
-                <Button 
-                  type="button" 
-                  onClick={handleClearForm}
-                  variant="outline"
-                  className="church-button-secondary"
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Clear
-                </Button>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} className="flex-1">
+                  <Button 
+                    type="submit" 
+                    disabled={createMemberMutation.isPending || updateMemberMutation.isPending}
+                    className="church-button-primary w-full hover:shadow-md transition-shadow"
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    {isUpdateMode
+                      ? (updateMemberMutation.isPending ? "Updating..." : "Update Member")
+                      : (createMemberMutation.isPending ? "Registering..." : "Register Member")
+                    }
+                  </Button>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button 
+                    type="button" 
+                    onClick={handleClearForm}
+                    variant="outline"
+                    className="church-button-secondary hover:shadow-md transition-shadow"
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Clear
+                  </Button>
+                </motion.div>
               </div>
             </form>
           </Form>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
 
-      {/* Family Linking Panel */}
-      <Card className="church-card">
+        {/* Family Linking Panel */}
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
+          whileHover={{ 
+            scale: 1.01, 
+            y: -4,
+            transition: { duration: 0.2 }
+          }}
+        >
+          <Card className="church-card transition-all duration-300 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600">
         <CardHeader>
           <CardTitle className="text-lg font-semibold text-slate-900">Family Linking</CardTitle>
         </CardHeader>
@@ -936,12 +994,15 @@ export default function RegisterTab() {
             </div>
           )}
 
-          <Button className="church-button-outline mt-6 w-full">
-            <Link className="mr-2 h-4 w-4" />
-            Manage Family Links
-          </Button>
-        </CardContent>
-      </Card>
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+              <Button className="church-button-outline mt-6 w-full hover:shadow-md transition-shadow">
+                <Link className="mr-2 h-4 w-4" />
+                Manage Family Links
+              </Button>
+            </motion.div>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
       {/* Update Confirmation Dialog */}
@@ -1064,6 +1125,6 @@ export default function RegisterTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }
