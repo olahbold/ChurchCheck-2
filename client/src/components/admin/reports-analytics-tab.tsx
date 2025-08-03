@@ -940,7 +940,13 @@ export default function ReportsAnalyticsTab() {
                       {selectedReportConfig?.title} Ready
                     </h3>
                     <p className="text-slate-600 mb-4">
-                      Your report has been generated successfully with {Array.isArray(reportData) ? reportData.length : 1} record(s).
+                      Your report has been generated successfully with {
+                        Array.isArray(reportData) 
+                          ? reportData.length 
+                          : (reportData?.type === 'matrix' && reportData?.data) 
+                            ? reportData.data.length 
+                            : 1
+                      } record(s).
                     </p>
                     <Button 
                       onClick={handleExportReport}

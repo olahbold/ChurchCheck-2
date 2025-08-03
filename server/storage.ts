@@ -922,9 +922,7 @@ export class DatabaseStorage implements IStorage {
       totalAttendanceRecords: attendanceData.length
     };
 
-    console.log('Matrix report debug - Members:', allMembers.length, 'Dates:', attendanceDates.length, 'Report rows:', matrixReport.length);
-    console.log('First few members:', allMembers.slice(0, 3).map(m => m.memberName));
-    console.log('Matrix report sample:', matrixReport.slice(0, 2));
+
 
     return {
       type: 'matrix',
