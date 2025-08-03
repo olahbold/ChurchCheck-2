@@ -420,7 +420,6 @@ export class DatabaseStorage implements IStorage {
         eventId: attendanceRecords.eventId,
         eventName: events.name,
         eventType: events.eventType,
-        eventDate: events.startDate,
         totalAttendees: sql<number>`count(*)`,
         members: sql<number>`sum(case when ${attendanceRecords.memberId} is not null then 1 else 0 end)`,
         visitors: sql<number>`sum(case when ${attendanceRecords.visitorId} is not null then 1 else 0 end)`,
@@ -439,8 +438,8 @@ export class DatabaseStorage implements IStorage {
           isNotNull(attendanceRecords.eventId)
         )
       )
-      .groupBy(attendanceRecords.eventId, events.name, events.eventType, events.startDate)
-      .orderBy(desc(events.startDate));
+      .groupBy(attendanceRecords.eventId, events.name, events.eventType)
+      .orderBy(events.name);
 
     return result;
   }
