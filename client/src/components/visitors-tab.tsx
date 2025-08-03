@@ -401,6 +401,21 @@ export default function VisitorsTab() {
       animate="visible"
       variants={containerVariants}
     >
+      {/* Welcome Header */}
+      <motion.div
+        variants={cardVariants}
+        className="bg-gradient-to-r from-slate-50 to-purple-50 border border-slate-200 rounded-lg p-6"
+      >
+        <h2 className="text-2xl font-semibold text-slate-900 mb-2">👥 Visitor Management Center</h2>
+        <p className="text-slate-700 mb-3">
+          Build meaningful connections with first-time visitors and guide them toward becoming part of your church family.
+        </p>
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+          <p className="text-sm text-purple-800">
+            💼 <strong>Complete visitor journey:</strong> Add new visitors with attendance tracking, manage follow-up status, assign team members for personal outreach, and celebrate successful conversions to membership. Track prayer points and maintain detailed contact information for meaningful relationship building.
+          </p>
+        </div>
+      </motion.div>
       {/* Stats Cards */}
       <motion.div 
         className="grid grid-cols-1 md:grid-cols-4 gap-4"

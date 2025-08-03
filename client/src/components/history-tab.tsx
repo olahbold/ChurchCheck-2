@@ -427,16 +427,22 @@ export default function HistoryTab() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6 }}
           >
-            Attendance History
+            📈 Attendance History & Analytics
           </motion.h2>
-          <motion.p 
-            className="text-slate-600"
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.1 }}
           >
-            View and analyze attendance patterns over time
-          </motion.p>
+            <p className="text-slate-600 mb-2">
+              Discover meaningful patterns in your church's attendance and engagement over time.
+            </p>
+            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+              <p className="text-xs text-emerald-800">
+                📊 <strong>Multiple views available:</strong> List view for detailed records, Calendar view for visual patterns, and Analytics for trend insights. Use date filters and search to explore specific periods or members. Perfect for understanding growth trends and identifying engagement opportunities!
+              </p>
+            </div>
+          </motion.div>
         </div>
         <motion.div 
           className="flex gap-2"

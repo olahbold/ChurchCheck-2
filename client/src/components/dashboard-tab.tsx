@@ -351,6 +351,21 @@ export default function DashboardTab() {
       animate="visible"
       variants={containerVariants}
     >
+      {/* Welcome Header */}
+      <motion.div
+        variants={cardVariants}
+        className="bg-gradient-to-r from-slate-50 to-blue-50 border border-slate-200 rounded-lg p-6"
+      >
+        <h2 className="text-2xl font-semibold text-slate-900 mb-2">📊 Dashboard Overview</h2>
+        <p className="text-slate-700 mb-3">
+          Welcome to your church management hub! Here's a real-time snapshot of your community's engagement and growth.
+        </p>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <p className="text-sm text-blue-800">
+            💡 <strong>Quick insights:</strong> View today's attendance, track member engagement, identify those needing follow-up, and manage your church directory. All stats update automatically as members check in and interact with your church.
+          </p>
+        </div>
+      </motion.div>
       {/* Stats Overview */}
       <motion.div 
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
@@ -538,16 +553,26 @@ export default function DashboardTab() {
         >
           <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-600 h-full bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <motion.div
-                  initial={{ rotate: 0 }}
-                  animate={{ rotate: 360 }}
-                  transition={{ delay: 2, duration: 1, ease: "easeOut" }}
+              <div>
+                <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <motion.div
+                    initial={{ rotate: 0 }}
+                    animate={{ rotate: 360 }}
+                    transition={{ delay: 2, duration: 1, ease: "easeOut" }}
+                  >
+                    <Search className="h-5 w-5" />
+                  </motion.div>
+                  📋 Member Directory
+                </CardTitle>
+                <motion.p 
+                  className="text-sm text-slate-600 mt-1"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 2.1 }}
                 >
-                  <Search className="h-5 w-5" />
-                </motion.div>
-                Member Directory
-              </CardTitle>
+                  Quick view of your congregation with real-time attendance status and search capabilities
+                </motion.p>
+              </div>
               <div className="flex space-x-2">
                 <motion.div
                   whileHover={{ scale: 1.05 }}
@@ -706,16 +731,26 @@ export default function DashboardTab() {
         >
           <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-600 h-full bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700">
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 2.1, type: "spring", stiffness: 500 }}
+              <div>
+                <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 2.1, type: "spring", stiffness: 500 }}
+                  >
+                    <MessageSquare className="h-5 w-5" />
+                  </motion.div>
+                  💬 Follow-up Queue
+                </CardTitle>
+                <motion.p 
+                  className="text-sm text-slate-600 mt-1"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 2.2 }}
                 >
-                  <MessageSquare className="h-5 w-5" />
-                </motion.div>
-                Follow-up Queue
-              </CardTitle>
+                  Reach out to members who've missed 3+ services with personalized messages
+                </motion.p>
+              </div>
               <motion.div
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
