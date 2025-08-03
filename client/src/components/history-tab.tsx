@@ -488,8 +488,15 @@ export default function HistoryTab() {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"
           variants={containerVariants}
         >
-          <motion.div variants={statsVariants}>
-            <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
+          <motion.div 
+            variants={statsVariants}
+            whileHover={{ 
+              scale: 1.02, 
+              y: -4,
+              transition: { duration: 0.2 }
+            }}
+          >
+            <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px] transition-all duration-300 hover:shadow-xl hover:border-slate-300">
               <CardContent className="p-6 h-full flex flex-col justify-between">
                 <div className="flex items-center justify-between">
                   <div>
@@ -531,8 +538,15 @@ export default function HistoryTab() {
             </Card>
           </motion.div>
 
-          <motion.div variants={statsVariants}>
-            <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
+          <motion.div 
+            variants={statsVariants}
+            whileHover={{ 
+              scale: 1.02, 
+              y: -4,
+              transition: { duration: 0.2 }
+            }}
+          >
+            <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px] transition-all duration-300 hover:shadow-xl hover:border-slate-300">
               <CardContent className="p-6 h-full flex flex-col justify-between">
                 <div className="flex items-center justify-between">
                   <div>
@@ -574,8 +588,15 @@ export default function HistoryTab() {
             </Card>
           </motion.div>
 
-          <motion.div variants={statsVariants}>
-            <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
+          <motion.div 
+            variants={statsVariants}
+            whileHover={{ 
+              scale: 1.02, 
+              y: -4,
+              transition: { duration: 0.2 }
+            }}
+          >
+            <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px] transition-all duration-300 hover:shadow-xl hover:border-slate-300">
               <CardContent className="p-6 h-full flex flex-col justify-between">
                 <div className="flex items-center justify-between">
                   <div>
@@ -617,8 +638,15 @@ export default function HistoryTab() {
             </Card>
           </motion.div>
 
-          <motion.div variants={statsVariants}>
-            <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px]">
+          <motion.div 
+            variants={statsVariants}
+            whileHover={{ 
+              scale: 1.02, 
+              y: -4,
+              transition: { duration: 0.2 }
+            }}
+          >
+            <Card className="stat-card-hover cursor-pointer overflow-hidden relative h-[140px] transition-all duration-300 hover:shadow-xl hover:border-slate-300">
               <CardContent className="p-6 h-full flex flex-col justify-between">
                 <div className="flex items-center justify-between">
                   <div>
@@ -663,7 +691,15 @@ export default function HistoryTab() {
       )}
 
       {/* Date Range and Filters */}
-      <Card className="church-card">
+      <motion.div
+        variants={cardVariants}
+        whileHover={{ 
+          scale: 1.01, 
+          y: -4,
+          transition: { duration: 0.2 }
+        }}
+      >
+        <Card className="church-card transition-all duration-300 hover:shadow-xl hover:border-slate-300">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="h-5 w-5" />
@@ -808,12 +844,21 @@ export default function HistoryTab() {
             </div>
           )}
         </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
 
       {/* Main Content Views */}
       {viewMode === "list" ? (
         /* List View */
-        <Card className="church-card">
+        <motion.div
+          variants={cardVariants}
+          whileHover={{ 
+            scale: 1.01, 
+            y: -4,
+            transition: { duration: 0.2 }
+          }}
+        >
+          <Card className="church-card transition-all duration-300 hover:shadow-xl hover:border-slate-300">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>
