@@ -5,6 +5,8 @@ export interface AttendanceStats {
   child: number;
   adolescent: number;
   adult: number;
+  members?: number;
+  visitors?: number;
 }
 
 export interface MemberWithChildren {

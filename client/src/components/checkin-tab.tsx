@@ -104,6 +104,13 @@ export default function CheckInTab() {
     refetchInterval: 30000,
   });
 
+  // Debug logging for eventStats
+  useEffect(() => {
+    if (eventStats) {
+      console.log('Event Stats Data:', eventStats);
+    }
+  }, [eventStats]);
+
   // Get today's attendance records (filtered by selected event)
   const { data: todayAttendance = [] } = useQuery<any[]>({
     queryKey: ['/api/attendance/today', selectedEventId],
@@ -420,7 +427,7 @@ export default function CheckInTab() {
 
       {/* Header with stats */}
       <motion.div 
-        className="grid gap-4 md:grid-cols-3"
+        className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3"
         initial="hidden"
         animate="visible"
         variants={{
