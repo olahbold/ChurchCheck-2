@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { motion } from "framer-motion";
 import { 
   Users, 
   Calendar, 
@@ -413,268 +414,348 @@ export default function SettingsTab() {
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <motion.div 
+        className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0 },
+          visible: {
+            opacity: 1,
+            transition: {
+              staggerChildren: 0.1
+            }
+          }
+        }}
+      >
         {/* Data Management */}
-        <Card className="church-card">
-          <CardHeader>
-            <CardTitle className="text-lg font-semibold text-slate-900">Data Management</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              <div>
-                <h4 className="font-medium text-slate-900 mb-3">Export Options</h4>
-                <div className="space-y-3">
-                  <Button 
-                    onClick={handleExportMembers}
-                    variant="outline" 
-                    className="w-full justify-start"
-                  >
-                    <Users className="mr-3 h-4 w-4" />
-                    Export All Members (CSV)
-                  </Button>
-                  <Button 
-                    onClick={handleExportAttendance}
-                    variant="outline" 
-                    className="w-full justify-start"
-                  >
-                    <Calendar className="mr-3 h-4 w-4" />
-                    Export Attendance History (CSV)
-                  </Button>
-                  <Button 
-                    onClick={handleExportMonthlyReport}
-                    variant="outline" 
-                    className="w-full justify-start"
-                  >
-                    <BarChart3 className="mr-3 h-4 w-4" />
-                    Export Monthly Report (CSV)
-                  </Button>
-                </div>
-              </div>
-
-              <div className="border-t border-slate-200 pt-6">
-                <h4 className="font-medium text-slate-900 mb-3">Bulk Import Options</h4>
-                <div className="space-y-3">
-                  <Button 
-                    onClick={downloadTemplate}
-                    variant="outline" 
-                    className="w-full justify-start"
-                  >
-                    <Download className="mr-3 h-4 w-4" />
-                    Download CSV Template
-                  </Button>
-                  <div>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept=".csv"
-                      onChange={handleFileUpload}
-                      className="hidden"
-                      id="bulk-upload"
-                    />
-                    <Button 
-                      onClick={() => fileInputRef.current?.click()}
-                      variant="outline" 
-                      className="w-full justify-start"
-                    >
-                      <Upload className="mr-3 h-4 w-4" />
-                      Upload Members (CSV)
-                    </Button>
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
+          whileHover={{ 
+            scale: 1.02, 
+            y: -4,
+            transition: { duration: 0.2 }
+          }}
+        >
+          <Card className="church-card transition-all duration-300 hover:shadow-lg cursor-pointer border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-slate-100">Data Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3">Export Options</h4>
+                  <div className="space-y-3">
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button 
+                        onClick={handleExportMembers}
+                        variant="outline" 
+                        className="w-full justify-start hover:bg-slate-50 dark:hover:bg-slate-800"
+                      >
+                        <Users className="mr-3 h-4 w-4" />
+                        Export All Members (CSV)
+                      </Button>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button 
+                        onClick={handleExportAttendance}
+                        variant="outline" 
+                        className="w-full justify-start hover:bg-slate-50 dark:hover:bg-slate-800"
+                      >
+                        <Calendar className="mr-3 h-4 w-4" />
+                        Export Attendance History (CSV)
+                      </Button>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button 
+                        onClick={handleExportMonthlyReport}
+                        variant="outline" 
+                        className="w-full justify-start hover:bg-slate-50 dark:hover:bg-slate-800"
+                      >
+                        <BarChart3 className="mr-3 h-4 w-4" />
+                        Export Monthly Report (CSV)
+                      </Button>
+                    </motion.div>
                   </div>
                 </div>
-              </div>
 
-              <div className="border-t border-slate-200 pt-6">
-                <h4 className="font-medium text-slate-900 mb-3">Backup & Sync</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-[hsl(142,76%,36%)]/5 border border-[hsl(142,76%,36%)]/20 rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <Cloud className="text-[hsl(142,76%,36%)] h-4 w-4" />
-                      <span className="text-sm">Google Sheets Sync</span>
+                <div className="border-t border-slate-200 pt-6">
+                  <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3">Bulk Import Options</h4>
+                  <div className="space-y-3">
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button 
+                        onClick={downloadTemplate}
+                        variant="outline" 
+                        className="w-full justify-start hover:bg-slate-50 dark:hover:bg-slate-800"
+                      >
+                        <Download className="mr-3 h-4 w-4" />
+                        Download CSV Template
+                      </Button>
+                    </motion.div>
+                    <div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept=".csv"
+                        onChange={handleFileUpload}
+                        className="hidden"
+                        id="bulk-upload"
+                      />
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <Button 
+                          onClick={() => fileInputRef.current?.click()}
+                          variant="outline" 
+                          className="w-full justify-start hover:bg-slate-50 dark:hover:bg-slate-800"
+                        >
+                          <Upload className="mr-3 h-4 w-4" />
+                          Upload Members (CSV)
+                        </Button>
+                      </motion.div>
                     </div>
-                    <span className="text-xs text-[hsl(142,76%,36%)]">Connected</span>
                   </div>
-                  <Button 
-                    onClick={() => handleSystemAction("Manual Backup")}
-                    variant="outline" 
-                    className="w-full justify-start"
-                  >
-                    <CloudUpload className="mr-3 h-4 w-4" />
-                    Manual Backup to Cloud
-                  </Button>
-                  <Button 
-                    onClick={() => handleSystemAction("Restore from Backup")}
-                    variant="outline" 
-                    className="w-full justify-start"
-                  >
-                    <CloudDownload className="mr-3 h-4 w-4" />
-                    Restore from Backup
-                  </Button>
+                </div>
+
+                <div className="border-t border-slate-200 pt-6">
+                  <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3">Backup & Sync</h4>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-[hsl(142,76%,36%)]/5 border border-[hsl(142,76%,36%)]/20 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Cloud className="text-[hsl(142,76%,36%)] h-4 w-4" />
+                        <span className="text-sm">Google Sheets Sync</span>
+                      </div>
+                      <span className="text-xs text-[hsl(142,76%,36%)]">Connected</span>
+                    </div>
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button 
+                        onClick={() => handleSystemAction("Manual Backup")}
+                        variant="outline" 
+                        className="w-full justify-start hover:bg-slate-50 dark:hover:bg-slate-800"
+                      >
+                        <CloudUpload className="mr-3 h-4 w-4" />
+                        Manual Backup to Cloud
+                      </Button>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button 
+                        onClick={() => handleSystemAction("Restore from Backup")}
+                        variant="outline" 
+                        className="w-full justify-start hover:bg-slate-50 dark:hover:bg-slate-800"
+                      >
+                        <CloudDownload className="mr-3 h-4 w-4" />
+                        Restore from Backup
+                      </Button>
+                    </motion.div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* System Settings */}
-        <Card className="church-card">
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
+          whileHover={{ 
+            scale: 1.02, 
+            y: -4,
+            transition: { duration: 0.2 }
+          }}
+        >
+          <Card className="church-card transition-all duration-300 hover:shadow-lg cursor-pointer border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600">
+            <CardHeader>
+              <CardTitle className="text-lg font-semibold text-slate-900 dark:text-slate-100">System Settings</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3">Fingerprint Settings</h4>
+                    <div className="space-y-3">
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <Button 
+                          onClick={() => handleSystemAction("Reset Member Fingerprint")}
+                          variant="outline" 
+                          className="w-full justify-start hover:bg-slate-50 dark:hover:bg-slate-800"
+                        >
+                          <Fingerprint className="mr-3 h-4 w-4" />
+                          Reset Member Fingerprint
+                        </Button>
+                      </motion.div>
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <Button 
+                          onClick={() => handleSystemAction("Calibrate Scanner")}
+                          variant="outline" 
+                          className="w-full justify-start hover:bg-slate-50 dark:hover:bg-slate-800"
+                        >
+                          <Settings className="mr-3 h-4 w-4" />
+                          Calibrate Scanner
+                        </Button>
+                      </motion.div>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="scan-sensitivity" className="text-sm text-slate-700 dark:text-slate-300">
+                          Auto Check-in Sensitivity
+                        </Label>
+                        <Select value={scanSensitivity} onValueChange={setScanSensitivity}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="high">High</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="low">Low</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-200 pt-6">
+                    <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3">Follow-up Settings</h4>
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="followup-weeks" className="text-sm text-slate-700 dark:text-slate-300">
+                          Auto Follow-up After
+                        </Label>
+                        <Select value={followUpWeeks} onValueChange={setFollowUpWeeks}>
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="2">2 weeks</SelectItem>
+                            <SelectItem value="3">3 weeks</SelectItem>
+                            <SelectItem value="4">4 weeks</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="followup-enabled" className="text-sm text-slate-700 dark:text-slate-300">
+                          Send Follow-ups
+                        </Label>
+                        <Switch
+                          id="followup-enabled"
+                          checked={followUpEnabled}
+                          onCheckedChange={setFollowUpEnabled}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-200 pt-6">
+                    <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3">Admin Access</h4>
+                    <div className="space-y-3">
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <Button 
+                          onClick={() => handleSystemAction("Manage Admin Users")}
+                          variant="outline" 
+                          className="w-full justify-start hover:bg-slate-50 dark:hover:bg-slate-800"
+                        >
+                          <UserCog className="mr-3 h-4 w-4" />
+                          Manage Admin Users
+                        </Button>
+                      </motion.div>
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <Button 
+                          onClick={() => handleSystemAction("View Activity Log")}
+                          variant="outline" 
+                          className="w-full justify-start hover:bg-slate-50 dark:hover:bg-slate-800"
+                        >
+                          <History className="mr-3 h-4 w-4" />
+                          View Activity Log
+                        </Button>
+                      </motion.div>
+                    </div>
+                  </div>
+
+                  <div className="border-t border-slate-200 pt-6">
+                    <h4 className="font-medium text-slate-900 dark:text-slate-100 mb-3">Subscription & Billing</h4>
+                    <div className="space-y-3">
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <Button 
+                          onClick={() => window.location.href = '/subscription'}
+                          variant="outline" 
+                          className="w-full justify-start hover:bg-slate-50 dark:hover:bg-slate-800"
+                        >
+                          <CreditCard className="mr-3 h-4 w-4" />
+                          Manage Subscription
+                        </Button>
+                      </motion.div>
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <Button 
+                          onClick={() => window.location.href = '/subscription'}
+                          variant="outline" 
+                          className="w-full justify-start hover:bg-slate-50 dark:hover:bg-slate-800"
+                        >
+                          <Crown className="mr-3 h-4 w-4" />
+                          Upgrade Plan
+                        </Button>
+                      </motion.div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4">
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button 
+                        onClick={() => handleSystemAction("Save Settings")}
+                        className="church-button-primary w-full"
+                      >
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Settings
+                      </Button>
+                    </motion.div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+
+      {/* Danger Zone */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+        whileHover={{ 
+          scale: 1.01, 
+          y: -2,
+          transition: { duration: 0.2 }
+        }}
+      >
+        <Card className="bg-[hsl(0,84%,60%)]/5 border border-[hsl(0,84%,60%)]/20 transition-all duration-300 hover:shadow-lg hover:border-[hsl(0,84%,60%)]/30">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold text-slate-900">System Settings</CardTitle>
+            <CardTitle className="text-lg font-semibold text-[hsl(0,84%,60%)]">Danger Zone</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-6">
-              <div>
-                <h4 className="font-medium text-slate-900 mb-3">Fingerprint Settings</h4>
-                <div className="space-y-3">
-                  <Button 
-                    onClick={() => handleSystemAction("Reset Member Fingerprint")}
-                    variant="outline" 
-                    className="w-full justify-start"
-                  >
-                    <Fingerprint className="mr-3 h-4 w-4" />
-                    Reset Member Fingerprint
-                  </Button>
-                  <Button 
-                    onClick={() => handleSystemAction("Calibrate Scanner")}
-                    variant="outline" 
-                    className="w-full justify-start"
-                  >
-                    <Settings className="mr-3 h-4 w-4" />
-                    Calibrate Scanner
-                  </Button>
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="scan-sensitivity" className="text-sm text-slate-700">
-                      Auto Check-in Sensitivity
-                    </Label>
-                    <Select value={scanSensitivity} onValueChange={setScanSensitivity}>
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="low">Low</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t border-slate-200 pt-6">
-                <h4 className="font-medium text-slate-900 mb-3">Follow-up Settings</h4>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="followup-weeks" className="text-sm text-slate-700">
-                      Auto Follow-up After
-                    </Label>
-                    <Select value={followUpWeeks} onValueChange={setFollowUpWeeks}>
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="2">2 weeks</SelectItem>
-                        <SelectItem value="3">3 weeks</SelectItem>
-                        <SelectItem value="4">4 weeks</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="followup-enabled" className="text-sm text-slate-700">
-                      Send Follow-ups
-                    </Label>
-                    <Switch
-                      id="followup-enabled"
-                      checked={followUpEnabled}
-                      onCheckedChange={setFollowUpEnabled}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t border-slate-200 pt-6">
-                <h4 className="font-medium text-slate-900 mb-3">Admin Access</h4>
-                <div className="space-y-3">
-                  <Button 
-                    onClick={() => handleSystemAction("Manage Admin Users")}
-                    variant="outline" 
-                    className="w-full justify-start"
-                  >
-                    <UserCog className="mr-3 h-4 w-4" />
-                    Manage Admin Users
-                  </Button>
-                  <Button 
-                    onClick={() => handleSystemAction("View Activity Log")}
-                    variant="outline" 
-                    className="w-full justify-start"
-                  >
-                    <History className="mr-3 h-4 w-4" />
-                    View Activity Log
-                  </Button>
-                </div>
-              </div>
-
-              <div className="border-t border-slate-200 pt-6">
-                <h4 className="font-medium text-slate-900 mb-3">Subscription & Billing</h4>
-                <div className="space-y-3">
-                  <Button 
-                    onClick={() => window.location.href = '/subscription'}
-                    variant="outline" 
-                    className="w-full justify-start"
-                  >
-                    <CreditCard className="mr-3 h-4 w-4" />
-                    Manage Subscription
-                  </Button>
-                  <Button 
-                    onClick={() => window.location.href = '/subscription'}
-                    variant="outline" 
-                    className="w-full justify-start"
-                  >
-                    <Crown className="mr-3 h-4 w-4" />
-                    Upgrade Plan
-                  </Button>
-                </div>
-              </div>
-
-              <div className="pt-4">
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+              These actions cannot be undone. Please be careful.
+            </p>
+            <div className="flex space-x-4">
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Button 
-                  onClick={() => handleSystemAction("Save Settings")}
-                  className="church-button-primary w-full"
+                  onClick={() => handleDangerousAction("Clear All Data")}
+                  className="church-button-error"
                 >
-                  <Save className="mr-2 h-4 w-4" />
-                  Save Settings
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Clear All Data
                 </Button>
-              </div>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button 
+                  onClick={() => handleDangerousAction("Factory Reset")}
+                  className="church-button-error"
+                >
+                  <RotateCcw className="mr-2 h-4 w-4" />
+                  Factory Reset
+                </Button>
+              </motion.div>
             </div>
           </CardContent>
         </Card>
-      </div>
-
-      {/* Danger Zone */}
-      <Card className="bg-[hsl(0,84%,60%)]/5 border border-[hsl(0,84%,60%)]/20">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-[hsl(0,84%,60%)]">Danger Zone</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-slate-600 mb-4">
-            These actions cannot be undone. Please be careful.
-          </p>
-          <div className="flex space-x-4">
-            <Button 
-              onClick={() => handleDangerousAction("Clear All Data")}
-              className="church-button-error"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Clear All Data
-            </Button>
-            <Button 
-              onClick={() => handleDangerousAction("Factory Reset")}
-              className="church-button-error"
-            >
-              <RotateCcw className="mr-2 h-4 w-4" />
-              Factory Reset
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      </motion.div>
 
       {/* Bulk Upload Dialog */}
       <Dialog open={showBulkUploadDialog} onOpenChange={setShowBulkUploadDialog}>
