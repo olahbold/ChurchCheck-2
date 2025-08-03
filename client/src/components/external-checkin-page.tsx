@@ -79,13 +79,10 @@ const ExternalCheckInPage: React.FC = () => {
   // Load members from the actual member API
   const loadMembers = async () => {
     try {
-      // Get members from the API (this will work because external check-in page is public)
-      // We'll load the church's members when the event info is available
+      // Get members from the external check-in API
       if (!eventInfo) return;
       
-      // For external check-in, we need to fetch members without authentication
-      // This is a security consideration - we'll use a simplified member search
-      const response = await fetch('/api/members/search-external', {
+      const response = await fetch('/external-checkin/members', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -248,6 +248,42 @@ router.get('/events/:eventId/external-checkin', authenticateToken, ensureChurchC
   }
 });
 
-// Duplicate route removed - using the one above
+// Get members for external check-in (public endpoint with eventUrl verification)
+router.post('/members', async (req, res) => {
+  try {
+    const { eventUrl } = req.body;
+
+    if (!eventUrl) {
+      return res.status(400).json({ error: 'Event URL is required' });
+    }
+
+    // Find event by external URL to get church ID
+    const event = await db.select().from(events).where(
+      and(
+        eq(events.externalCheckInUrl, eventUrl),
+        eq(events.externalCheckInEnabled, true),
+        eq(events.isActive, true)
+      )
+    ).limit(1);
+
+    if (event.length === 0) {
+      return res.status(404).json({ error: 'External check-in not found or disabled' });
+    }
+
+    const eventData = event[0];
+
+    // Get all members for this church
+    const churchMembers = await db.select({
+      id: members.id,
+      firstName: members.firstName,
+      surname: members.surname,
+    }).from(members).where(eq(members.churchId, eventData.churchId));
+
+    res.json(churchMembers);
+  } catch (error) {
+    console.error('Get external check-in members error:', error);
+    res.status(500).json({ error: 'Failed to load members' });
+  }
+});
 
 export default router;
