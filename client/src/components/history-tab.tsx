@@ -1791,17 +1791,36 @@ export default function HistoryTab() {
                       <CardTitle>Check-in Methods Usage</CardTitle>
                     </CardHeader>
                     <CardContent className="relative">
-                      <ResponsiveContainer width="100%" height={300}>
+                      <ResponsiveContainer width="100%" height={400}>
                         <PieChart>
                           <Pie
                             data={methodsData}
                             cx="50%"
                             cy="50%"
-                            innerRadius={60}
-                            outerRadius={100}
-                            paddingAngle={2}
+                            innerRadius={80}
+                            outerRadius={120}
+                            paddingAngle={3}
                             dataKey="value"
-                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(1)}%`}
+                            label={({ name, percent, cx, cy, midAngle, innerRadius, outerRadius }) => {
+                              const RADIAN = Math.PI / 180;
+                              const radius = innerRadius + (outerRadius - innerRadius) * 1.4;
+                              const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                              const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                              
+                              return (
+                                <text 
+                                  x={x} 
+                                  y={y} 
+                                  fill="#64748b" 
+                                  textAnchor={x > cx ? 'start' : 'end'} 
+                                  dominantBaseline="central"
+                                  fontSize={14}
+                                  fontWeight={500}
+                                >
+                                  {`${name}: ${(percent * 100).toFixed(1)}%`}
+                                </text>
+                              );
+                            }}
                             labelLine={false}
                           >
                             {methodsData.map((entry, index) => (
@@ -1818,7 +1837,8 @@ export default function HistoryTab() {
                             contentStyle={{
                               backgroundColor: 'white',
                               border: '1px solid #e2e8f0',
-                              borderRadius: '8px'
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                             }}
                           />
                         </PieChart>
@@ -1827,13 +1847,13 @@ export default function HistoryTab() {
                       {/* Center Label */}
                       <div className="absolute inset-0 flex items-center justify-center">
                         <div className="text-center">
-                          <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalCheckins}</div>
-                          <div className="text-sm text-slate-600 dark:text-slate-400">Total Check-ins</div>
+                          <div className="text-3xl font-bold text-slate-900 dark:text-slate-100">{totalCheckins}</div>
+                          <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">Total Check-ins</div>
                         </div>
                       </div>
                       
-                      {/* Legend */}
-                      <div className="mt-4 grid grid-cols-2 gap-2">
+                      {/* Clean Legend */}
+                      <div className="mt-6 flex flex-wrap justify-center gap-4">
                         {methodsData.map((item, index) => (
                           <div key={item.name} className="flex items-center gap-2">
                             <div 
@@ -1845,8 +1865,8 @@ export default function HistoryTab() {
                                                 '#f59e0b'
                               }}
                             />
-                            <span className="text-sm text-slate-700 dark:text-slate-300">{item.name}</span>
-                            <span className="text-sm font-medium text-slate-900 dark:text-slate-100">({item.value})</span>
+                            <span className="text-sm text-slate-700 dark:text-slate-300 font-medium">{item.name}</span>
+                            <span className="text-sm text-slate-500 dark:text-slate-400">({item.value})</span>
                           </div>
                         ))}
                       </div>
