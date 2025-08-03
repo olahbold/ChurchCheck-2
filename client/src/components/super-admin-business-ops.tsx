@@ -655,105 +655,136 @@ export function SuperAdminBusinessOps({ onBack }: SuperAdminBusinessOpsProps) {
 
         {/* Recent Reports */}
         {reports.length > 0 && (
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Recent Reports</CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={loadBusinessData}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-                <span className="ml-2">Refresh</span>
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {reports.map((report) => (
-                  <div key={report.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-3">
-                      <FileText className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-medium">{report.title}</p>
-                        <p className="text-sm text-muted-foreground">
-                          Generated {new Date(report.generatedAt).toLocaleDateString()}
-                        </p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            <Card className="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950 dark:to-green-950 border-emerald-200 dark:border-emerald-800 hover:shadow-lg transition-all duration-300">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-emerald-700 dark:text-emerald-300">Recent Reports</CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={loadBusinessData}
+                  disabled={isLoading}
+                  className="border-emerald-300 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
+                >
+                  {isLoading ? (
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 pulse-icon" />
+                  )}
+                  <span className="ml-2">Refresh</span>
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {reports.map((report, index) => (
+                    <motion.div 
+                      key={report.id} 
+                      className="flex items-center justify-between p-4 border border-emerald-200 dark:border-emerald-800 rounded-lg bg-white dark:bg-emerald-950/30 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-all duration-300"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.4, delay: 0.2 + (index * 0.1) }}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <FileText className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                        <div>
+                          <p className="font-medium text-emerald-900 dark:text-emerald-100">{report.title}</p>
+                          <p className="text-sm text-emerald-700 dark:text-emerald-300">
+                            Generated {new Date(report.generatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center space-x-3">
-                      <Badge 
-                        className={
-                          report.status === 'ready' 
-                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                            : report.status === 'generating'
-                            ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                        }
-                      >
-                        {report.status === 'ready' && <CheckCircle className="h-3 w-3 mr-1" />}
-                        {report.status === 'generating' && <Clock className="h-3 w-3 mr-1" />}
-                        {report.status === 'failed' && <AlertTriangle className="h-3 w-3 mr-1" />}
-                        {report.status}
-                      </Badge>
-                      {report.status === 'ready' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => downloadReport(report.id)}
+                      <div className="flex items-center space-x-3">
+                        <Badge 
+                          className={
+                            report.status === 'ready' 
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 border-green-300 dark:border-green-700'
+                              : report.status === 'generating'
+                              ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200 border-yellow-300 dark:border-yellow-700'
+                              : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 border-red-300 dark:border-red-700'
+                          }
                         >
-                          <Download className="h-4 w-4 mr-1" />
-                          Download
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                          {report.status === 'ready' && <CheckCircle className="h-3 w-3 mr-1" />}
+                          {report.status === 'generating' && <Clock className="h-3 w-3 mr-1 animate-pulse" />}
+                          {report.status === 'failed' && <AlertTriangle className="h-3 w-3 mr-1" />}
+                          {report.status}
+                        </Badge>
+                        {report.status === 'ready' && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => downloadReport(report.id)}
+                            className="border-emerald-300 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-700 dark:text-emerald-300 dark:hover:bg-emerald-900/30"
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            Download
+                          </Button>
+                        )}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
 
         {/* Churn Analysis */}
         {churnAnalysis.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Recent Churn Analysis</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Churches that recently canceled their subscriptions
-              </p>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {churnAnalysis.slice(0, 5).map((churn) => (
-                  <div key={churn.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-2">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{churn.churchName}</span>
-                        <Badge variant="outline">{churn.subscriptionTier}</Badge>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <Card className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950 dark:to-rose-950 border-red-200 dark:border-red-800 hover:shadow-lg transition-all duration-300">
+              <CardHeader>
+                <CardTitle className="text-red-700 dark:text-red-300 flex items-center space-x-2">
+                  <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400 pulse-icon" />
+                  <span>Recent Churn Analysis</span>
+                </CardTitle>
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  Churches that recently canceled their subscriptions
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {churnAnalysis.slice(0, 5).map((churn, index) => (
+                    <motion.div 
+                      key={churn.id} 
+                      className="flex items-center justify-between p-4 border border-red-200 dark:border-red-800 rounded-lg bg-white dark:bg-red-950/30 hover:bg-red-50 dark:hover:bg-red-900/30 transition-all duration-300"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.4, delay: 0.3 + (index * 0.1) }}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2">
+                          <Building2 className="h-4 w-4 text-red-600 dark:text-red-400" />
+                          <span className="font-medium text-red-900 dark:text-red-100">{churn.churchName}</span>
+                          <Badge variant="outline" className="border-red-300 text-red-700 dark:border-red-700 dark:text-red-300">
+                            {churn.subscriptionTier}
+                          </Badge>
+                        </div>
+                        <p className="text-sm text-red-700 dark:text-red-300 mt-1">
+                          Canceled on {new Date(churn.cancelDate).toLocaleDateString()} • {churn.reason}
+                        </p>
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Canceled on {new Date(churn.cancelDate).toLocaleDateString()} • {churn.reason}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-medium text-red-600 dark:text-red-400">
-                        -{formatCurrency(churn.totalRevenueLost)}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {churn.subscriptionDuration} months
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+                      <div className="text-right">
+                        <p className="font-bold text-red-600 dark:text-red-400 text-lg">
+                          -<AnimatedCounter target={churn.totalRevenueLost} prefix="$" />
+                        </p>
+                        <p className="text-sm text-red-600 dark:text-red-400">
+                          <AnimatedCounter target={churn.subscriptionDuration} /> months
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
         )}
       </div>
     </div>

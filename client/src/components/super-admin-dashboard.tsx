@@ -414,104 +414,114 @@ export function SuperAdminDashboard({ admin, onLogout, onNavigateToBusinessOps, 
         </div>
 
         {/* Churches Management */}
-        <Card>
-          <CardHeader>
-            <div className="flex justify-between items-center">
-              <CardTitle>Churches Management</CardTitle>
-              <div className="flex items-center space-x-2">
-                <div className="relative">
-                  <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Search churches..."
-                    value={searchTerm}
-                    onChange={(e) => handleSearch(e.target.value)}
-                    className="pl-10 w-64"
-                  />
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {filteredChurches.map((church) => (
-                <div
-                  key={church.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800"
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-3">
-                      <h3 className="font-semibold">{church.name}</h3>
-                      <Badge className={getSubscriptionColor(church.subscriptionTier)}>
-                        {church.subscriptionTier}
-                      </Badge>
-                    </div>
-                    <div className="flex items-center space-x-6 mt-2 text-sm text-muted-foreground">
-                      <span>{church.totalMembers} members</span>
-                      <span>{church.activeMembers} active</span>
-                      <span>{church.totalAttendance} attendance records</span>
-                      <span>Created {new Date(church.createdAt).toLocaleDateString()}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => handleViewChurch(church.id)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View
-                    </Button>
-                    {church.subscriptionTier === 'suspended' ? (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleChurchStatusToggle(church.id, true)}
-                        className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
-                      >
-                        <CheckCircle className="h-4 w-4 mr-1" />
-                        Activate
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleChurchStatusToggle(church.id, false)}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                      >
-                        <Ban className="h-4 w-4 mr-1" />
-                        Suspend
-                      </Button>
-                    )}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+        >
+          <Card className="bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-950 dark:to-gray-950 border-slate-200 dark:border-slate-800 hover:shadow-lg transition-all duration-300">
+            <CardHeader>
+              <div className="flex justify-between items-center">
+                <CardTitle className="text-slate-700 dark:text-slate-300">Churches Management</CardTitle>
+                <div className="flex items-center space-x-2">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-slate-500 dark:text-slate-400" />
+                    <Input
+                      placeholder="Search churches..."
+                      value={searchTerm}
+                      onChange={(e) => handleSearch(e.target.value)}
+                      className="pl-10 w-64 border-slate-300 dark:border-slate-700"
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
-            {filteredChurches.length === 0 && searchTerm && (
-              <div className="text-center py-8 text-muted-foreground">
-                <Search className="h-8 w-8 mx-auto mb-2" />
-                <p>No churches found matching "{searchTerm}"</p>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setFilteredChurches(churches);
-                  }}
-                  className="mt-2"
-                >
-                  Clear search
-                </Button>
               </div>
-            )}
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {filteredChurches.map((church, index) => (
+                  <motion.div
+                    key={church.id}
+                    className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-800 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-900/30 transition-all duration-300 bg-white dark:bg-slate-950/30"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.4, delay: 0.6 + (index * 0.05) }}
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-3">
+                        <h3 className="font-semibold text-slate-900 dark:text-slate-100">{church.name}</h3>
+                        <Badge className={getSubscriptionColor(church.subscriptionTier)}>
+                          {church.subscriptionTier}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center space-x-6 mt-2 text-sm text-slate-600 dark:text-slate-400">
+                        <span><AnimatedCounter target={church.totalMembers} /> members</span>
+                        <span><AnimatedCounter target={church.activeMembers} /> active</span>
+                        <span><AnimatedCounter target={church.totalAttendance} /> attendance records</span>
+                        <span>Created {new Date(church.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleViewChurch(church.id)}
+                        className="border-slate-300 text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-900/30"
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View
+                      </Button>
+                      {church.subscriptionTier === 'suspended' ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleChurchStatusToggle(church.id, true)}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20 border-green-300 dark:border-green-700"
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Activate
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleChurchStatusToggle(church.id, false)}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 border-red-300 dark:border-red-700"
+                        >
+                          <Ban className="h-4 w-4 mr-1" />
+                          Suspend
+                        </Button>
+                      )}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+              {filteredChurches.length === 0 && searchTerm && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Search className="h-8 w-8 mx-auto mb-2" />
+                  <p>No churches found matching "{searchTerm}"</p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setFilteredChurches(churches);
+                    }}
+                    className="mt-2"
+                  >
+                    Clear search
+                  </Button>
+                </div>
+              )}
 
-            {filteredChurches.length === 0 && !searchTerm && (
-              <div className="text-center py-8 text-muted-foreground">
-                <Building2 className="h-8 w-8 mx-auto mb-2" />
-                <p>No churches registered yet</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              {filteredChurches.length === 0 && !searchTerm && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Building2 className="h-8 w-8 mx-auto mb-2" />
+                  <p>No churches registered yet</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Church Details Modal */}
         {selectedChurch && (
