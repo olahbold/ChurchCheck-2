@@ -348,39 +348,64 @@ export default function CheckInTab() {
   }
 
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: 1,
+          transition: {
+            staggerChildren: 0.1
+          }
+        }
+      }}
+    >
       {/* Event Selection */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Search className="h-5 w-5" />
-            Event Check-in
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Select Event</label>
-              <select
-                value={selectedEventId}
-                onChange={(e) => setSelectedEventId(e.target.value)}
-                className="w-full p-2 border rounded-md"
-                required
-              >
-                <option value="">Choose an event...</option>
-                {activeEvents.map((event: any) => (
-                  <option key={event.id} value={event.id}>
-                    {event.name} ({event.eventType.replace(/_/g, ' ')})
-                  </option>
-                ))}
-              </select>
-              {!selectedEventId && (
-                <p className="text-sm text-red-600 mt-1">Please select an event before checking in members</p>
-              )}
+      <motion.div
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+        whileHover={{ 
+          scale: 1.01, 
+          y: -4,
+          transition: { duration: 0.2 }
+        }}
+      >
+        <Card className="transition-all duration-300 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Search className="h-5 w-5" />
+              Event Check-in
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Select Event</label>
+                <select
+                  value={selectedEventId}
+                  onChange={(e) => setSelectedEventId(e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                  required
+                >
+                  <option value="">Choose an event...</option>
+                  {activeEvents.map((event: any) => (
+                    <option key={event.id} value={event.id}>
+                      {event.name} ({event.eventType.replace(/_/g, ' ')})
+                    </option>
+                  ))}
+                </select>
+                {!selectedEventId && (
+                  <p className="text-sm text-red-600 mt-1">Please select an event before checking in members</p>
+                )}
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Header with stats */}
       <motion.div 
@@ -658,13 +683,24 @@ export default function CheckInTab() {
       )}
 
       {/* Manual Check-in */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold text-slate-900">
-            Manual Check-In
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <motion.div
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+        whileHover={{ 
+          scale: 1.01, 
+          y: -4,
+          transition: { duration: 0.2 }
+        }}
+      >
+        <Card className="transition-all duration-300 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold text-slate-900">
+              Manual Check-In
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
           {!selectedEventId && (
             <div className="bg-red-50 border border-red-200 rounded p-3 text-red-700 text-sm">
               Please select an event above before checking in members manually.
@@ -699,25 +735,29 @@ export default function CheckInTab() {
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        onClick={() => handleManualCheckIn(member.id)}
-                        disabled={manualCheckInMutation.isPending}
-                        className="text-xs px-3 py-1"
-                      >
-                        Check In
-                      </Button>
-                      {member.children && member.children.length > 0 && (
+                      <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                         <Button
-                          variant="outline"
                           size="sm"
-                          onClick={() => handleFamilyCheckIn(member)}
+                          onClick={() => handleManualCheckIn(member.id)}
                           disabled={manualCheckInMutation.isPending}
-                          className="text-xs px-2 py-1"
+                          className="text-xs px-3 py-1 hover:shadow-md transition-shadow"
                         >
-                          <Users className="h-3 w-3 mr-1" />
-                          Family
+                          Check In
                         </Button>
+                      </motion.div>
+                      {member.children && member.children.length > 0 && (
+                        <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleFamilyCheckIn(member)}
+                            disabled={manualCheckInMutation.isPending}
+                            className="text-xs px-2 py-1 hover:shadow-md transition-shadow"
+                          >
+                            <Users className="h-3 w-3 mr-1" />
+                            Family
+                          </Button>
+                        </motion.div>
                       )}
                     </div>
                   </div>
@@ -731,8 +771,9 @@ export default function CheckInTab() {
               No members found matching "{searchQuery}"
             </div>
           )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Today's Attendance */}
       <Card>
@@ -897,6 +938,6 @@ export default function CheckInTab() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }
