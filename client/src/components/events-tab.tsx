@@ -703,7 +703,8 @@ export function EventsTab() {
                               <CardContent className="p-4 h-full flex flex-col justify-between">
                                 <div className="flex items-center justify-between">
                                   <div>
-                                    <p className="text-xs font-medium text-slate-600">C / A / Ad</p>
+                                    <p className="text-xs font-medium text-slate-600">Age Groups</p>
+                                    <p className="text-[10px] text-slate-400 -mt-0.5">Child / Teen / Adult</p>
                                     <motion.p 
                                       className="text-lg font-bold text-orange-600"
                                       initial={{ scale: 0.8, opacity: 0 }}
