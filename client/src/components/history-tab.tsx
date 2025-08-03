@@ -114,7 +114,8 @@ export default function HistoryTab() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [viewMode, setViewMode] = useState<"list" | "calendar" | "analytics">("list");
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
-  const [analyticsView, setAnalyticsView] = useState<"overview" | "trends" | "top-performers" | "insights">("overview");
+  const [analyticsView, setAnalyticsView] = useState<"overview" | "trends" | "top-performers" | "insights" | "methods" | "events" | "engagement">("overview");
+  const [calendarHeatmap, setCalendarHeatmap] = useState<boolean>(false);
 
   // Animation variants
   const containerVariants = {
@@ -343,6 +344,138 @@ export default function HistoryTab() {
       growthRate: isNaN(growthRate) ? 0 : Math.round(growthRate * 10) / 10,
       totalUnique: new Set(filteredHistory.map(r => r.member?.id).filter(Boolean)).size
     };
+  };
+
+  // NEW: Check-in Methods Analysis
+  const getCheckInMethodsData = () => {
+    const methodCounts = { Biometric: 0, Manual: 0, 'Family Check-in': 0, 'External PIN': 0 };
+    
+    filteredHistory.forEach(record => {
+      if (record.checkInMethod === 'biometric') {
+        methodCounts['Biometric']++;
+      } else if (record.checkInMethod === 'manual') {
+        methodCounts['Manual']++;
+      } else if (record.checkInMethod === 'family') {
+        methodCounts['Family Check-in']++;
+      } else if (record.checkInMethod === 'external') {
+        methodCounts['External PIN']++;
+      } else {
+        methodCounts['Manual']++; // Default fallback
+      }
+    });
+    
+    return Object.entries(methodCounts).map(([name, value]) => ({ name, value }));
+  };
+
+  // NEW: Event Popularity Analysis
+  const getEventPopularityData = () => {
+    const eventCounts = new Map();
+    
+    filteredHistory.forEach(record => {
+      if (record.event?.name) {
+        const eventName = record.event.name;
+        eventCounts.set(eventName, (eventCounts.get(eventName) || 0) + 1);
+      }
+    });
+    
+    return Array.from(eventCounts.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 8); // Top 8 events
+  };
+
+  // NEW: Member Engagement Score Calculation
+  const getMemberEngagementData = () => {
+    const memberEngagement = new Map();
+    const totalEvents = new Set(filteredHistory.map(r => r.event?.id).filter(Boolean)).size;
+    
+    filteredHistory.forEach(record => {
+      if (record.member?.id) {
+        const memberId = record.member.id;
+        const memberName = `${record.member.firstName} ${record.member.surname}`;
+        
+        if (!memberEngagement.has(memberId)) {
+          memberEngagement.set(memberId, {
+            name: memberName,
+            attendance: 0,
+            eventsAttended: new Set(),
+            recentActivity: 0
+          });
+        }
+        
+        const memberData = memberEngagement.get(memberId);
+        memberData.attendance++;
+        memberData.eventsAttended.add(record.event?.id);
+        
+        // Count recent activity (last 30 days)
+        const recordDate = new Date(record.attendanceDate);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        if (recordDate >= thirtyDaysAgo) {
+          memberData.recentActivity++;
+        }
+      }
+    });
+    
+    // Calculate engagement scores
+    const engagementScores = Array.from(memberEngagement.values()).map(member => {
+      const diversityScore = totalEvents > 0 ? (member.eventsAttended.size / totalEvents) * 100 : 0;
+      const frequencyScore = Math.min((member.attendance / 20) * 100, 100); // Max at 20 attendances
+      const recentScore = Math.min((member.recentActivity / 10) * 100, 100); // Max at 10 recent
+      
+      const overallScore = (diversityScore * 0.3 + frequencyScore * 0.5 + recentScore * 0.2);
+      
+      return {
+        name: member.name,
+        score: Math.round(overallScore),
+        attendance: member.attendance,
+        eventsAttended: member.eventsAttended.size,
+        recentActivity: member.recentActivity
+      };
+    });
+    
+    return engagementScores.sort((a, b) => b.score - a.score).slice(0, 10);
+  };
+
+  // NEW: Attendance Heatmap Data (for calendar)
+  const getAttendanceHeatmapData = () => {
+    const heatmapData = new Map();
+    
+    filteredHistory.forEach(record => {
+      const date = record.attendanceDate;
+      heatmapData.set(date, (heatmapData.get(date) || 0) + 1);
+    });
+    
+    const maxAttendance = Math.max(...Array.from(heatmapData.values()), 1);
+    
+    return { data: heatmapData, maxAttendance };
+  };
+
+  // Enhanced Calendar Day Renderer with Heatmap
+  const renderHeatmapCalendarDay = (date: Date) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const { data: heatmapData, maxAttendance } = getAttendanceHeatmapData();
+    const dayAttendance = heatmapData.get(dateStr) || 0;
+    
+    if (dayAttendance === 0) return null;
+    
+    // Calculate intensity (0-1) for color opacity
+    const intensity = dayAttendance / maxAttendance;
+    const opacity = Math.max(0.2, intensity); // Minimum 20% opacity
+    
+    return (
+      <div 
+        className="absolute inset-0 flex items-center justify-center"
+        style={{
+          backgroundColor: `hsl(258, 90%, 66%, ${opacity})`,
+          borderRadius: '4px'
+        }}
+      >
+        <div className="text-white text-xs font-medium">
+          {dayAttendance}
+        </div>
+      </div>
+    );
   };
 
   const topPerformers = getTopPerformers();
@@ -977,9 +1110,19 @@ export default function HistoryTab() {
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span>Calendar View</span>
-              <span className="text-sm font-normal text-slate-500">
-                Click on dates with attendance to see details
-              </span>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant={calendarHeatmap ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setCalendarHeatmap(!calendarHeatmap)}
+                >
+                  <BarChart3 className="h-4 w-4 mr-1" />
+                  {calendarHeatmap ? "Heatmap View" : "Standard View"}
+                </Button>
+                <span className="text-sm font-normal text-slate-500">
+                  Click on dates with attendance to see details
+                </span>
+              </div>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -1014,11 +1157,11 @@ export default function HistoryTab() {
                             {...buttonProps}
                             className={cn(
                               "h-9 w-9 p-0 font-normal aria-selected:opacity-100 relative",
-                              attendanceByDate[format(date, 'yyyy-MM-dd')]?.length > 0 && "bg-[hsl(258,90%,66%)]/10"
+                              !calendarHeatmap && attendanceByDate[format(date, 'yyyy-MM-dd')]?.length > 0 && "bg-[hsl(258,90%,66%)]/10"
                             )}
                           >
                             {format(date, 'd')}
-                            {renderCalendarDay(date)}
+                            {calendarHeatmap ? renderHeatmapCalendarDay(date) : renderCalendarDay(date)}
                           </button>
                         </div>
                       );
@@ -1028,14 +1171,37 @@ export default function HistoryTab() {
                 
                 {/* Calendar Legend */}
                 <div className="flex items-center justify-center gap-4 text-sm text-slate-600">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-[hsl(258,90%,66%)] rounded-full"></div>
-                    <span>Has attendance records</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 border border-slate-300 rounded-full"></div>
-                    <span>No records</span>
-                  </div>
+                  {calendarHeatmap ? (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-[hsl(258,90%,66%,0.2)] rounded border"></div>
+                        <span>Low</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-[hsl(258,90%,66%,0.6)] rounded border"></div>
+                        <span>Medium</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-[hsl(258,90%,66%,1)] rounded border"></div>
+                        <span>High Attendance</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border border-slate-300 rounded"></div>
+                        <span>No records</span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-[hsl(258,90%,66%)] rounded-full"></div>
+                        <span>Has attendance records</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border border-slate-300 rounded-full"></div>
+                        <span>No records</span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Daily Details */}
@@ -1118,6 +1284,30 @@ export default function HistoryTab() {
                 >
                   <Target className="h-4 w-4 mr-1" />
                   Insights
+                </Button>
+                <Button
+                  variant={analyticsView === "methods" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAnalyticsView("methods")}
+                >
+                  <Grid className="h-4 w-4 mr-1" />
+                  Check-in Methods
+                </Button>
+                <Button
+                  variant={analyticsView === "events" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAnalyticsView("events")}
+                >
+                  <CalendarIcon className="h-4 w-4 mr-1" />
+                  Event Popularity
+                </Button>
+                <Button
+                  variant={analyticsView === "engagement" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAnalyticsView("engagement")}
+                >
+                  <Star className="h-4 w-4 mr-1" />
+                  Engagement
                 </Button>
               </div>
             </CardContent>
@@ -1509,6 +1699,223 @@ export default function HistoryTab() {
                           Analyze what made that service special to replicate success.
                         </p>
                       </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })()}
+
+          {/* NEW: Check-in Methods Analysis */}
+          {analyticsView === "methods" && (() => {
+            const methodsData = getCheckInMethodsData();
+            const totalCheckins = methodsData.reduce((sum, item) => sum + item.value, 0);
+
+            return (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Check-in Methods Bar Chart */}
+                  <Card className="church-card">
+                    <CardHeader>
+                      <CardTitle>Check-in Methods Usage</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={methodsData} layout="horizontal">
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" />
+                          <YAxis type="category" dataKey="name" width={100} />
+                          <Tooltip formatter={(value) => [value, 'Check-ins']} />
+                          <Bar dataKey="value" fill="#8884d8" radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+
+                  {/* Methods Statistics */}
+                  <Card className="church-card">
+                    <CardHeader>
+                      <CardTitle>Technology Adoption</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {methodsData.map((method, index) => {
+                        const percentage = totalCheckins > 0 ? (method.value / totalCheckins * 100).toFixed(1) : 0;
+                        const colors = ['bg-blue-500', 'bg-green-500', 'bg-yellow-500', 'bg-purple-500'];
+                        
+                        return (
+                          <div key={method.name} className="space-y-2">
+                            <div className="flex justify-between items-center">
+                              <span className="text-sm font-medium">{method.name}</span>
+                              <span className="text-sm text-slate-600">{percentage}%</span>
+                            </div>
+                            <div className="w-full bg-slate-200 rounded-full h-2">
+                              <div 
+                                className={`${colors[index % colors.length]} h-2 rounded-full transition-all duration-500`}
+                                style={{ width: `${percentage}%` }}
+                              />
+                            </div>
+                            <div className="flex justify-between text-xs text-slate-500">
+                              <span>{method.value} uses</span>
+                              <span>{totalCheckins} total</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* NEW: Event Popularity Analysis */}
+          {analyticsView === "events" && (() => {
+            const eventsData = getEventPopularityData();
+
+            return (
+              <div className="space-y-6">
+                {/* Event Popularity Chart */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Event Attendance Comparison</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <BarChart data={eventsData} margin={{ top: 20, right: 30, bottom: 60, left: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="name" 
+                          tick={{ fontSize: 11, textAnchor: 'end' }}
+                          angle={-45}
+                          height={80}
+                          interval={0}
+                        />
+                        <YAxis label={{ value: 'Attendance', angle: -90, position: 'insideLeft' }} />
+                        <Tooltip formatter={(value) => [value, 'Attendees']} />
+                        <Bar dataKey="value" fill="#82ca9d" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Event Rankings */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Event Rankings</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {eventsData.map((event, index) => (
+                        <div key={event.name} className="flex items-center space-x-4 p-3 rounded-lg bg-slate-50">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white ${
+                            index === 0 ? 'bg-yellow-500' :
+                            index === 1 ? 'bg-gray-500' :
+                            index === 2 ? 'bg-orange-500' :
+                            'bg-slate-500'
+                          }`}>
+                            {index + 1}
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-medium text-slate-900">{event.name}</p>
+                            <p className="text-sm text-slate-600">{event.value} total attendees</p>
+                          </div>
+                          {index < 3 && (
+                            <Award className={`h-5 w-5 ${
+                              index === 0 ? 'text-yellow-500' :
+                              index === 1 ? 'text-gray-500' :
+                              'text-orange-500'
+                            }`} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })()}
+
+          {/* NEW: Member Engagement Analysis */}
+          {analyticsView === "engagement" && (() => {
+            const engagementData = getMemberEngagementData();
+
+            return (
+              <div className="space-y-6">
+                {/* Engagement Scores Chart */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Member Engagement Scores</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ResponsiveContainer width="100%" height={400}>
+                      <BarChart data={engagementData} margin={{ top: 20, right: 30, bottom: 60, left: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="name" 
+                          tick={{ fontSize: 10, textAnchor: 'end' }}
+                          angle={-45}
+                          height={80}
+                          interval={0}
+                        />
+                        <YAxis 
+                          label={{ value: 'Engagement Score', angle: -90, position: 'insideLeft' }}
+                          domain={[0, 100]}
+                        />
+                        <Tooltip 
+                          formatter={(value) => [`${value}%`, 'Engagement Score']}
+                          labelFormatter={(label) => `Member: ${label}`}
+                        />
+                        <Bar dataKey="score" fill="#ffc658" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent>
+                </Card>
+
+                {/* Engagement Leaderboard */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Top Engaged Members</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {engagementData.map((member, index) => (
+                        <div key={member.name} className={`flex items-center space-x-4 p-4 rounded-lg border-2 ${
+                          index === 0 ? 'bg-yellow-50 border-yellow-200' :
+                          index === 1 ? 'bg-gray-50 border-gray-200' :
+                          index === 2 ? 'bg-orange-50 border-orange-200' :
+                          'bg-slate-50 border-slate-200'
+                        }`}>
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-white ${
+                            index === 0 ? 'bg-yellow-500' :
+                            index === 1 ? 'bg-gray-500' :
+                            index === 2 ? 'bg-orange-500' :
+                            'bg-slate-500'
+                          }`}>
+                            {index + 1}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="font-semibold text-slate-900">{member.name}</p>
+                                <p className="text-sm text-slate-600">
+                                  {member.attendance} attendances • {member.eventsAttended} events • {member.recentActivity} recent
+                                </p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-2xl font-bold text-[hsl(258,90%,66%)]">{member.score}%</p>
+                                <p className="text-xs text-slate-500">engagement</p>
+                              </div>
+                            </div>
+                          </div>
+                          {index < 3 && (
+                            <Star className={`h-6 w-6 ${
+                              index === 0 ? 'text-yellow-500' :
+                              index === 1 ? 'text-gray-500' :
+                              'text-orange-500'
+                            }`} />
+                          )}
+                        </div>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
