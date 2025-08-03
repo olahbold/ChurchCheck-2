@@ -783,7 +783,10 @@ export class DatabaseStorage implements IStorage {
   async getMemberAttendanceLog(memberId?: string, startDate?: string, endDate?: string): Promise<any> {
     // If specific member is requested, return traditional format
     if (memberId) {
-      let conditions = [eq(attendanceRecords.memberId, memberId)];
+      let conditions = [
+        eq(attendanceRecords.memberId, memberId),
+        eq(attendanceRecords.churchId, this.churchId)
+      ];
       if (startDate) conditions.push(gte(attendanceRecords.attendanceDate, startDate));
       if (endDate) conditions.push(lte(attendanceRecords.attendanceDate, endDate));
 
@@ -811,25 +814,20 @@ export class DatabaseStorage implements IStorage {
     }
 
     // Enhanced Matrix Format Report for comprehensive view
-    // Step 1: Get all distinct attendance dates in the range
-    let dateConditions = [];
+    // Step 1: Get all distinct attendance dates in the range for this church
+    let dateConditions = [eq(attendanceRecords.churchId, this.churchId)];
     if (startDate) dateConditions.push(gte(attendanceRecords.attendanceDate, startDate));
     if (endDate) dateConditions.push(lte(attendanceRecords.attendanceDate, endDate));
     
-    let attendanceDatesQuery = db
+    const attendanceDates = await db
       .selectDistinct({
         attendanceDate: attendanceRecords.attendanceDate
       })
       .from(attendanceRecords)
-      .where(eq(attendanceRecords.churchId, this.churchId));
-
-    if (dateConditions.length > 0) {
-      attendanceDatesQuery = attendanceDatesQuery.where(and(...dateConditions));
-    }
-
-    const attendanceDates = await attendanceDatesQuery.orderBy(attendanceRecords.attendanceDate);
+      .where(and(...dateConditions))
+      .orderBy(attendanceRecords.attendanceDate);
     
-    // Step 2: Get all members
+    // Step 2: Get all members for this church
     const allMembers = await db
       .select({
         id: members.id,
@@ -845,8 +843,8 @@ export class DatabaseStorage implements IStorage {
       .where(eq(members.churchId, this.churchId))
       .orderBy(members.firstName, members.surname);
 
-    // Step 3: Get all attendance records for the date range
-    let attendanceQuery = db
+    // Step 3: Get all attendance records for the date range and church
+    const attendanceData = await db
       .select({
         memberId: attendanceRecords.memberId,
         attendanceDate: attendanceRecords.attendanceDate,
@@ -854,13 +852,7 @@ export class DatabaseStorage implements IStorage {
         checkInMethod: attendanceRecords.checkInMethod
       })
       .from(attendanceRecords)
-      .where(eq(attendanceRecords.churchId, this.churchId));
-
-    if (dateConditions.length > 0) {
-      attendanceQuery = attendanceQuery.where(and(...dateConditions));
-    }
-
-    const attendanceData = await attendanceQuery;
+      .where(and(...dateConditions));
 
     // Step 4: Create attendance lookup map
     const attendanceMap = new Map<string, any>();
@@ -915,6 +907,8 @@ export class DatabaseStorage implements IStorage {
 
       return row;
     });
+
+
 
     // Step 6: Calculate summary statistics
     const summary = {
