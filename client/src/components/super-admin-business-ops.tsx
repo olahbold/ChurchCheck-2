@@ -524,9 +524,9 @@ export function SuperAdminBusinessOps({ onBack }: SuperAdminBusinessOpsProps) {
 
         {/* Report Generation */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.9 }}
+          transition={{ duration: 0.8, delay: 0.6 }}
         >
           <Card>
             <CardHeader>
@@ -538,11 +538,17 @@ export function SuperAdminBusinessOps({ onBack }: SuperAdminBusinessOpsProps) {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 1.0 }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  initial={{ opacity: 0, scale: 0.6, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ 
+                    duration: 0.7, 
+                    delay: 0.8,
+                    type: "spring",
+                    damping: 20,
+                    stiffness: 300
+                  }}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   <Button
                     onClick={() => generateReport('revenue')}
@@ -560,11 +566,17 @@ export function SuperAdminBusinessOps({ onBack }: SuperAdminBusinessOpsProps) {
                 </motion.div>
 
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 1.1 }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  initial={{ opacity: 0, scale: 0.6, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ 
+                    duration: 0.7, 
+                    delay: 1.0,
+                    type: "spring",
+                    damping: 20,
+                    stiffness: 300
+                  }}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   <Button
                     onClick={() => generateReport('subscription')}
@@ -582,11 +594,17 @@ export function SuperAdminBusinessOps({ onBack }: SuperAdminBusinessOpsProps) {
                 </motion.div>
 
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 1.2 }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  initial={{ opacity: 0, scale: 0.6, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ 
+                    duration: 0.7, 
+                    delay: 1.2,
+                    type: "spring",
+                    damping: 20,
+                    stiffness: 300
+                  }}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   <Button
                     onClick={() => generateReport('churn')}
@@ -604,11 +622,17 @@ export function SuperAdminBusinessOps({ onBack }: SuperAdminBusinessOpsProps) {
                 </motion.div>
 
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ duration: 0.5, delay: 1.3 }}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
+                  initial={{ opacity: 0, scale: 0.6, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ 
+                    duration: 0.7, 
+                    delay: 1.4,
+                    type: "spring",
+                    damping: 20,
+                    stiffness: 300
+                  }}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
                 >
                   <Button
                     onClick={() => generateReport('usage')}
