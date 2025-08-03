@@ -11,6 +11,7 @@ import SubscriptionPage from '@/pages/subscription';
 import Home from '@/pages/home';
 import UserManagementDemo from '@/pages/user-management-demo';
 import { SuperAdminPage } from '@/pages/super-admin';
+import ExternalCheckInPage from '@/components/external-checkin-page';
 
 function App() {
   return (
@@ -28,6 +29,9 @@ function App() {
             
             {/* Demo pages */}
             <Route path="/user-management-demo" component={UserManagementDemo} />
+            
+            {/* External check-in route (public access) */}
+            <Route path="/external-checkin/:eventUrl" component={ExternalCheckInPage} />
             
             {/* Protected app routes - redirect to original app for now */}
             <Route path="/dashboard" component={Home} />

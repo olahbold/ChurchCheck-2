@@ -7,11 +7,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Clock, Users, Edit, Trash2, Plus, Activity, Pause, UserPlus } from "lucide-react";
+import { Calendar, Clock, Users, Edit, Trash2, Plus, Activity, Pause, UserPlus, ExternalLink } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { apiRequest } from "@/lib/queryClient";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import ExternalCheckInSettings from "./external-checkin-settings";
 
 // Enhanced animated counter with spring effect
 function AnimatedCounter({ target, duration = 2500 }: { target: number; duration?: number }) {
@@ -463,15 +464,24 @@ export function EventsTab() {
                       )}
                       
                       <div className="flex justify-between items-center pt-2">
-                        <Badge variant={event.isActive ? "default" : "secondary"}>
-                          {event.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                        
-                        {getEventAttendanceCount(event.id) > 0 && (
-                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                            <Users className="h-3 w-3 mr-1" />
-                            {getEventAttendanceCount(event.id)} attendees
+                        <div className="flex gap-2">
+                          <Badge variant={event.isActive ? "default" : "secondary"}>
+                            {event.isActive ? "Active" : "Inactive"}
                           </Badge>
+                          
+                          {getEventAttendanceCount(event.id) > 0 && (
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              <Users className="h-3 w-3 mr-1" />
+                              {getEventAttendanceCount(event.id)} attendees
+                            </Badge>
+                          )}
+                        </div>
+                        
+                        {event.isActive && (
+                          <ExternalCheckInSettings 
+                            eventId={event.id}
+                            eventName={event.name}
+                          />
                         )}
                       </div>
                     </CardContent>

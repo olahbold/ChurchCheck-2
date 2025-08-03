@@ -104,6 +104,10 @@ export const events = pgTable("events", {
   endTime: text("end_time"), // HH:MM format
   maxAttendees: integer("max_attendees"),
   isActive: boolean("is_active").default(true),
+  // External check-in system fields
+  externalCheckInEnabled: boolean("external_check_in_enabled").default(false),
+  externalCheckInPin: varchar("external_check_in_pin", { length: 6 }), // 6-digit PIN
+  externalCheckInUrl: text("external_check_in_url"), // Unique URL identifier
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -315,7 +319,7 @@ export const updateMemberSchema = z.object({
 
 export const insertAttendanceRecordSchema = createInsertSchema(attendanceRecords, {
   attendanceDate: z.string(),
-  checkInMethod: z.enum(["fingerprint", "manual", "family", "visitor"]),
+  checkInMethod: z.enum(["fingerprint", "manual", "family", "visitor", "external"]),
   memberId: z.string().optional(),
   visitorId: z.string().optional(),
   visitorName: z.string().optional(),
@@ -398,6 +402,24 @@ export const insertEventSchema = createInsertSchema(events, {
   updatedAt: true,
 });
 
+// External check-in specific schemas
+export const externalCheckInSchema = z.object({
+  eventUrl: z.string(),
+  pin: z.string().length(6, "PIN must be exactly 6 digits"),
+  memberId: z.string().uuid("Invalid member ID"),
+  checkInMethod: z.literal('external'),
+});
+
+export const enableExternalCheckInSchema = z.object({
+  eventId: z.string().uuid("Invalid event ID"),
+  enabled: z.boolean(),
+});
+
+export const externalCheckInAttemptSchema = z.object({
+  pin: z.string().length(6, "PIN must be exactly 6 digits"),
+  memberId: z.string().uuid("Invalid member ID"),
+});
+
 // Types
 export type Member = typeof members.$inferSelect;
 export type InsertMember = z.infer<typeof insertMemberSchema>;
@@ -410,6 +432,11 @@ export type FollowUpRecord = typeof followUpRecords.$inferSelect;
 export type InsertFollowUpRecord = z.infer<typeof insertFollowUpRecordSchema>;
 export type Visitor = typeof visitors.$inferSelect;
 export type InsertVisitor = z.infer<typeof insertVisitorSchema>;
+
+// External check-in types
+export type ExternalCheckIn = z.infer<typeof externalCheckInSchema>;
+export type EnableExternalCheckIn = z.infer<typeof enableExternalCheckInSchema>;
+export type ExternalCheckInAttempt = z.infer<typeof externalCheckInAttemptSchema>;
 
 // Admin users schema for access management
 export const adminUsers = pgTable("admin_users", {
