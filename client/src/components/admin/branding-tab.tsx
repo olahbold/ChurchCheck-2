@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, Palette, Image as ImageIcon, FileImage, Eye, Church, RotateCcw } from 'lucide-react';
 import { apiRequest } from '@/lib/queryClient';
+import { motion } from 'framer-motion';
 
 interface BrandingData {
   logoUrl?: string;
@@ -202,16 +203,45 @@ export function BrandingTab() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
+    <motion.div 
+      className="space-y-6"
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: 1,
+          transition: {
+            staggerChildren: 0.1
+          }
+        }
+      }}
+    >
+      <motion.div
+        variants={{
+          hidden: { opacity: 0, y: -20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+      >
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Church Branding</h2>
         <p className="text-gray-600 dark:text-gray-400 mt-1">
           Customize your church's visual identity across the platform
         </p>
-      </div>
+      </motion.div>
 
       {/* Live Preview */}
-      <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 border-blue-200 dark:border-gray-600">
+      <motion.div
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+        whileHover={{ 
+          scale: 1.01, 
+          y: -4,
+          transition: { duration: 0.2 }
+        }}
+      >
+        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 border-blue-200 dark:border-gray-600 transition-all duration-300 hover:shadow-lg hover:border-blue-300 dark:hover:border-gray-500">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-blue-900 dark:text-blue-100">
             <Eye className="h-5 w-5" />
@@ -285,10 +315,22 @@ export function BrandingTab() {
             </div>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
 
       {/* Logo Upload */}
-      <Card>
+      <motion.div
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+        whileHover={{ 
+          scale: 1.01, 
+          y: -4,
+          transition: { duration: 0.2 }
+        }}
+      >
+        <Card className="transition-all duration-300 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ImageIcon className="h-5 w-5" />
@@ -318,87 +360,119 @@ export function BrandingTab() {
               disabled={isUploading}
               className="hidden"
             />
-            <Button 
-              onClick={() => document.getElementById('logo-upload')?.click()}
-              disabled={isUploading}
-              className="relative"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              {isUploading ? 'Uploading...' : branding.logoUrl ? 'Replace Logo' : 'Upload Logo'}
-            </Button>
-            {branding.logoUrl && (
+            <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
               <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => handleRemoveBranding('logo')}
+                onClick={() => document.getElementById('logo-upload')?.click()}
                 disabled={isUploading}
-                className="text-red-600 hover:text-red-700"
+                className="relative hover:shadow-md transition-shadow"
               >
-                <RotateCcw className="h-3 w-3 mr-1" />
-                Remove
+                <Upload className="h-4 w-4 mr-2" />
+                {isUploading ? 'Uploading...' : branding.logoUrl ? 'Replace Logo' : 'Upload Logo'}
               </Button>
+            </motion.div>
+            {branding.logoUrl && (
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleRemoveBranding('logo')}
+                  disabled={isUploading}
+                  className="text-red-600 hover:text-red-700 hover:shadow-md transition-shadow"
+                >
+                  <RotateCcw className="h-3 w-3 mr-1" />
+                  Remove
+                </Button>
+              </motion.div>
             )}
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
 
       {/* Banner Upload */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileImage className="h-5 w-5" />
-            Church Banner
-          </CardTitle>
-          <CardDescription>
-            Upload a banner image for your church. Recommended size: 1200x400 pixels. Max file size: 5MB.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {branding.bannerUrl && (
-            <div className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
-              <img 
-                src={branding.bannerUrl} 
-                alt="Church Banner" 
-                className="max-h-32 w-full object-cover rounded"
-              />
-            </div>
-          )}
-          
-          <div className="flex items-center gap-4">
-            <input
-              type="file"
-              id="banner-upload"
-              accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
-              onChange={(e) => handleFileUpload(e, 'banner')}
-              disabled={isUploading}
-              className="hidden"
-            />
-            <Button 
-              onClick={() => document.getElementById('banner-upload')?.click()}
-              disabled={isUploading}
-              className="relative"
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              {isUploading ? 'Uploading...' : branding.bannerUrl ? 'Replace Banner' : 'Upload Banner'}
-            </Button>
+      <motion.div
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+        whileHover={{ 
+          scale: 1.01, 
+          y: -4,
+          transition: { duration: 0.2 }
+        }}
+      >
+        <Card className="transition-all duration-300 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileImage className="h-5 w-5" />
+              Church Banner
+            </CardTitle>
+            <CardDescription>
+              Upload a banner image for your church. Recommended size: 1200x400 pixels. Max file size: 5MB.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             {branding.bannerUrl && (
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => handleRemoveBranding('banner')}
-                disabled={isUploading}
-                className="text-red-600 hover:text-red-700"
-              >
-                <RotateCcw className="h-3 w-3 mr-1" />
-                Remove
-              </Button>
+              <div className="flex items-center justify-center p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                <img 
+                  src={branding.bannerUrl} 
+                  alt="Church Banner" 
+                  className="max-h-32 w-full object-cover rounded"
+                />
+              </div>
             )}
-          </div>
-        </CardContent>
-      </Card>
+            
+            <div className="flex items-center gap-4">
+              <input
+                type="file"
+                id="banner-upload"
+                accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                onChange={(e) => handleFileUpload(e, 'banner')}
+                disabled={isUploading}
+                className="hidden"
+              />
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button 
+                  onClick={() => document.getElementById('banner-upload')?.click()}
+                  disabled={isUploading}
+                  className="relative hover:shadow-md transition-shadow"
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  {isUploading ? 'Uploading...' : branding.bannerUrl ? 'Replace Banner' : 'Upload Banner'}
+                </Button>
+              </motion.div>
+              {branding.bannerUrl && (
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleRemoveBranding('banner')}
+                    disabled={isUploading}
+                    className="text-red-600 hover:text-red-700 hover:shadow-md transition-shadow"
+                  >
+                    <RotateCcw className="h-3 w-3 mr-1" />
+                    Remove
+                  </Button>
+                </motion.div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Brand Color */}
-      <Card>
+      <motion.div
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+        whileHover={{ 
+          scale: 1.01, 
+          y: -4,
+          transition: { duration: 0.2 }
+        }}
+      >
+        <Card className="transition-all duration-300 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Palette className="h-5 w-5" />
@@ -499,23 +573,36 @@ export function BrandingTab() {
             </Button>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
 
       {/* Branding Tips */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Branding Tips</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-            <li>• <strong>Logo:</strong> Use a high-contrast logo that works on both light and dark backgrounds</li>
-            <li>• <strong>Banner:</strong> Choose an image that represents your church's mission and values</li>
-            <li>• <strong>Color:</strong> Select a color that reflects your church's personality and is accessible</li>
-            <li>• <strong>Consistency:</strong> Use the same branding across all your church communications</li>
-            <li>• <strong>File formats:</strong> We support JPEG, PNG, GIF, and WebP images</li>
-          </ul>
-        </CardContent>
-      </Card>
-    </div>
+      <motion.div
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+        whileHover={{ 
+          scale: 1.01, 
+          y: -4,
+          transition: { duration: 0.2 }
+        }}
+      >
+        <Card className="transition-all duration-300 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600">
+          <CardHeader>
+            <CardTitle>Branding Tips</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+              <li>• <strong>Logo:</strong> Use a high-contrast logo that works on both light and dark backgrounds</li>
+              <li>• <strong>Banner:</strong> Choose an image that represents your church's mission and values</li>
+              <li>• <strong>Color:</strong> Select a color that reflects your church's personality and is accessible</li>
+              <li>• <strong>Consistency:</strong> Use the same branding across all your church communications</li>
+              <li>• <strong>File formats:</strong> We support JPEG, PNG, GIF, and WebP images</li>
+            </ul>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 }

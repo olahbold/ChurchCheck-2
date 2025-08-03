@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Separator } from "@/components/ui/separator";
 import { Clock, Shield, Users, Info, Activity, Timer, Play } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { motion } from "framer-motion";
 
 interface KioskSettings {
   kioskModeEnabled: boolean;
@@ -147,15 +148,44 @@ export function KioskSettingsTab() {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
+    <motion.div 
+      className="space-y-6"
+      initial="hidden"
+      animate="visible"
+      variants={{
+        hidden: { opacity: 0 },
+        visible: {
+          opacity: 1,
+          transition: {
+            staggerChildren: 0.1
+          }
+        }
+      }}
+    >
+      <motion.div
+        variants={{
+          hidden: { opacity: 0, y: -20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+      >
         <h2 className="text-2xl font-bold">Kiosk Mode Settings</h2>
         <p className="text-muted-foreground">
           Configure self check-in options for your members
         </p>
-      </div>
+      </motion.div>
 
-      <Card>
+      <motion.div
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+        whileHover={{ 
+          scale: 1.01, 
+          y: -4,
+          transition: { duration: 0.2 }
+        }}
+      >
+        <Card className="transition-all duration-300 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
@@ -228,164 +258,205 @@ export function KioskSettingsTab() {
             </Button>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
 
       {settings.kioskModeEnabled && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-800">
-              <Info className="h-5 w-5" />
-              How Kiosk Mode Works
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-blue-700 space-y-2">
-            <p>1. <strong>Admin logs in</strong> and selects an active event</p>
-            <p>2. <strong>Admin enables kiosk mode</strong> on the check-in page</p>
-            <p>3. <strong>Members self check-in</strong> by searching their names</p>
-            <p>4. <strong>Session auto-expires</strong> after the timeout period</p>
-            <p>5. <strong>Admin can extend</strong> or disable the session anytime</p>
-          </CardContent>
-        </Card>
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
+          whileHover={{ 
+            scale: 1.01, 
+            y: -4,
+            transition: { duration: 0.2 }
+          }}
+        >
+          <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 transition-all duration-300 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
+                <Info className="h-5 w-5" />
+                How Kiosk Mode Works
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-blue-700 dark:text-blue-300 space-y-2">
+              <p>1. <strong>Admin logs in</strong> and selects an active event</p>
+              <p>2. <strong>Admin enables kiosk mode</strong> on the check-in page</p>
+              <p>3. <strong>Members self check-in</strong> by searching their names</p>
+              <p>4. <strong>Session auto-expires</strong> after the timeout period</p>
+              <p>5. <strong>Admin can extend</strong> or disable the session anytime</p>
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
 
       {settings.activeSession?.isActive && timeRemaining !== null && (
-        <Card className="border-green-200 bg-green-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-green-800">
-              <Activity className="h-5 w-5" />
-              Active Kiosk Session
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-green-700 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">
-                  Active for {settings.activeSession.availableEvents?.length || 0} events
-                </p>
-                <p className="text-sm">Members can check themselves into any active event</p>
-                <div className="mt-2 text-xs space-y-1">
-                  {settings.activeSession.availableEvents?.map(event => (
-                    <div key={event.id} className="text-green-600">
-                      • {event.name} ({event.eventType.replace('_', ' ')})
-                    </div>
-                  )) || []}
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
+          whileHover={{ 
+            scale: 1.01, 
+            y: -4,
+            transition: { duration: 0.2 }
+          }}
+        >
+          <Card className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800 transition-all duration-300 hover:shadow-lg hover:border-green-300 dark:hover:border-green-700">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-green-800 dark:text-green-200">
+                <Activity className="h-5 w-5" />
+                Active Kiosk Session
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-green-700 dark:text-green-300 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">
+                    Active for {settings.activeSession.availableEvents?.length || 0} events
+                  </p>
+                  <p className="text-sm">Members can check themselves into any active event</p>
+                  <div className="mt-2 text-xs space-y-1">
+                    {settings.activeSession.availableEvents?.map(event => (
+                      <div key={event.id} className="text-green-600 dark:text-green-400">
+                        • {event.name} ({event.eventType.replace('_', ' ')})
+                      </div>
+                    )) || []}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-2 text-lg font-mono">
+                    <Timer className="h-4 w-4" />
+                    {formatTime(timeRemaining)}
+                  </div>
+                  <p className="text-xs">Time remaining</p>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="flex items-center gap-2 text-lg font-mono">
-                  <Timer className="h-4 w-4" />
-                  {formatTime(timeRemaining)}
-                </div>
-                <p className="text-xs">Time remaining</p>
-              </div>
-            </div>
-            
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => {
-                  // Extend session
-                  apiRequest("/api/churches/kiosk-session/extend", {
-                    method: "POST",
-                  }).then((response: any) => {
-                    // Update token for extended session
-                    if (response.extendedToken) {
-                      localStorage.setItem('auth_token', response.extendedToken);
-                    }
-                    queryClient.invalidateQueries({ queryKey: ["/api/churches/kiosk-settings"] });
-                    toast({
-                      title: "Session Extended",
-                      description: "Kiosk session and admin authentication extended successfully.",
-                    });
-                  }).catch(() => {
-                    toast({
-                      title: "Extension Failed",
-                      description: "Failed to extend kiosk session.",
-                      variant: "destructive",
-                    });
-                  });
-                }}
-                className="bg-white text-green-700 border-green-300 hover:bg-green-100"
-              >
-                Extend Session
-              </Button>
               
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => {
-                  // End session
-                  apiRequest("/api/churches/kiosk-session/end", {
-                    method: "POST",
-                  }).then(() => {
-                    queryClient.invalidateQueries({ queryKey: ["/api/churches/kiosk-settings"] });
-                    toast({
-                      title: "Session Ended",
-                      description: "Kiosk session has been ended successfully.",
-                    });
-                  }).catch(() => {
-                    toast({
-                      title: "End Session Failed",
-                      description: "Failed to end kiosk session.",
-                      variant: "destructive",
-                    });
-                  });
-                }}
-                className="bg-white text-red-600 border-red-300 hover:bg-red-50"
-              >
-                End Session
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="flex gap-2">
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      // Extend session
+                      apiRequest("/api/churches/kiosk-session/extend", {
+                        method: "POST",
+                      }).then((response: any) => {
+                        // Update token for extended session
+                        if (response.extendedToken) {
+                          localStorage.setItem('auth_token', response.extendedToken);
+                        }
+                        queryClient.invalidateQueries({ queryKey: ["/api/churches/kiosk-settings"] });
+                        toast({
+                          title: "Session Extended",
+                          description: "Kiosk session and admin authentication extended successfully.",
+                        });
+                      }).catch(() => {
+                        toast({
+                          title: "Extension Failed",
+                          description: "Failed to extend kiosk session.",
+                          variant: "destructive",
+                        });
+                      });
+                    }}
+                    className="bg-white dark:bg-green-950 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700 hover:bg-green-100 dark:hover:bg-green-900 transition-all hover:shadow-md"
+                  >
+                    Extend Session
+                  </Button>
+                </motion.div>
+                
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => {
+                      // End session
+                      apiRequest("/api/churches/kiosk-session/end", {
+                        method: "POST",
+                      }).then(() => {
+                        queryClient.invalidateQueries({ queryKey: ["/api/churches/kiosk-settings"] });
+                        toast({
+                          title: "Session Ended",
+                          description: "Kiosk session has been ended successfully.",
+                        });
+                      }).catch(() => {
+                        toast({
+                          title: "End Session Failed",
+                          description: "Failed to end kiosk session.",
+                          variant: "destructive",
+                        });
+                      });
+                    }}
+                    className="bg-white dark:bg-red-950 text-red-600 dark:text-red-300 border-red-300 dark:border-red-700 hover:bg-red-50 dark:hover:bg-red-900 transition-all hover:shadow-md"
+                  >
+                    End Session
+                  </Button>
+                </motion.div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
 
       {settings.kioskModeEnabled && !settings.activeSession?.isActive && (
-        <Card className="border-blue-200 bg-blue-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-blue-800">
-              <Play className="h-5 w-5" />
-              Start Kiosk Session
-            </CardTitle>
-            <CardDescription className="text-blue-600">
-              Enable member self check-in for all active events
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {activeEvents && activeEvents.length > 0 ? (
-              <div className="space-y-4">
-                <div className="bg-white rounded-lg border border-blue-200 p-4">
-                  <p className="font-medium text-blue-900 mb-2">
-                    Available Events ({activeEvents.length})
-                  </p>
-                  <div className="space-y-2 text-sm text-blue-700">
-                    {activeEvents.map((event: any) => (
-                      <div key={event.id} className="flex items-center justify-between">
-                        <span>• {event.name}</span>
-                        <span className="text-blue-500">
-                          {event.eventType.replace('_', ' ')} • {event.location}
-                        </span>
-                      </div>
-                    ))}
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0 }
+          }}
+          whileHover={{ 
+            scale: 1.01, 
+            y: -4,
+            transition: { duration: 0.2 }
+          }}
+        >
+          <Card className="border-blue-200 bg-blue-50 dark:bg-blue-950 dark:border-blue-800 transition-all duration-300 hover:shadow-lg hover:border-blue-300 dark:hover:border-blue-700">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-blue-800 dark:text-blue-200">
+                <Play className="h-5 w-5" />
+                Start Kiosk Session
+              </CardTitle>
+              <CardDescription className="text-blue-600 dark:text-blue-400">
+                Enable member self check-in for all active events
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {activeEvents && activeEvents.length > 0 ? (
+                <div className="space-y-4">
+                  <div className="bg-white dark:bg-blue-900 rounded-lg border border-blue-200 dark:border-blue-700 p-4">
+                    <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">
+                      Available Events ({activeEvents.length})
+                    </p>
+                    <div className="space-y-2 text-sm text-blue-700 dark:text-blue-300">
+                      {activeEvents.map((event: any) => (
+                        <div key={event.id} className="flex items-center justify-between">
+                          <span>• {event.name}</span>
+                          <span className="text-blue-500 dark:text-blue-400">
+                            {event.eventType.replace('_', ' ')} • {event.location}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                
-                <Button
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                  onClick={() => {
-                    apiRequest("/api/churches/kiosk-session/start", {
-                      method: "POST",
-                    }).then((response: any) => {
-                      // Store extended token for session persistence
-                      if (response.extendedToken) {
-                        localStorage.setItem('auth_token', response.extendedToken);
-                      }
-                      queryClient.invalidateQueries({ queryKey: ["/api/churches/kiosk-settings"] });
-                      toast({
-                        title: "Kiosk Session Started",
-                        description: `Members can now self check-in to any of ${activeEvents.length} active events. Admin session extended for kiosk duration.`,
-                      });
+                  
+                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                    <Button
+                      className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 transition-all hover:shadow-md"
+                      onClick={() => {
+                        apiRequest("/api/churches/kiosk-session/start", {
+                          method: "POST",
+                        }).then((response: any) => {
+                          // Store extended token for session persistence
+                          if (response.extendedToken) {
+                            localStorage.setItem('auth_token', response.extendedToken);
+                          }
+                          queryClient.invalidateQueries({ queryKey: ["/api/churches/kiosk-settings"] });
+                          toast({
+                            title: "Kiosk Session Started",
+                            description: `Members can now self check-in to any of ${activeEvents.length} active events. Admin session extended for kiosk duration.`,
+                          });
                     }).catch(() => {
                       toast({
                         title: "Start Failed",
@@ -396,33 +467,47 @@ export function KioskSettingsTab() {
                   }}
                 >
                   Start Kiosk Session for All Events
-                </Button>
-              </div>
-            ) : (
-              <div className="text-center py-6 text-blue-600">
-                <p className="mb-2">No active events available</p>
-                <p className="text-sm">Create and activate events in Event Management first</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                    </Button>
+                  </motion.div>
+                </div>
+              ) : (
+                <div className="text-center py-6 text-blue-600 dark:text-blue-400">
+                  <p className="mb-2">No active events available</p>
+                  <p className="text-sm">Create and activate events in Event Management first</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
       )}
 
-      <Card className="border-orange-200 bg-orange-50">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-orange-800">
-            <Shield className="h-5 w-5" />
-            Security Notes
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-orange-700 space-y-2">
-          <p>• Sessions automatically expire after the set timeout</p>
-          <p>• All active events are available for member self check-in</p>
-          <p>• All check-ins are still recorded under your church account</p>
-          <p>• Family check-ins work through parent member search</p>
-          <p>• Visitors can register themselves during check-in</p>
-        </CardContent>
-      </Card>
-    </div>
+      <motion.div
+        variants={{
+          hidden: { opacity: 0, y: 20 },
+          visible: { opacity: 1, y: 0 }
+        }}
+        whileHover={{ 
+          scale: 1.01, 
+          y: -4,
+          transition: { duration: 0.2 }
+        }}
+      >
+        <Card className="border-orange-200 bg-orange-50 dark:bg-orange-950 dark:border-orange-800 transition-all duration-300 hover:shadow-lg hover:border-orange-300 dark:hover:border-orange-700">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-orange-800 dark:text-orange-200">
+              <Shield className="h-5 w-5" />
+              Security Notes
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-orange-700 dark:text-orange-300 space-y-2">
+            <p>• Sessions automatically expire after the set timeout</p>
+            <p>• All active events are available for member self check-in</p>
+            <p>• All check-ins are still recorded under your church account</p>
+            <p>• Family check-ins work through parent member search</p>
+            <p>• Visitors can register themselves during check-in</p>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 }
