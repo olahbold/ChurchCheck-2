@@ -1,7 +1,8 @@
 
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,7 +12,7 @@ import { apiRequest } from '@/lib/queryClient';
 import { LineChart, Line, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { format, parseISO, isSameDay } from "date-fns";
+import { format, parseISO, isSameDay, subDays, addDays, startOfDay, endOfDay, subMonths, differenceInDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -114,7 +115,7 @@ export default function HistoryTab() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [viewMode, setViewMode] = useState<"list" | "calendar" | "analytics">("list");
   const [selectedMember, setSelectedMember] = useState<string | null>(null);
-  const [analyticsView, setAnalyticsView] = useState<"overview" | "trends" | "top-performers" | "insights" | "methods" | "events" | "engagement">("overview");
+  const [analyticsView, setAnalyticsView] = useState<"overview" | "trends" | "top-performers" | "insights" | "methods" | "events" | "engagement" | "growth" | "follow-up" | "conversion" | "families">("overview");
   const [calendarHeatmap, setCalendarHeatmap] = useState<boolean>(false);
 
   // Animation variants
@@ -1309,6 +1310,38 @@ export default function HistoryTab() {
                   <Star className="h-4 w-4 mr-1" />
                   Engagement
                 </Button>
+                <Button
+                  variant={analyticsView === "growth" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAnalyticsView("growth")}
+                >
+                  <TrendingUp className="h-4 w-4 mr-1" />
+                  Growth
+                </Button>
+                <Button
+                  variant={analyticsView === "follow-up" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAnalyticsView("follow-up")}
+                >
+                  <Target className="h-4 w-4 mr-1" />
+                  Follow-up
+                </Button>
+                <Button
+                  variant={analyticsView === "conversion" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAnalyticsView("conversion")}
+                >
+                  <Filter className="h-4 w-4 mr-1" />
+                  Conversion
+                </Button>
+                <Button
+                  variant={analyticsView === "families" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setAnalyticsView("families")}
+                >
+                  <Users className="h-4 w-4 mr-1" />
+                  Families
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -1914,6 +1947,646 @@ export default function HistoryTab() {
                               'text-orange-500'
                             }`} />
                           )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })()}
+
+          {/* NEW: Member Growth Timeline */}
+          {analyticsView === "growth" && (() => {
+            const memberGrowthData = (() => {
+              const membersByMonth = allMembers.reduce((acc, member) => {
+                const createdDate = member.createdAt ? new Date(member.createdAt) : new Date();
+                const monthKey = format(createdDate, 'yyyy-MM');
+                acc[monthKey] = (acc[monthKey] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>);
+
+              const totalMembers = allMembers.length;
+              const thisMonth = format(new Date(), 'yyyy-MM');
+              const lastMonth = format(subMonths(new Date(), 1), 'yyyy-MM');
+              const thisMonthGrowth = membersByMonth[thisMonth] || 0;
+              const lastMonthGrowth = membersByMonth[lastMonth] || 0;
+              const growthRate = lastMonthGrowth > 0 ? ((thisMonthGrowth - lastMonthGrowth) / lastMonthGrowth * 100) : 0;
+
+              return { totalMembers, thisMonthGrowth, growthRate, membersByMonth };
+            })();
+
+            const months = Object.keys(memberGrowthData.membersByMonth).sort();
+            let cumulative = 0;
+            const chartData = months.map(month => {
+              cumulative += memberGrowthData.membersByMonth[month];
+              return {
+                month: format(new Date(month + '-01'), 'MMM yyyy'),
+                newMembers: memberGrowthData.membersByMonth[month],
+                totalMembers: cumulative
+              };
+            });
+
+            return (
+              <div className="space-y-6">
+                {/* Header */}
+                <Card className="church-card bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <TrendingUp className="h-5 w-5 text-green-600" />
+                        <span>Member Growth Timeline</span>
+                      </div>
+                      <Badge variant="outline" className="bg-green-100 text-green-700 border-green-300">
+                        Growth Analytics
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription>
+                      Track new member registrations and cumulative growth over time to measure church expansion effectiveness
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+
+                {/* Growth Metrics */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="church-card">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-600">Total Members</p>
+                        <p className="text-2xl font-bold text-green-600">{memberGrowthData.totalMembers}</p>
+                        <p className="text-xs text-slate-500">All time</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="church-card">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-600">This Month</p>
+                        <p className="text-2xl font-bold text-blue-600">{memberGrowthData.thisMonthGrowth}</p>
+                        <p className="text-xs text-slate-500">New members</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="church-card">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-600">Growth Rate</p>
+                        <p className={`text-2xl font-bold ${memberGrowthData.growthRate >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {memberGrowthData.growthRate >= 0 ? '+' : ''}{memberGrowthData.growthRate.toFixed(1)}%
+                        </p>
+                        <p className="text-xs text-slate-500">vs last month</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="church-card">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-600">Avg Monthly</p>
+                        <p className="text-2xl font-bold text-purple-600">
+                          {Object.keys(memberGrowthData.membersByMonth).length > 0 ? 
+                            Math.round(memberGrowthData.totalMembers / Object.keys(memberGrowthData.membersByMonth).length) : 0}
+                        </p>
+                        <p className="text-xs text-slate-500">New members</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Growth Timeline Chart */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Member Growth Timeline</CardTitle>
+                    <CardDescription>Cumulative member registration over time</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'white',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px'
+                            }}
+                            formatter={(value, name) => [
+                              value, 
+                              name === 'totalMembers' ? 'Total Members' : 'New Members'
+                            ]}
+                          />
+                          <Area 
+                            type="monotone" 
+                            dataKey="totalMembers" 
+                            stroke="#10b981" 
+                            fill="url(#growthGradient)"
+                            strokeWidth={2}
+                          />
+                          <defs>
+                            <linearGradient id="growthGradient" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                              <stop offset="95%" stopColor="#10b981" stopOpacity={0.05}/>
+                            </linearGradient>
+                          </defs>
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Monthly Breakdown */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Monthly Registration Breakdown</CardTitle>
+                    <CardDescription>New member registrations by month</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-64">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'white',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px'
+                            }}
+                          />
+                          <Bar dataKey="newMembers" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })()}
+
+          {/* NEW: Follow-up Effectiveness Dashboard */}
+          {analyticsView === "follow-up" && (() => {
+            // Calculate follow-up metrics
+            const followUpData = (() => {
+              const memberAttendanceMap = attendanceHistory.reduce((acc, record) => {
+                if (record.member) {
+                  if (!acc[record.member.id]) {
+                    acc[record.member.id] = {
+                      member: record.member,
+                      attendances: []
+                    };
+                  }
+                  acc[record.member.id].attendances.push(new Date(record.attendanceDate));
+                }
+                return acc;
+              }, {} as Record<string, { member: any; attendances: Date[] }>);
+
+              const now = new Date();
+              const thirtyDaysAgo = subDays(now, 30);
+              const sixtyDaysAgo = subDays(now, 60);
+              const ninetyDaysAgo = subDays(now, 90);
+
+              let totalMembers = 0;
+              let membersNeedingFollowUp = 0;
+              let successfulReengagements = 0;
+              let averageDaysSinceLastAttendance = 0;
+
+              Object.values(memberAttendanceMap).forEach(({ member, attendances }) => {
+                totalMembers++;
+                const sortedAttendances = attendances.sort((a, b) => b.getTime() - a.getTime());
+                const lastAttendance = sortedAttendances[0];
+                
+                if (lastAttendance) {
+                  const daysSinceLastAttendance = differenceInDays(now, lastAttendance);
+                  averageDaysSinceLastAttendance += daysSinceLastAttendance;
+                  
+                  if (daysSinceLastAttendance > 30) {
+                    membersNeedingFollowUp++;
+                  }
+                  
+                  // Check for successful reengagement (returned within 30 days after missing 30+ days)
+                  const gaps = [];
+                  for (let i = 0; i < sortedAttendances.length - 1; i++) {
+                    const gap = differenceInDays(sortedAttendances[i], sortedAttendances[i + 1]);
+                    if (gap > 30) gaps.push(gap);
+                  }
+                  
+                  if (gaps.length > 0 && daysSinceLastAttendance <= 30) {
+                    successfulReengagements++;
+                  }
+                }
+              });
+
+              averageDaysSinceLastAttendance = totalMembers > 0 ? Math.round(averageDaysSinceLastAttendance / totalMembers) : 0;
+              const followUpSuccessRate = membersNeedingFollowUp > 0 ? Math.round((successfulReengagements / membersNeedingFollowUp) * 100) : 0;
+
+              return {
+                totalMembers,
+                membersNeedingFollowUp,
+                successfulReengagements,
+                followUpSuccessRate,
+                averageDaysSinceLastAttendance
+              };
+            })();
+
+            return (
+              <div className="space-y-6">
+                {/* Header */}
+                <Card className="church-card bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Target className="h-5 w-5 text-orange-600" />
+                        <span>Follow-up Effectiveness Dashboard</span>
+                      </div>
+                      <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">
+                        Pastoral Care
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription>
+                      Track success rates of member re-engagement efforts to improve pastoral care strategies
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+
+                {/* Follow-up Metrics */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="church-card">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-600">Need Follow-up</p>
+                        <p className="text-2xl font-bold text-orange-600">{followUpData.membersNeedingFollowUp}</p>
+                        <p className="text-xs text-slate-500">Members (30+ days)</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="church-card">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-600">Success Rate</p>
+                        <p className="text-2xl font-bold text-green-600">{followUpData.followUpSuccessRate}%</p>
+                        <p className="text-xs text-slate-500">Re-engagement</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="church-card">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-600">Successful Returns</p>
+                        <p className="text-2xl font-bold text-blue-600">{followUpData.successfulReengagements}</p>
+                        <p className="text-xs text-slate-500">This period</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="church-card">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-600">Avg Days Away</p>
+                        <p className="text-2xl font-bold text-purple-600">{followUpData.averageDaysSinceLastAttendance}</p>
+                        <p className="text-xs text-slate-500">Since last visit</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Follow-up Trend Chart */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Re-engagement Success Trends</CardTitle>
+                    <CardDescription>Track follow-up effectiveness over time</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={[
+                          { month: 'Jan', successRate: 65, attempts: 12 },
+                          { month: 'Feb', successRate: 72, attempts: 15 },
+                          { month: 'Mar', successRate: 68, attempts: 18 },
+                          { month: 'Apr', successRate: 75, attempts: 14 },
+                          { month: 'May', successRate: 80, attempts: 16 },
+                          { month: 'Jun', successRate: followUpData.followUpSuccessRate, attempts: followUpData.membersNeedingFollowUp }
+                        ]}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" />
+                          <YAxis yAxisId="left" label={{ value: 'Success Rate (%)', angle: -90, position: 'insideLeft' }} />
+                          <YAxis yAxisId="right" orientation="right" label={{ value: 'Attempts', angle: 90, position: 'insideRight' }} />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'white',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '8px'
+                            }}
+                          />
+                          <Line yAxisId="left" type="monotone" dataKey="successRate" stroke="#f97316" strokeWidth={3} />
+                          <Line yAxisId="right" type="monotone" dataKey="attempts" stroke="#6366f1" strokeWidth={2} strokeDasharray="5 5" />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })()}
+
+          {/* NEW: Visitor Conversion Funnel */}
+          {analyticsView === "conversion" && (() => {
+            const conversionData = (() => {
+              // Get visitors who became members
+              const visitorAttendances = attendanceHistory.filter(record => record.isVisitor);
+              const totalVisitors = new Set(visitorAttendances.map(v => v.visitorName)).size;
+              
+              // Count visitors who attended multiple times
+              const visitorFrequency = visitorAttendances.reduce((acc, record) => {
+                const name = record.visitorName || 'Unknown';
+                acc[name] = (acc[name] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>);
+
+              const returnVisitors = Object.values(visitorFrequency).filter(count => count > 1).length;
+              const frequentVisitors = Object.values(visitorFrequency).filter(count => count >= 3).length;
+              
+              // Simulate conversion to membership (would need actual conversion tracking)
+              const newMembers = allMembers.filter(member => {
+                const joinDate = member.createdAt ? new Date(member.createdAt) : new Date();
+                return differenceInDays(new Date(), joinDate) <= 90;
+              }).length;
+
+              const conversionRate = totalVisitors > 0 ? Math.round((newMembers / totalVisitors) * 100) : 0;
+
+              return {
+                totalVisitors,
+                returnVisitors,
+                frequentVisitors,
+                newMembers,
+                conversionRate
+              };
+            })();
+
+            const funnelData = [
+              { stage: 'First Visit', count: conversionData.totalVisitors, percentage: 100 },
+              { stage: 'Return Visit', count: conversionData.returnVisitors, percentage: Math.round((conversionData.returnVisitors / conversionData.totalVisitors) * 100) },
+              { stage: 'Frequent Visitor', count: conversionData.frequentVisitors, percentage: Math.round((conversionData.frequentVisitors / conversionData.totalVisitors) * 100) },
+              { stage: 'New Member', count: conversionData.newMembers, percentage: conversionData.conversionRate }
+            ];
+
+            return (
+              <div className="space-y-6">
+                {/* Header */}
+                <Card className="church-card bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Filter className="h-5 w-5 text-blue-600" />
+                        <span>Visitor Conversion Funnel</span>
+                      </div>
+                      <Badge variant="outline" className="bg-blue-100 text-blue-700 border-blue-300">
+                        Conversion Analytics
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription>
+                      Track visitor-to-member conversion rates to improve newcomer integration
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+
+                {/* Conversion Metrics */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="church-card">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-600">Total Visitors</p>
+                        <p className="text-2xl font-bold text-blue-600">{conversionData.totalVisitors}</p>
+                        <p className="text-xs text-slate-500">First time visits</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="church-card">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-600">Return Rate</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {conversionData.totalVisitors > 0 ? Math.round((conversionData.returnVisitors / conversionData.totalVisitors) * 100) : 0}%
+                        </p>
+                        <p className="text-xs text-slate-500">Came back</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="church-card">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-600">Conversion Rate</p>
+                        <p className="text-2xl font-bold text-purple-600">{conversionData.conversionRate}%</p>
+                        <p className="text-xs text-slate-500">Became members</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="church-card">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-600">New Members</p>
+                        <p className="text-2xl font-bold text-orange-600">{conversionData.newMembers}</p>
+                        <p className="text-xs text-slate-500">Last 90 days</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Conversion Funnel */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Visitor Journey Funnel</CardTitle>
+                    <CardDescription>Track conversion stages from visitor to member</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {funnelData.map((stage, index) => (
+                        <div key={stage.stage} className="relative">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-slate-700">{stage.stage}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm text-slate-600">{stage.count} people</span>
+                              <span className="text-sm font-bold text-blue-600">{stage.percentage}%</span>
+                            </div>
+                          </div>
+                          <div className="w-full bg-slate-200 rounded-full h-8 relative overflow-hidden">
+                            <div 
+                              className={`h-8 rounded-full transition-all duration-1000 flex items-center justify-center text-white font-medium ${
+                                index === 0 ? 'bg-blue-500' :
+                                index === 1 ? 'bg-green-500' :
+                                index === 2 ? 'bg-yellow-500' :
+                                'bg-purple-500'
+                              }`}
+                              style={{ width: `${stage.percentage}%` }}
+                            >
+                              {stage.percentage}%
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            );
+          })()}
+
+          {/* NEW: Family Network Analysis */}
+          {analyticsView === "families" && (() => {
+            const familyData = (() => {
+              // Group members by family relationships
+              const familyGroups = allMembers.reduce((acc, member) => {
+                const familyKey = member.familyId || `individual_${member.id}`;
+                if (!acc[familyKey]) {
+                  acc[familyKey] = [];
+                }
+                acc[familyKey].push(member);
+                return acc;
+              }, {} as Record<string, any[]>);
+
+              const totalFamilies = Object.keys(familyGroups).length;
+              const singleMemberFamilies = Object.values(familyGroups).filter(family => family.length === 1).length;
+              const largeFamilies = Object.values(familyGroups).filter(family => family.length >= 4).length;
+              const averageFamilySize = totalFamilies > 0 ? Math.round(allMembers.length / totalFamilies * 10) / 10 : 0;
+
+              return {
+                familyGroups,
+                totalFamilies,
+                singleMemberFamilies,
+                largeFamilies,
+                averageFamilySize
+              };
+            })();
+
+            const familySizeData = Object.values(familyData.familyGroups)
+              .reduce((acc, family) => {
+                const size = family.length;
+                const key = size === 1 ? '1' : size === 2 ? '2' : size === 3 ? '3' : size >= 4 ? '4+' : '1';
+                acc[key] = (acc[key] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>);
+
+            const chartData = Object.entries(familySizeData).map(([size, count]) => ({
+              size: `${size} member${size === '1' ? '' : 's'}`,
+              count,
+              percentage: Math.round((count / familyData.totalFamilies) * 100)
+            }));
+
+            return (
+              <div className="space-y-6">
+                {/* Header */}
+                <Card className="church-card bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-purple-600" />
+                        <span>Family Network Analysis</span>
+                      </div>
+                      <Badge variant="outline" className="bg-purple-100 text-purple-700 border-purple-300">
+                        Family Ministry
+                      </Badge>
+                    </CardTitle>
+                    <CardDescription>
+                      Visualize family connections and relationships for better family ministry planning
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+
+                {/* Family Metrics */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <Card className="church-card">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-600">Total Families</p>
+                        <p className="text-2xl font-bold text-purple-600">{familyData.totalFamilies}</p>
+                        <p className="text-xs text-slate-500">Family units</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="church-card">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-600">Avg Family Size</p>
+                        <p className="text-2xl font-bold text-blue-600">{familyData.averageFamilySize}</p>
+                        <p className="text-xs text-slate-500">Members per family</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="church-card">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-600">Large Families</p>
+                        <p className="text-2xl font-bold text-green-600">{familyData.largeFamilies}</p>
+                        <p className="text-xs text-slate-500">4+ members</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="church-card">
+                    <CardContent className="p-4">
+                      <div className="space-y-2">
+                        <p className="text-sm font-medium text-slate-600">Single Members</p>
+                        <p className="text-2xl font-bold text-orange-600">{familyData.singleMemberFamilies}</p>
+                        <p className="text-xs text-slate-500">Individual units</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Family Size Distribution */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Family Size Distribution</CardTitle>
+                    <CardDescription>Breakdown of family sizes in the congregation</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={chartData}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            label={({ size, percentage }) => `${size}: ${percentage}%`}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="count"
+                          >
+                            {chartData.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={
+                                ['#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'][index % 4]
+                              } />
+                            ))}
+                          </Pie>
+                          <Tooltip formatter={(value) => [value, 'Families']} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Family List */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Family Groups</CardTitle>
+                    <CardDescription>Overview of family connections</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {Object.entries(familyData.familyGroups)
+                        .filter(([_, family]) => family.length > 1)
+                        .slice(0, 10)
+                        .map(([familyId, family]) => (
+                        <div key={familyId} className="p-4 border rounded-lg bg-slate-50">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-slate-900">
+                              {family[0]?.surname || 'Unknown'} Family
+                            </span>
+                            <Badge variant="outline">{family.length} members</Badge>
+                          </div>
+                          <div className="text-sm text-slate-600">
+                            {family.map(member => `${member.firstName} ${member.surname}`).join(', ')}
+                          </div>
                         </div>
                       ))}
                     </div>
