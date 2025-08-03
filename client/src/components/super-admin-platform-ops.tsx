@@ -629,169 +629,221 @@ export function SuperAdminPlatformOps({ onBack }: SuperAdminPlatformOpsProps) {
           {/* Management Tab */}
           <TabsContent value="management" className="space-y-6">
             {/* Bulk Church Operations */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Building2 className="h-5 w-5" />
-                  <span>Church Management</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Bulk Actions */}
-                <div className="flex items-center space-x-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      checked={selectedChurches.length === churchesForManagement.length && churchesForManagement.length > 0}
-                      onCheckedChange={handleSelectAllChurches}
-                    />
-                    <span className="text-sm font-medium">
-                      {selectedChurches.length} of {churchesForManagement.length} selected
-                    </span>
-                  </div>
-                  
-                  <Select value={bulkAction} onValueChange={setBulkAction}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Select action" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="suspend">Suspend Churches</SelectItem>
-                      <SelectItem value="activate">Activate Churches</SelectItem>
-                      <SelectItem value="upgrade_to_growth">Upgrade to Growth</SelectItem>
-                      <SelectItem value="upgrade_to_enterprise">Upgrade to Enterprise</SelectItem>
-                    </SelectContent>
-                  </Select>
-
-                  <Button
-                    onClick={handleBulkAction}
-                    disabled={selectedChurches.length === 0 || !bulkAction || isBulkProcessing}
-                    variant="default"
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+            >
+              <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-blue-700 dark:text-blue-300">
+                    <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400 pulse-icon" />
+                    <span>Church Management</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Bulk Actions */}
+                  <motion.div 
+                    className="flex items-center space-x-4 p-4 bg-blue-100 dark:bg-blue-900/50 rounded-lg border border-blue-200 dark:border-blue-800"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.4, delay: 0.3 }}
                   >
-                    {isBulkProcessing ? (
-                      <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                    ) : (
-                      <Play className="h-4 w-4 mr-2" />
-                    )}
-                    Execute Action
-                  </Button>
-                </div>
-
-                {/* Churches List */}
-                <div className="space-y-3">
-                  {churchesForManagement.slice(0, 10).map((church) => (
-                    <div key={church.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800">
-                      <div className="flex items-center space-x-3">
-                        <Checkbox
-                          checked={selectedChurches.includes(church.id)}
-                          onCheckedChange={(checked) => handleSelectChurch(church.id, checked as boolean)}
-                        />
-                        <Building2 className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{church.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {church.totalMembers} members • Created {new Date(church.createdAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <Badge variant={church.isActive ? "default" : "secondary"}>
-                          {church.isActive ? "Active" : "Suspended"}
-                        </Badge>
-                        <Badge variant="outline" className="capitalize">
-                          {church.subscriptionTier}
-                        </Badge>
-                        {church.subscriptionTier === 'enterprise' && (
-                          <ArrowUpCircle className="h-4 w-4 text-green-600" />
-                        )}
-                        {church.subscriptionTier === 'suspended' && (
-                          <Pause className="h-4 w-4 text-red-600" />
-                        )}
-                      </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        checked={selectedChurches.length === churchesForManagement.length && churchesForManagement.length > 0}
+                        onCheckedChange={handleSelectAllChurches}
+                      />
+                      <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                        <AnimatedCounter target={selectedChurches.length} /> of <AnimatedCounter target={churchesForManagement.length} /> selected
+                      </span>
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                    
+                    <Select value={bulkAction} onValueChange={setBulkAction}>
+                      <SelectTrigger className="w-48 border-blue-300 dark:border-blue-700">
+                        <SelectValue placeholder="Select action" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="suspend">Suspend Churches</SelectItem>
+                        <SelectItem value="activate">Activate Churches</SelectItem>
+                        <SelectItem value="upgrade_to_growth">Upgrade to Growth</SelectItem>
+                        <SelectItem value="upgrade_to_enterprise">Upgrade to Enterprise</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    <Button
+                      onClick={handleBulkAction}
+                      disabled={selectedChurches.length === 0 || !bulkAction || isBulkProcessing}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      {isBulkProcessing ? (
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Play className="h-4 w-4 mr-2" />
+                      )}
+                      Execute Action
+                    </Button>
+                  </motion.div>
+
+                  {/* Churches List */}
+                  <div className="space-y-3">
+                    {churchesForManagement.slice(0, 10).map((church, index) => (
+                      <motion.div 
+                        key={church.id} 
+                        className="flex items-center justify-between p-4 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-all duration-300 bg-white dark:bg-blue-950/30"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.4, delay: 0.4 + (index * 0.05) }}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <Checkbox
+                            checked={selectedChurches.includes(church.id)}
+                            onCheckedChange={(checked) => handleSelectChurch(church.id, checked as boolean)}
+                          />
+                          <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                          <div>
+                            <p className="font-medium text-blue-900 dark:text-blue-100">{church.name}</p>
+                            <p className="text-sm text-blue-700 dark:text-blue-300">
+                              <AnimatedCounter target={church.totalMembers} /> members • Created {new Date(church.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <Badge variant={church.isActive ? "default" : "secondary"}>
+                            {church.isActive ? "Active" : "Suspended"}
+                          </Badge>
+                          <Badge variant="outline" className="capitalize border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300">
+                            {church.subscriptionTier}
+                          </Badge>
+                          {church.subscriptionTier === 'enterprise' && (
+                            <ArrowUpCircle className="h-4 w-4 text-green-600" />
+                          )}
+                          {church.subscriptionTier === 'suspended' && (
+                            <Pause className="h-4 w-4 text-red-600" />
+                          )}
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
 
             {/* Super Admin Users */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Shield className="h-5 w-5" />
-                  <span>Super Admin Users</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {superAdmins.map((admin) => (
-                    <div key={admin.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <UserCheck className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{admin.firstName} {admin.lastName}</p>
-                          <p className="text-sm text-muted-foreground">{admin.email}</p>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <Card className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950 dark:to-violet-950 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-purple-700 dark:text-purple-300">
+                    <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400 pulse-icon" />
+                    <span>Super Admin Users</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {superAdmins.map((admin, index) => (
+                      <motion.div 
+                        key={admin.id} 
+                        className="flex items-center justify-between p-4 border border-purple-200 dark:border-purple-800 rounded-lg bg-white dark:bg-purple-950/30 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-all duration-300"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.4, delay: 0.3 + (index * 0.1) }}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <UserCheck className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                          <div>
+                            <p className="font-medium text-purple-900 dark:text-purple-100">{admin.firstName} {admin.lastName}</p>
+                            <p className="text-sm text-purple-700 dark:text-purple-300">{admin.email}</p>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center space-x-3">
-                        <Badge variant={admin.isActive ? "default" : "secondary"}>
-                          {admin.isActive ? "Active" : "Inactive"}
-                        </Badge>
-                        <Badge variant="outline">{admin.role.replace('_', ' ')}</Badge>
-                        <p className="text-sm text-muted-foreground">
-                          {admin.lastLoginAt 
-                            ? `Last login: ${new Date(admin.lastLoginAt).toLocaleDateString()}`
-                            : 'Never logged in'
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                        <div className="flex items-center space-x-3">
+                          <Badge variant={admin.isActive ? "default" : "secondary"}>
+                            {admin.isActive ? "Active" : "Inactive"}
+                          </Badge>
+                          <Badge variant="outline" className="border-purple-300 text-purple-700 dark:border-purple-700 dark:text-purple-300">
+                            {admin.role.replace('_', ' ')}
+                          </Badge>
+                          <p className="text-sm text-purple-600 dark:text-purple-400">
+                            {admin.lastLoginAt 
+                              ? `Last login: ${new Date(admin.lastLoginAt).toLocaleDateString()}`
+                              : 'Never logged in'
+                            }
+                          </p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           </TabsContent>
 
           {/* Support Tab */}
           <TabsContent value="support" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <MessageSquare className="h-5 w-5" />
-                  <span>Support Tickets</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {supportTickets.map((ticket) => (
-                    <div key={ticket.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <Building2 className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{ticket.churchName}</span>
-                          <Badge 
-                            variant={ticket.priority === 'urgent' ? "destructive" : 
-                                   ticket.priority === 'high' ? "default" : "secondary"}
-                          >
-                            {ticket.priority}
-                          </Badge>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+            >
+              <Card className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950 dark:to-red-950 border-orange-200 dark:border-orange-800 hover:shadow-lg transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2 text-orange-700 dark:text-orange-300">
+                    <MessageSquare className="h-5 w-5 text-orange-600 dark:text-orange-400 pulse-icon" />
+                    <span>Support Tickets</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {supportTickets.map((ticket, index) => (
+                      <motion.div 
+                        key={ticket.id} 
+                        className="flex items-center justify-between p-4 border border-orange-200 dark:border-orange-800 rounded-lg bg-white dark:bg-orange-950/30 hover:bg-orange-50 dark:hover:bg-orange-900/30 transition-all duration-300"
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.4, delay: 0.2 + (index * 0.1) }}
+                      >
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <Building2 className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                            <span className="font-medium text-orange-900 dark:text-orange-100">{ticket.churchName}</span>
+                            <Badge 
+                              variant={ticket.priority === 'urgent' ? "destructive" : 
+                                     ticket.priority === 'high' ? "default" : "secondary"}
+                              className={
+                                ticket.priority === 'urgent' ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200" :
+                                ticket.priority === 'high' ? "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200" :
+                                "bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300"
+                              }
+                            >
+                              {ticket.priority}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-orange-700 dark:text-orange-300 mt-1">{ticket.subject}</p>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1">{ticket.subject}</p>
-                      </div>
-                      <div className="text-right">
-                        <Badge 
-                          variant={ticket.status === 'resolved' ? "default" : "outline"}
-                          className={getStatusColor(ticket.status)}
-                        >
-                          {ticket.status.replace('_', ' ')}
-                        </Badge>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {new Date(ticket.createdAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                        <div className="text-right">
+                          <Badge 
+                            variant={ticket.status === 'resolved' ? "default" : "outline"}
+                            className={`${getStatusColor(ticket.status)} ${
+                              ticket.status === 'resolved' ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" :
+                              ticket.status === 'in_progress' ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200" :
+                              "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200"
+                            }`}
+                          >
+                            {ticket.status.replace('_', ' ')}
+                          </Badge>
+                          <p className="text-sm text-orange-600 dark:text-orange-400 mt-1">
+                            {new Date(ticket.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           </TabsContent>
 
           {/* Analytics Tab */}
