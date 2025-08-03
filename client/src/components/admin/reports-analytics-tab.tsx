@@ -193,61 +193,54 @@ export default function ReportsAnalyticsTab() {
 
     try {
       setIsDownloading(true);
-      console.log('Starting export with data:', reportData);
+      console.log('Starting server-side CSV download...');
       
-      // Add a small delay to show the progress indicator
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const csvContent = convertToCSV(reportData, selectedReportConfig?.title || 'Report');
-      console.log('CSV content generated, length:', csvContent.length);
-      
-      if (!csvContent || csvContent.length < 10) {
-        throw new Error('Generated CSV content is empty or too short');
-      }
-      
-      // Create BOM for proper UTF-8 encoding in Excel
-      const BOM = '\uFEFF';
-      const csvWithBOM = BOM + csvContent;
-      
-      const blob = new Blob([csvWithBOM], { 
-        type: 'text/csv;charset=utf-8' 
+      // Use server-side download endpoint for better browser compatibility
+      const response = await fetch('/api/reports/download-csv', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          reportType: selectedReport,
+          startDate: dateRange.startDate,
+          endDate: dateRange.endDate
+        })
       });
-      console.log('Blob created, size:', blob.size);
+
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.statusText}`);
+      }
+
+      // Get the CSV content as blob
+      const blob = await response.blob();
+      console.log('Server CSV downloaded, size:', blob.size);
+
+      // Extract filename from response headers or generate one
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `${selectedReportConfig?.title?.replace(/\s+/g, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.csv`;
       
-      // Generate unique filename with timestamp
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
-      const filename = `${selectedReportConfig?.title?.replace(/\s+/g, '_').toLowerCase()}_${timestamp}_${Date.now().toString().slice(-6)}.csv`;
-      
-      console.log('Triggering download for file:', filename);
-      
-      // Use modern download approach with better browser compatibility
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      // Create download using blob URL
       const url = window.URL.createObjectURL(blob);
-      
-      // Create download link with proper attributes
       const downloadLink = document.createElement('a');
       downloadLink.href = url;
       downloadLink.download = filename;
       downloadLink.style.display = 'none';
-      downloadLink.setAttribute('target', '_self');
       
-      // Append to body, trigger download, and clean up
       document.body.appendChild(downloadLink);
-      
-      // Use both click methods for maximum compatibility
       downloadLink.click();
-      downloadLink.dispatchEvent(new MouseEvent('click', {
-        view: window,
-        bubbles: true,
-        cancelable: false
-      }));
+      document.body.removeChild(downloadLink);
+      window.URL.revokeObjectURL(url);
       
-      // Clean up immediately after click
-      setTimeout(() => {
-        document.body.removeChild(downloadLink);
-        window.URL.revokeObjectURL(url);
-      }, 100);
-      
-      console.log('Download triggered successfully');
+      console.log('Server-side download completed successfully');
       
     } catch (error) {
       console.error('Export error:', error);

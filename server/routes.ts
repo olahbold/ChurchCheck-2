@@ -261,6 +261,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // CSV Download endpoint for better browser compatibility
+  app.post('/api/reports/download-csv', authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
+    try {
+      const { reportType, startDate, endDate } = req.body;
+      const storage = getStorage(req);
+      const churchId = req.churchId!;
+      
+      let reportData;
+      let csvContent = '';
+      
+      if (reportType === 'member-attendance-log') {
+        reportData = await storage.getMemberAttendanceLog(churchId, startDate, endDate);
+        
+        // Generate CSV content for matrix format
+        if (reportData && reportData.type === 'matrix') {
+          const matrixData = reportData.data;
+          const summary = reportData.summary;
+          const attendanceDates = reportData.attendanceDates;
+          
+          // Create comprehensive header with summary statistics
+          csvContent = `"Member Attendance Log"\n`;
+          csvContent += `"Date Range: ${summary?.dateRange?.startDate || 'N/A'} to ${summary?.dateRange?.endDate || 'N/A'}"\n`;
+          csvContent += `"Total Members: ${summary?.totalMembers || 0}"\n`;
+          csvContent += `"Total Dates: ${summary?.totalDates || 0}"\n`;
+          csvContent += `"Total Attendance Records: ${summary?.totalAttendanceRecords || 0}"\n\n`;
+
+          // Build headers
+          const baseHeaders = ['No.', 'Member Name', 'First Name', 'Surname', 'Gender', 'Age Group', 'Phone', 'Title'];
+          const dateHeaders = attendanceDates?.map(date => {
+            const formattedDate = new Date(date).toLocaleDateString('en-US', { 
+              month: '2-digit', 
+              day: '2-digit', 
+              year: 'numeric' 
+            });
+            return formattedDate;
+          }) || [];
+          const summaryHeaders = ['Total Present', 'Total Absent', 'Attendance %'];
+          
+          const allHeaders = [...baseHeaders, ...dateHeaders, ...summaryHeaders];
+          csvContent += allHeaders.join(',') + '\n';
+
+          // Add data rows
+          matrixData.forEach((member: any, index: number) => {
+            const baseData = [
+              `"${index + 1}"`,
+              `"${member.memberName || ''}"`,
+              `"${member.firstName || ''}"`,
+              `"${member.surname || ''}"`,
+              `"${member.gender || ''}"`,
+              `"${member.ageGroup || ''}"`,
+              `"${member.phone || ''}"`,
+              `"${member.title || ''}"`
+            ];
+
+            const dateData = attendanceDates?.map(date => {
+              const dateKey = `date_${date.replace(/-/g, '_')}`;
+              return `"${member[dateKey] || 'NO'}"`;
+            }) || [];
+
+            const summaryData = [
+              `"${member.totalPresent || 0}"`,
+              `"${member.totalAbsent || 0}"`,
+              `"${member.attendancePercentage || '0%'}"`
+            ];
+
+            const rowData = [...baseData, ...dateData, ...summaryData];
+            csvContent += rowData.join(',') + '\n';
+          });
+        }
+      } else {
+        return res.status(400).json({ error: 'Unsupported report type for CSV download' });
+      }
+      
+      // Set headers for file download
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `${reportType.replace(/\s+/g, '_').toLowerCase()}_${timestamp}.csv`;
+      
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
+      // Add BOM for Excel compatibility
+      const BOM = '\uFEFF';
+      res.send(BOM + csvContent);
+      
+    } catch (error) {
+      console.error('CSV download error:', error);
+      res.status(500).json({ error: 'Failed to generate CSV download' });
+    }
+  });
+
   // Fingerprint simulation routes
   app.post("/api/fingerprint/enroll", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
