@@ -136,9 +136,14 @@ export function EventsTab() {
     queryKey: ['/api/events'],
   });
 
-  // Get event attendance counts
+  // Get event attendance counts (all time - for statistics tab)
   const { data: attendanceCounts = [] } = useQuery({
     queryKey: ['/api/events/attendance-counts'],
+  });
+
+  // Get today's event attendance counts (for event cards)
+  const { data: todayAttendanceCounts = {} } = useQuery({
+    queryKey: ['/api/events/today-attendance-counts'],
   });
 
   const createEventMutation = useMutation({
@@ -261,10 +266,9 @@ export function EventsTab() {
     return event.isActive === filterActive;
   });
 
-  // Helper function to get attendance count for an event
+  // Helper function to get today's attendance count for an event
   const getEventAttendanceCount = (eventId: string) => {
-    const attendanceData = attendanceCounts.find((count: any) => count.eventId === eventId);
-    return attendanceData ? Number(attendanceData.totalAttendees) : 0;
+    return todayAttendanceCounts[eventId] || 0;
   };
 
   // Helper function to get attendance details for an event

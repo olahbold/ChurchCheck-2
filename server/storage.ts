@@ -413,7 +413,7 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  // Get attendance count for specific events
+  // Get attendance count for specific events (all time)
   async getEventAttendanceCounts(churchId: string): Promise<any[]> {
     const result = await db
       .select({
@@ -442,6 +442,34 @@ export class DatabaseStorage implements IStorage {
       .orderBy(events.name);
 
     return result;
+  }
+
+  // Get today's attendance count for specific events
+  async getTodayEventAttendanceCounts(churchId: string): Promise<{ [key: string]: number }> {
+    const today = new Date().toISOString().split('T')[0];
+    const result = await db
+      .select({
+        eventId: attendanceRecords.eventId,
+        count: sql<number>`count(*)`,
+      })
+      .from(attendanceRecords)
+      .where(
+        and(
+          eq(attendanceRecords.churchId, churchId),
+          eq(attendanceRecords.attendanceDate, today),
+          isNotNull(attendanceRecords.eventId)
+        )
+      )
+      .groupBy(attendanceRecords.eventId);
+
+    // Convert to object with eventId as key and count as value
+    const counts: { [key: string]: number } = {};
+    result.forEach(row => {
+      if (row.eventId) {
+        counts[row.eventId] = row.count;
+      }
+    });
+    return counts;
   }
 
   // Get attendance stats for a specific event

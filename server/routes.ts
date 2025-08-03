@@ -1623,7 +1623,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get event attendance counts
+  // Get event attendance counts (all time)
   app.get("/api/events/attendance-counts", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
       const storage = getStorage(req);
@@ -1632,6 +1632,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Get event attendance counts error:', error);
       res.status(500).json({ error: "Failed to fetch event attendance counts" });
+    }
+  });
+
+  // Get today's event attendance counts
+  app.get("/api/events/today-attendance-counts", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
+    try {
+      const storage = getStorage(req);
+      const todayAttendanceCounts = await storage.getTodayEventAttendanceCounts(req.churchId!);
+      res.json(todayAttendanceCounts);
+    } catch (error) {
+      console.error('Get today event attendance counts error:', error);
+      res.status(500).json({ error: "Failed to fetch today's event attendance counts" });
     }
   });
 
