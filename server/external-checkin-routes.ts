@@ -3,7 +3,7 @@ import { nanoid } from 'nanoid';
 import { eq, and } from 'drizzle-orm';
 import { DatabaseStorage } from './storage.js';
 import { events, attendanceRecords, members, churches } from '@shared/schema';
-import { enableExternalCheckInSchema, externalCheckInAttemptSchema } from '@shared/schema';
+// Remove schema imports for now - we'll handle validation manually
 import { authenticateToken, AuthenticatedRequest, ensureChurchContext, requireRole } from './auth.js';
 
 // Import db directly from neon connection
@@ -26,7 +26,12 @@ function generateExternalCheckInData() {
 router.post('/events/:eventId/external-checkin/toggle', authenticateToken, ensureChurchContext, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
   try {
     const { eventId } = req.params;
-    const { enabled } = enableExternalCheckInSchema.parse(req.body);
+    const { enabled } = req.body;
+    
+    // Validate enabled parameter
+    if (typeof enabled !== 'boolean') {
+      return res.status(400).json({ error: 'enabled must be a boolean' });
+    }
 
     // Verify event belongs to this church
     const event = await db.select().from(events).where(
@@ -225,6 +230,36 @@ router.post('/:eventUrl/checkin', async (req, res) => {
     }
     
     res.status(500).json({ error: 'Failed to process check-in' });
+  }
+});
+
+// Get external check-in settings for an event
+router.get('/events/:eventId/external-checkin', authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
+  try {
+    const { eventId } = req.params;
+
+    // Get event with external check-in settings
+    const event = await db.select().from(events).where(
+      and(eq(events.id, eventId), eq(events.churchId, req.churchId!))
+    ).limit(1);
+
+    if (event.length === 0) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    const eventData = event[0];
+    const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
+    const host = req.get('host');
+
+    res.json({
+      enabled: eventData.externalCheckInEnabled || false,
+      url: eventData.externalCheckInUrl || null,
+      pin: eventData.externalCheckInPin || null,
+      fullUrl: eventData.externalCheckInUrl ? `${protocol}://${host}/external-checkin/${eventData.externalCheckInUrl}` : null
+    });
+  } catch (error) {
+    console.error('Get external check-in settings error:', error);
+    res.status(500).json({ error: 'Failed to get external check-in settings' });
   }
 });
 
