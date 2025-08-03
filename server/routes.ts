@@ -273,7 +273,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       let csvContent = '';
       
       if (reportType === 'member-attendance-log') {
-        reportData = await storage.getMemberAttendanceLog(churchId, startDate, endDate);
+        reportData = await storage.getMemberAttendanceLog(undefined, startDate, endDate);
         
         // Generate CSV content for matrix format
         if (reportData && reportData.type === 'matrix') {
