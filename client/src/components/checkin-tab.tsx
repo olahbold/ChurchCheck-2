@@ -446,7 +446,7 @@ export default function CheckInTab() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-slate-600">
-                    {selectedEventId ? 'Event Total' : "Today's Total"}
+                    {selectedEventId ? 'Attendees Total' : "Today's Total"}
                   </p>
                   <motion.p 
                     className="text-3xl font-bold text-slate-900"
