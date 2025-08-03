@@ -964,6 +964,7 @@ export default function HistoryTab() {
             )}
           </CardContent>
         </Card>
+        </motion.div>
       ) : viewMode === "calendar" ? (
         /* Calendar View */
         <Card className="church-card">
