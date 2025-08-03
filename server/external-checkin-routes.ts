@@ -22,85 +22,7 @@ function generateExternalCheckInData() {
   return { uniqueUrl, pin };
 }
 
-// Enable/disable external check-in for an event (Admin only)
-router.post('/events/:eventId/external-checkin/toggle', authenticateToken, ensureChurchContext, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
-  try {
-    const { eventId } = req.params;
-    const { enabled } = req.body;
-    
-    // Validate enabled parameter
-    if (typeof enabled !== 'boolean') {
-      return res.status(400).json({ error: 'enabled must be a boolean' });
-    }
-
-    // Verify event belongs to this church
-    const event = await db.select().from(events).where(
-      and(eq(events.id, eventId), eq(events.churchId, req.churchId!))
-    ).limit(1);
-
-    if (event.length === 0) {
-      return res.status(404).json({ error: 'Event not found' });
-    }
-
-    let updateData: any = { externalCheckInEnabled: enabled };
-
-    if (enabled) {
-      // Generate new URL and PIN when enabling
-      const { uniqueUrl, pin } = generateExternalCheckInData();
-      updateData.externalCheckInUrl = uniqueUrl;
-      updateData.externalCheckInPin = pin;
-    } else {
-      // Clear URL and PIN when disabling
-      updateData.externalCheckInUrl = null;
-      updateData.externalCheckInPin = null;
-    }
-
-    await db.update(events)
-      .set(updateData)
-      .where(eq(events.id, eventId));
-
-    const updatedEvent = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
-
-    res.json({
-      success: true,
-      event: updatedEvent[0],
-      externalUrl: enabled ? `${req.get('host')}/external-checkin/${updateData.externalCheckInUrl}` : null
-    });
-  } catch (error) {
-    console.error('Toggle external check-in error:', error);
-    res.status(500).json({ error: 'Failed to toggle external check-in' });
-  }
-});
-
-// Get external check-in details for admin
-router.get('/events/:eventId/external-checkin', authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
-  try {
-    const { eventId } = req.params;
-
-    // Verify event belongs to this church
-    const event = await db.select().from(events).where(
-      and(eq(events.id, eventId), eq(events.churchId, req.churchId!))
-    ).limit(1);
-
-    if (event.length === 0) {
-      return res.status(404).json({ error: 'Event not found' });
-    }
-
-    const eventData = event[0];
-
-    res.json({
-      enabled: eventData.externalCheckInEnabled || false,
-      url: eventData.externalCheckInUrl,
-      pin: eventData.externalCheckInPin,
-      fullUrl: eventData.externalCheckInUrl ? 
-        `${req.get('host')}/external-checkin/${eventData.externalCheckInUrl}` : null
-    });
-  } catch (error) {
-    console.error('Get external check-in error:', error);
-    res.status(500).json({ error: 'Failed to get external check-in details' });
-  }
-});
-
+// PUBLIC ROUTES FIRST (no authentication required)
 // External check-in page (public access with URL and PIN verification)
 router.get('/:eventUrl', async (req, res) => {
   try {
@@ -143,19 +65,28 @@ router.get('/:eventUrl', async (req, res) => {
   }
 });
 
-// Process external check-in (PIN + member verification)
+// Public external check-in submission (PIN + member ID required)
 router.post('/:eventUrl/checkin', async (req, res) => {
   try {
     const { eventUrl } = req.params;
-    const { pin, memberId } = externalCheckInAttemptSchema.parse(req.body);
+    const { pin, memberId } = req.body;
 
-    // Find event by external URL and verify PIN
+    // Validate inputs
+    if (!pin || !memberId) {
+      return res.status(400).json({ error: 'PIN and member ID are required' });
+    }
+
+    if (pin.length !== 6) {
+      return res.status(400).json({ error: 'PIN must be exactly 6 digits' });
+    }
+
+    // Find event by external URL and PIN
     const event = await db.select().from(events).where(
       and(
         eq(events.externalCheckInUrl, eventUrl),
+        eq(events.externalCheckInPin, pin),
         eq(events.externalCheckInEnabled, true),
-        eq(events.isActive, true),
-        eq(events.externalCheckInPin, pin)
+        eq(events.isActive, true)
       )
     ).limit(1);
 
@@ -165,12 +96,11 @@ router.post('/:eventUrl/checkin', async (req, res) => {
 
     const eventData = event[0];
 
-    // Verify member belongs to this church
+    // Verify member exists and belongs to the same church
     const member = await db.select().from(members).where(
       and(
         eq(members.id, memberId),
-        eq(members.churchId, eventData.churchId),
-        eq(members.isCurrentMember, true)
+        eq(members.churchId, eventData.churchId)
       )
     ).limit(1);
 
@@ -179,66 +109,119 @@ router.post('/:eventUrl/checkin', async (req, res) => {
     }
 
     const memberData = member[0];
-    const attendanceDate = new Date().toISOString().split('T')[0];
 
-    // Check if already checked in today for this event
+    // Check for existing attendance today for this event
+    const today = new Date().toISOString().split('T')[0];
     const existingAttendance = await db.select().from(attendanceRecords).where(
       and(
         eq(attendanceRecords.memberId, memberId),
         eq(attendanceRecords.eventId, eventData.id),
-        eq(attendanceRecords.attendanceDate, attendanceDate)
+        eq(attendanceRecords.attendanceDate, today)
       )
     ).limit(1);
 
     if (existingAttendance.length > 0) {
       return res.status(409).json({ 
-        error: 'Already checked in',
-        message: `${memberData.firstName} ${memberData.surname} has already checked in for ${eventData.name} today`
+        error: 'You have already checked in to this event today',
+        isDuplicate: true 
       });
     }
 
-    // Create attendance record with external check-in method
-    await db.insert(attendanceRecords).values({
+    // Create attendance record
+    const attendanceRecord = {
       churchId: eventData.churchId,
-      eventId: eventData.id,
       memberId: memberId,
-      attendanceDate: attendanceDate,
-      checkInMethod: 'external',
-      checkInTime: new Date(),
-    });
+      eventId: eventData.id,
+      attendanceDate: today,
+      checkInMethod: 'external' as const,
+      isGuest: false,
+    };
+
+    await db.insert(attendanceRecords).values(attendanceRecord);
 
     res.json({
       success: true,
-      message: `${memberData.firstName} ${memberData.surname} successfully checked in for ${eventData.name}`,
+      message: `Check-in successful for ${memberData.firstName} ${memberData.surname}`,
       member: {
-        id: memberData.id,
-        firstName: memberData.firstName,
-        surname: memberData.surname
-      },
-      event: {
-        id: eventData.id,
-        name: eventData.name,
-        type: eventData.eventType
+        name: `${memberData.firstName} ${memberData.surname}`,
+        checkInTime: new Date().toISOString()
       }
     });
 
   } catch (error) {
-    console.error('External check-in process error:', error);
+    console.error('External check-in submission error:', error);
     
-    if (error instanceof Error && error.name === 'ZodError') {
-      return res.status(400).json({ error: 'Invalid input data' });
+    if (error instanceof Error && error.message.includes('duplicate key')) {
+      return res.status(409).json({ 
+        error: 'You have already checked in to this event today',
+        isDuplicate: true 
+      });
     }
     
     res.status(500).json({ error: 'Failed to process check-in' });
   }
 });
 
-// Get external check-in settings for an event
+// AUTHENTICATED ROUTES
+// Enable/disable external check-in for an event (Admin only)
+router.post('/events/:eventId/external-checkin/toggle', authenticateToken, ensureChurchContext, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
+  try {
+    const { eventId } = req.params;
+    const { enabled } = req.body;
+    
+    // Validate enabled parameter
+    if (typeof enabled !== 'boolean') {
+      return res.status(400).json({ error: 'enabled must be a boolean' });
+    }
+
+    // Verify event belongs to this church
+    const event = await db.select().from(events).where(
+      and(eq(events.id, eventId), eq(events.churchId, req.churchId!))
+    ).limit(1);
+
+    if (event.length === 0) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+
+    let updateData: any = { externalCheckInEnabled: enabled };
+
+    if (enabled) {
+      // Generate new URL and PIN when enabling
+      const { uniqueUrl, pin } = generateExternalCheckInData();
+      updateData.externalCheckInUrl = uniqueUrl;
+      updateData.externalCheckInPin = pin;
+    } else {
+      // Clear URL and PIN when disabling
+      updateData.externalCheckInUrl = null;
+      updateData.externalCheckInPin = null;
+    }
+
+    await db.update(events)
+      .set(updateData)
+      .where(eq(events.id, eventId));
+
+    const updatedEvent = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
+
+    const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
+    const host = req.get('host');
+    
+    res.json({
+      success: true,
+      event: updatedEvent[0],
+      externalUrl: enabled ? `${protocol}://${host}/external-checkin/${updateData.externalCheckInUrl}` : null
+    });
+  } catch (error) {
+    console.error('Toggle external check-in error:', error);
+    res.status(500).json({ error: 'Failed to toggle external check-in' });
+  }
+});
+
+// Get external check-in details for admin
 router.get('/events/:eventId/external-checkin', authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
   try {
     const { eventId } = req.params;
 
-    // Get event with external check-in settings
+    // Verify event belongs to this church
     const event = await db.select().from(events).where(
       and(eq(events.id, eventId), eq(events.churchId, req.churchId!))
     ).limit(1);
@@ -248,19 +231,23 @@ router.get('/events/:eventId/external-checkin', authenticateToken, ensureChurchC
     }
 
     const eventData = event[0];
+
     const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
     const host = req.get('host');
-
+    
     res.json({
       enabled: eventData.externalCheckInEnabled || false,
-      url: eventData.externalCheckInUrl || null,
-      pin: eventData.externalCheckInPin || null,
-      fullUrl: eventData.externalCheckInUrl ? `${protocol}://${host}/external-checkin/${eventData.externalCheckInUrl}` : null
+      url: eventData.externalCheckInUrl,
+      pin: eventData.externalCheckInPin,
+      fullUrl: eventData.externalCheckInUrl ? 
+        `${protocol}://${host}/external-checkin/${eventData.externalCheckInUrl}` : null
     });
   } catch (error) {
-    console.error('Get external check-in settings error:', error);
-    res.status(500).json({ error: 'Failed to get external check-in settings' });
+    console.error('Get external check-in error:', error);
+    res.status(500).json({ error: 'Failed to get external check-in details' });
   }
 });
+
+// Duplicate route removed - using the one above
 
 export default router;
