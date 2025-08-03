@@ -386,6 +386,15 @@ const ExternalCheckInPage: React.FC = () => {
 
                 {searchQuery && searchResults.length > 0 && (
                   <div className="border rounded-lg max-h-60 overflow-y-auto">
+                    {/* PIN Required Notice */}
+                    {(!pin || pin.length !== 6) && (
+                      <div className="p-3 bg-amber-50 border-b border-amber-200 text-sm text-amber-800">
+                        <div className="flex items-center gap-2">
+                          <AlertCircle className="h-4 w-4" />
+                          <span>Please enter the 6-digit PIN above to activate check-in buttons</span>
+                        </div>
+                      </div>
+                    )}
                     {searchResults.map((member) => (
                       <div
                         key={member.id}
