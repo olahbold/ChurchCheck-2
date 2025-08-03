@@ -22,9 +22,9 @@ function generateExternalCheckInData() {
   return { uniqueUrl, pin };
 }
 
-// PUBLIC ROUTES FIRST (no authentication required)
-// External check-in page (public access with URL and PIN verification)
-router.get('/:eventUrl', async (req, res) => {
+// PUBLIC API ROUTES (no authentication required)
+// Get event data for external check-in page
+router.get('/event/:eventUrl', async (req, res) => {
   try {
     const { eventUrl } = req.params;
 
@@ -66,7 +66,7 @@ router.get('/:eventUrl', async (req, res) => {
 });
 
 // Public external check-in submission (PIN + member ID required)
-router.post('/:eventUrl/checkin', async (req, res) => {
+router.post('/checkin/:eventUrl', async (req, res) => {
   try {
     const { eventUrl } = req.params;
     const { pin, memberId } = req.body;

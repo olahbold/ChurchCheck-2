@@ -55,7 +55,7 @@ const ExternalCheckInPage: React.FC = () => {
         setLoading(true);
         
         // Get event information
-        const eventResponse = await fetch(`/external-checkin/${params.eventUrl}`);
+        const eventResponse = await fetch(`/api/external-checkin/event/${params.eventUrl}`);
         if (!eventResponse.ok) {
           throw new Error('External check-in not found or disabled');
         }
@@ -82,7 +82,7 @@ const ExternalCheckInPage: React.FC = () => {
       // Get members from the external check-in API
       if (!eventInfo) return;
       
-      const response = await fetch('/external-checkin/members', {
+      const response = await fetch('/api/external-checkin/members', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -138,7 +138,7 @@ const ExternalCheckInPage: React.FC = () => {
       setSubmitting(true);
       setMessage(null);
 
-      const response = await fetch(`/external-checkin/${params?.eventUrl}/checkin`, {
+      const response = await fetch(`/api/external-checkin/checkin/${params?.eventUrl}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
