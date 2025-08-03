@@ -551,12 +551,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/attendance/stats", authenticateToken, async (req: AuthenticatedRequest, res) => {
+  app.get("/api/attendance/stats", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
       const storage = getStorage(req);
       const { date } = req.query;
       const attendanceDate = date as string || new Date().toISOString().split('T')[0];
-      const stats = await storage.getAttendanceStats(attendanceDate);
+      const stats = await storage.getAttendanceStats(attendanceDate, req.churchId!);
       res.json(stats);
     } catch (error) {
       res.status(500).json({ error: "Failed to fetch attendance stats" });

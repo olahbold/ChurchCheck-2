@@ -491,7 +491,7 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
   }
 
-  async getAttendanceStats(date: string): Promise<{
+  async getAttendanceStats(date: string, churchId?: string): Promise<{
     total: number;
     male: number;
     female: number;
@@ -500,6 +500,11 @@ export class DatabaseStorage implements IStorage {
     adult: number;
   }> {
     // Query with a UNION approach to combine member and visitor stats
+    let conditions = [eq(attendanceRecords.attendanceDate, date)];
+    if (churchId) {
+      conditions.push(eq(attendanceRecords.churchId, churchId));
+    }
+    
     const allAttendanceRecords = await db
       .select({
         gender: sql<string>`COALESCE(${members.gender}, ${attendanceRecords.visitorGender})`,
@@ -507,7 +512,7 @@ export class DatabaseStorage implements IStorage {
       })
       .from(attendanceRecords)
       .leftJoin(members, eq(attendanceRecords.memberId, members.id))
-      .where(eq(attendanceRecords.attendanceDate, date));
+      .where(and(...conditions));
 
     const result = {
       total: allAttendanceRecords.length,
