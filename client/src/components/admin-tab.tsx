@@ -61,27 +61,34 @@ export default function AdminTab({ authState, onLogout }: AdminTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Admin Header */}
-      <Card className="church-card">
+      {/* Welcome Header */}
+      <Card className="bg-gradient-to-r from-slate-50 to-red-50 border border-slate-200">
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-[hsl(0,84%,60%)]/10 rounded-lg flex items-center justify-center">
-                <Shield className="text-[hsl(0,84%,60%)] text-xl" />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="w-12 h-12 bg-[hsl(0,84%,60%)]/10 rounded-lg flex items-center justify-center">
+                  <Shield className="text-[hsl(0,84%,60%)] text-xl" />
+                </div>
+                <div>
+                  <CardTitle className="text-2xl font-semibold text-slate-900">🛡️ Admin Control Center</CardTitle>
+                  <p className="text-slate-600">Comprehensive church management and system administration</p>
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-2xl font-semibold text-slate-900">Admin Center</CardTitle>
-                <p className="text-slate-600">User access management and comprehensive analytics</p>
+              <div className="text-right">
+                <div className="flex items-center space-x-3 mb-2">
+                  <span className="text-sm font-medium text-slate-900">{authState.user.fullName}</span>
+                  {getRoleBadge(authState.user.role)}
+                </div>
+                <p className="text-xs text-slate-500">
+                  {authState.user.region && `${authState.user.region} • `}
+                  {authState.user.email}
+                </p>
               </div>
             </div>
-            <div className="text-right">
-              <div className="flex items-center space-x-3 mb-2">
-                <span className="text-sm font-medium text-slate-900">{authState.user.fullName}</span>
-                {getRoleBadge(authState.user.role)}
-              </div>
-              <p className="text-xs text-slate-500">
-                {authState.user.region && `${authState.user.region} • `}
-                {authState.user.email}
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm text-red-800">
+                🔧 <strong>Admin Dashboard:</strong> Manage your church's digital infrastructure with powerful tools for member management, user access control, event coordination, detailed analytics, branding customization, and kiosk mode settings. Your role ({authState.user.role.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}) determines which sections you can access.
               </p>
             </div>
           </div>

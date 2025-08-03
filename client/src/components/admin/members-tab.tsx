@@ -294,6 +294,23 @@ export function MembersTab() {
       animate="visible"
       variants={containerVariants}
     >
+      {/* Welcome Header */}
+      <motion.div variants={cardVariants}>
+        <Card className="bg-gradient-to-r from-slate-50 to-green-50 border border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold text-slate-900 mb-2">👥 Member Management System</CardTitle>
+            <p className="text-slate-700 mb-3">
+              Comprehensive member directory with advanced search, filtering, and profile management capabilities.
+            </p>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <p className="text-sm text-green-800">
+                📊 <strong>Admin Member Tools:</strong> View detailed member statistics, search and filter by demographics, edit member information, track registration dates, manage family relationships, and export member data for reports. Full administrative control over your congregation's directory.
+              </p>
+            </div>
+          </CardHeader>
+        </Card>
+      </motion.div>
+      
       <motion.div variants={cardVariants}>
         <motion.h2 
           className="text-2xl font-bold text-gray-900 dark:text-white"
@@ -301,7 +318,7 @@ export function MembersTab() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.6 }}
         >
-          Members Management
+          📋 Members Management
         </motion.h2>
         <motion.p 
           className="text-gray-600 dark:text-gray-400 mt-1"

@@ -223,10 +223,20 @@ export function BrandingTab() {
           visible: { opacity: 1, y: 0 }
         }}
       >
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Church Branding</h2>
-        <p className="text-gray-600 dark:text-gray-400 mt-1">
-          Customize your church's visual identity across the platform
-        </p>
+        {/* Welcome Header */}
+        <Card className="bg-gradient-to-r from-slate-50 to-purple-50 border border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold text-slate-900 mb-2">🎨 Church Branding Center</CardTitle>
+            <p className="text-slate-700 mb-3">
+              Customize your church's visual identity and brand presence throughout the system.
+            </p>
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+              <p className="text-sm text-purple-800">
+                🏛️ <strong>Brand Management:</strong> Upload your church logo and banner images, set custom brand colors, and personalize the visual appearance of your attendance system. Changes appear instantly across all member interfaces and administrative dashboards.
+              </p>
+            </div>
+          </CardHeader>
+        </Card>
       </motion.div>
 
       {/* Live Preview */}

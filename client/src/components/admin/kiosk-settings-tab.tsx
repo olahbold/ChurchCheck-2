@@ -168,10 +168,20 @@ export function KioskSettingsTab() {
           visible: { opacity: 1, y: 0 }
         }}
       >
-        <h2 className="text-2xl font-bold">Kiosk Mode Settings</h2>
-        <p className="text-muted-foreground">
-          Configure self check-in options for your members
-        </p>
+        {/* Welcome Header */}
+        <Card className="bg-gradient-to-r from-slate-50 to-orange-50 border border-slate-200">
+          <CardHeader>
+            <CardTitle className="text-xl font-semibold text-slate-900 mb-2">📱 Kiosk Mode Settings</CardTitle>
+            <p className="text-slate-700 mb-3">
+              Configure self-service check-in stations for members to register their attendance independently.
+            </p>
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+              <p className="text-sm text-orange-800">
+                ⏱️ <strong>Self Check-in System:</strong> Enable kiosk mode to allow members to search for their names and check themselves into active events without requiring admin assistance. Set session timeouts to automatically secure the system after periods of inactivity. Perfect for busy service times and reducing volunteer workload.
+              </p>
+            </div>
+          </CardHeader>
+        </Card>
       </motion.div>
 
       <motion.div

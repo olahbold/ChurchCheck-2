@@ -237,6 +237,20 @@ export default function UserManagementTab() {
 
   return (
     <div className="space-y-6">
+      {/* Welcome Header */}
+      <Card className="bg-gradient-to-r from-slate-50 to-blue-50 border border-slate-200">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold text-slate-900 mb-2">👥 User Management Center</CardTitle>
+          <p className="text-slate-700 mb-3">
+            Manage admin access and control who can manage your church's digital systems.
+          </p>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm text-blue-800">
+              🔐 <strong>Access Control:</strong> Create admin accounts with specific roles (Administrator, Volunteer, Data Viewer), manage permissions, track user activity, and maintain secure access to your church management system. Each role has different levels of access to protect sensitive information.
+            </p>
+          </div>
+        </CardHeader>
+      </Card>
       {/* User Stats Overview */}
       <motion.div 
         className="grid grid-cols-1 md:grid-cols-4 gap-6"
