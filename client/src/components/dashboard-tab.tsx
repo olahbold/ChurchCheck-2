@@ -529,8 +529,13 @@ export default function DashboardTab() {
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 1.7, duration: 0.6 }}
+          whileHover={{ 
+            scale: 1.01, 
+            y: -4,
+            transition: { duration: 0.2 }
+          }}
         >
-          <Card className="church-card overflow-hidden">
+          <Card className="church-card overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                 <motion.div
@@ -567,9 +572,11 @@ export default function DashboardTab() {
                   />
                   <Search className="absolute right-3 top-3 h-4 w-4 text-slate-400" />
                 </div>
-                <Button className="church-button-primary">
-                  <Search className="h-4 w-4" />
-                </Button>
+                <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                  <Button className="church-button-primary hover:shadow-md transition-shadow">
+                    <Search className="h-4 w-4" />
+                  </Button>
+                </motion.div>
               </div>
               
               <div className="flex space-x-4">
@@ -690,8 +697,13 @@ export default function DashboardTab() {
           initial={{ opacity: 0, x: 30 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 1.9, duration: 0.6 }}
+          whileHover={{ 
+            scale: 1.01, 
+            y: -4,
+            transition: { duration: 0.2 }
+          }}
         >
-          <Card className="church-card overflow-hidden">
+          <Card className="church-card overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                 <motion.div
@@ -759,35 +771,41 @@ export default function DashboardTab() {
                     Last attended: {new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toLocaleDateString()}
                   </p>
                   <div className="flex space-x-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="text-xs"
-                      onClick={() => handleSendFollowUp(member.id, 'sms')}
-                      disabled={!member.phone || sendFollowUpMutation.isPending}
-                    >
-                      <Phone className="mr-1 h-3 w-3" />
-                      SMS
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="text-xs"
-                      onClick={() => handleSendFollowUp(member.id, 'email')}
-                      disabled={!member.email || sendFollowUpMutation.isPending}
-                    >
-                      <Mail className="mr-1 h-3 w-3" />
-                      Email
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      className="church-button-secondary text-xs"
-                      onClick={() => handleSendFollowUp(member.id, member.phone ? 'sms' : 'email')}
-                      disabled={sendFollowUpMutation.isPending}
-                    >
-                      <CheckCircle className="mr-1 h-3 w-3" />
-                      {sendFollowUpMutation.isPending ? 'Sending...' : 'Mark Contacted'}
-                    </Button>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="text-xs hover:shadow-md transition-shadow"
+                        onClick={() => handleSendFollowUp(member.id, 'sms')}
+                        disabled={!member.phone || sendFollowUpMutation.isPending}
+                      >
+                        <Phone className="mr-1 h-3 w-3" />
+                        SMS
+                      </Button>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="text-xs hover:shadow-md transition-shadow"
+                        onClick={() => handleSendFollowUp(member.id, 'email')}
+                        disabled={!member.email || sendFollowUpMutation.isPending}
+                      >
+                        <Mail className="mr-1 h-3 w-3" />
+                        Email
+                      </Button>
+                    </motion.div>
+                    <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Button 
+                        size="sm" 
+                        className="church-button-secondary text-xs hover:shadow-md transition-shadow"
+                        onClick={() => handleSendFollowUp(member.id, member.phone ? 'sms' : 'email')}
+                        disabled={sendFollowUpMutation.isPending}
+                      >
+                        <CheckCircle className="mr-1 h-3 w-3" />
+                        {sendFollowUpMutation.isPending ? 'Sending...' : 'Mark Contacted'}
+                      </Button>
+                    </motion.div>
                   </div>
                 </motion.div>
               ))}
@@ -815,10 +833,12 @@ export default function DashboardTab() {
                 rows={3}
                 placeholder="Enter your follow-up message template..."
               />
-              <Button className="church-button-outline mt-3">
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Update Template
-              </Button>
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button className="church-button-outline mt-3 hover:shadow-md transition-shadow">
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Update Template
+                </Button>
+              </motion.div>
             </div>
           </CardContent>
         </Card>
