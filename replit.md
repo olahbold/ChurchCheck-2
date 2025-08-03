@@ -32,7 +32,7 @@ The system utilizes a monorepo structure with distinct client and server compone
 - **Monorepo Structure**: Facilitates shared types and schemas, promoting code reuse and type safety.
 - **Kiosk Mode**: Comprehensive functionality for member self check-in, configurable session timeouts, and real-time settings synchronization. Kiosk sessions extend admin authentication. Supports all active events simultaneously.
 - **User Experience**: Enhanced with narration and guidance content across major user touchpoints, including forms, dashboards, and reporting sections, using clear instructions, visual indicators, and contextual tips.
-- **Reporting Enhancements**: Member Attendance Log redesigned for Excel-style matrix reports with attendance patterns, color-coded indicators, and comprehensive CSV export. Dual attendance metrics display both today's and total historical attendance for events.
+- **Reporting Enhancements**: Member Attendance Log redesigned for Excel-style matrix reports with attendance patterns, color-coded indicators, and comprehensive CSV export. Dual attendance metrics display both today's and total historical attendance for events using natural language narration format ("Today: X attendees, Total: Y attendees").
 
 ## External Dependencies
 

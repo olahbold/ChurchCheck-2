@@ -480,20 +480,10 @@ export function EventsTab() {
                           </Badge>
                           
                           {(getTodayEventAttendanceCount(event.id) > 0 || getTotalEventAttendanceCount(event.id) > 0) && (
-                            <div className="flex gap-1">
-                              {getTodayEventAttendanceCount(event.id) > 0 && (
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                                  <Users className="h-3 w-3 mr-1" />
-                                  {getTodayEventAttendanceCount(event.id)} today
-                                </Badge>
-                              )}
-                              {getTotalEventAttendanceCount(event.id) > 0 && (
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                                  <Users className="h-3 w-3 mr-1" />
-                                  {getTotalEventAttendanceCount(event.id)} total
-                                </Badge>
-                              )}
-                            </div>
+                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                              <Users className="h-3 w-3 mr-1" />
+                              Today: {getTodayEventAttendanceCount(event.id)} attendees, Total: {getTotalEventAttendanceCount(event.id)} attendees
+                            </Badge>
                           )}
                         </div>
                         
