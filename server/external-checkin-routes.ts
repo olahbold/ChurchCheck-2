@@ -286,4 +286,81 @@ router.post('/members', async (req, res) => {
   }
 });
 
+// Search members for external check-in with family data
+router.post('/search', async (req, res) => {
+  try {
+    const { eventUrl, search } = req.body;
+
+    if (!eventUrl) {
+      return res.status(400).json({ error: 'Event URL is required' });
+    }
+
+    if (!search || search.trim().length === 0) {
+      return res.json([]);
+    }
+
+    // Find event by external URL to get church ID
+    const event = await db.select().from(events).where(
+      and(
+        eq(events.externalCheckInUrl, eventUrl),
+        eq(events.externalCheckInEnabled, true),
+        eq(events.isActive, true)
+      )
+    ).limit(1);
+
+    if (event.length === 0) {
+      return res.status(404).json({ error: 'External check-in not found or disabled' });
+    }
+
+    const eventData = event[0];
+    const searchTerm = search.toLowerCase().trim();
+
+    // Get all members for this church with search filtering
+    const allMembers = await db.select().from(members).where(
+      and(
+        eq(members.churchId, eventData.churchId),
+        eq(members.isCurrentMember, true)
+      )
+    );
+
+    // Filter members by search term (name, phone, email)
+    const filteredMembers = allMembers.filter(member => 
+      member.firstName.toLowerCase().includes(searchTerm) ||
+      member.surname.toLowerCase().includes(searchTerm) ||
+      (member.phone && member.phone.includes(searchTerm)) ||
+      (member.email && member.email.toLowerCase().includes(searchTerm))
+    );
+
+    // Build response with children for family check-ins
+    const membersWithChildren = filteredMembers.map(member => {
+      // Find children (members with this member as parent)
+      const children = allMembers.filter(child => child.parentId === member.id);
+      
+      return {
+        id: member.id,
+        firstName: member.firstName,
+        surname: member.surname,
+        gender: member.gender,
+        ageGroup: member.ageGroup,
+        phone: member.phone,
+        email: member.email,
+        parentId: member.parentId,
+        children: children.map(child => ({
+          id: child.id,
+          firstName: child.firstName,
+          surname: child.surname,
+          gender: child.gender,
+          ageGroup: child.ageGroup,
+          parentId: child.parentId
+        }))
+      };
+    });
+
+    res.json(membersWithChildren);
+  } catch (error) {
+    console.error('External check-in search error:', error);
+    res.status(500).json({ error: 'Failed to search members' });
+  }
+});
+
 export default router;
