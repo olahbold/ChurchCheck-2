@@ -423,8 +423,13 @@ export default function RegisterTab() {
               Search Existing Members
             </CardTitle>
             <p className="text-sm text-slate-600">
-              Search before registering to prevent duplicates. If found, you can update their information instead.
+              👋 Welcome! Before creating a new member profile, let's check if they're already in our system. This helps keep our records clean and prevents duplicates.
             </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
+              <p className="text-sm text-blue-800">
+                💡 <strong>Pro tip:</strong> Type any part of their name - even just their first name works! If you find them, you can easily update their details instead of creating a new profile.
+              </p>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex space-x-2">
@@ -531,6 +536,20 @@ export default function RegisterTab() {
               <CardTitle className="text-2xl font-semibold text-slate-900">
                 {isUpdateMode ? 'Update Member Information' : 'Member Registration'}
               </CardTitle>
+              <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4 mt-3">
+                <p className="text-sm text-slate-700 mb-2">
+                  {isUpdateMode ? 
+                    "📝 Updating member details - make any necessary changes below and save when ready!" :
+                    "🌟 Ready to add a new member to our church family! Fill out the form below with their details."
+                  }
+                </p>
+                <div className="text-xs text-slate-600 space-y-1">
+                  <p>• <strong>Required fields:</strong> First name, surname, gender, and age group</p>
+                  <p>• <strong>For adults:</strong> Phone number is required for communication</p>
+                  <p>• <strong>For children:</strong> You can link them to a parent after registration</p>
+                  <p>• <strong>Fingerprint:</strong> Optional but recommended for quick check-ins</p>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
           <Form {...form}>

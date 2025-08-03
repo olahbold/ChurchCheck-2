@@ -380,6 +380,17 @@ export default function CheckInTab() {
               <Search className="h-5 w-5" />
               Event Check-in
             </CardTitle>
+            <div className="bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg p-4 mt-3">
+              <p className="text-sm text-slate-700 mb-2">
+                🎉 <strong>Welcome to Church!</strong> Let's get you checked in quickly and easily.
+              </p>
+              <div className="text-xs text-slate-600 space-y-1">
+                <p>• <strong>Step 1:</strong> Choose the event you're attending from the dropdown below</p>
+                <p>• <strong>Step 2:</strong> Use your fingerprint for quick check-in, or search manually</p>
+                <p>• <strong>First time?</strong> No problem! We can register you in just a few seconds</p>
+                <p>• <strong>Family check-in:</strong> Parents can check in their children too</p>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -584,11 +595,18 @@ export default function CheckInTab() {
         <Card className="transition-all duration-300 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600">
           <CardHeader>
             <CardTitle className="text-xl font-semibold text-slate-900">
-              Biometric Authentication
+              🔐 Quick Check-in with Biometrics
             </CardTitle>
-            <p className="text-sm text-slate-600">
-              Use your device biometric authentication to check in
-            </p>
+            <div className="space-y-2">
+              <p className="text-sm text-slate-600">
+                The fastest way to check in! Just use your fingerprint and you're done in seconds.
+              </p>
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                <p className="text-xs text-purple-800">
+                  💡 <strong>How it works:</strong> If you've registered your fingerprint before, just tap "Device" and follow the prompts. New to biometric check-in? Try "Simulate" to see how it works!
+                </p>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
           {!selectedEventId && (
@@ -657,11 +675,18 @@ export default function CheckInTab() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-purple-900">
               <Monitor className="h-5 w-5" />
-              Member Self Check-in
+              🖥️ Kiosk Mode - Self Service Check-in
             </CardTitle>
-            <p className="text-purple-700 text-sm">
-              Allow members to check themselves in without admin supervision
-            </p>
+            <div className="space-y-2">
+              <p className="text-purple-700 text-sm">
+                Perfect for busy services! Let members check themselves in independently.
+              </p>
+              <div className="bg-purple-100 border border-purple-300 rounded-lg p-3">
+                <p className="text-xs text-purple-800">
+                  💡 <strong>How it works:</strong> Start kiosk mode and step away! Members can search for themselves and check in without any help. The session will automatically end after the timeout period for security.
+                </p>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-4">
@@ -697,8 +722,18 @@ export default function CheckInTab() {
         <Card className="transition-all duration-300 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600">
           <CardHeader>
             <CardTitle className="text-xl font-semibold text-slate-900">
-              Manual Check-In
+              🔍 Manual Search & Check-in
             </CardTitle>
+            <div className="space-y-2">
+              <p className="text-sm text-slate-600">
+                Prefer to search manually? No problem! Find members by name, phone, or email.
+              </p>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <p className="text-xs text-amber-800">
+                  💡 <strong>Search tips:</strong> Type any part of their name, phone number, or email. Family members can check in their children with the family button. Perfect for first-time visitors or when biometrics aren't available!
+                </p>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
           {!selectedEventId && (
