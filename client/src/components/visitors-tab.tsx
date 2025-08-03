@@ -660,17 +660,31 @@ export default function VisitorsTab() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredVisitors.map((visitor: Visitor) => (
-                    <TableRow key={visitor.id}>
+                  {filteredVisitors.map((visitor: Visitor, index: number) => (
+                    <motion.tr 
+                      key={visitor.id}
+                      className="border-b transition-all duration-300 hover:bg-slate-50 dark:hover:bg-slate-900/30 hover:shadow-sm cursor-pointer"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.03 }}
+                      whileHover={{ 
+                        scale: 1.01, 
+                        y: -1,
+                        transition: { duration: 0.2 }
+                      }}
+                    >
                       <TableCell>
-                        <div>
-                          <p className="font-medium">{visitor.name}</p>
+                        <motion.div
+                          whileHover={{ x: 2 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <p className="font-medium text-gray-900 dark:text-gray-100">{visitor.name}</p>
                           {visitor.howDidYouHearAboutUs && (
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
                               Heard about us: {visitor.howDidYouHearAboutUs}
                             </p>
                           )}
-                        </div>
+                        </motion.div>
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col space-y-1">
@@ -689,19 +703,19 @@ export default function VisitorsTab() {
                       <TableCell>
                         <div className="space-y-1">
                           {visitor.phone && (
-                            <div className="flex items-center space-x-1 text-sm">
+                            <div className="flex items-center space-x-1 text-sm text-gray-700 dark:text-gray-300">
                               <Phone className="h-3 w-3" />
                               <span>{visitor.phone}</span>
                             </div>
                           )}
                           {visitor.email && (
-                            <div className="flex items-center space-x-1 text-sm">
+                            <div className="flex items-center space-x-1 text-sm text-gray-700 dark:text-gray-300">
                               <Mail className="h-3 w-3" />
                               <span>{visitor.email}</span>
                             </div>
                           )}
                           {visitor.whatsappNumber && (
-                            <div className="flex items-center space-x-1 text-sm text-green-600">
+                            <div className="flex items-center space-x-1 text-sm text-green-600 dark:text-green-400">
                               <MessageSquare className="h-3 w-3" />
                               <span>WhatsApp: {visitor.whatsappNumber}</span>
                             </div>
@@ -709,7 +723,7 @@ export default function VisitorsTab() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center space-x-1 text-sm">
+                        <div className="flex items-center space-x-1 text-sm text-gray-700 dark:text-gray-300">
                           <Calendar className="h-3 w-3" />
                           <span>{new Date(visitor.visitDate!).toLocaleDateString()}</span>
                         </div>
@@ -719,7 +733,7 @@ export default function VisitorsTab() {
                         {visitor.prayerPoints ? (
                           <div className="flex items-center space-x-1">
                             <Heart className="h-3 w-3 text-red-500" />
-                            <span className="text-sm truncate max-w-32" title={visitor.prayerPoints}>
+                            <span className="text-sm truncate max-w-32 text-gray-700 dark:text-gray-300" title={visitor.prayerPoints}>
                               {visitor.prayerPoints}
                             </span>
                           </div>
@@ -728,16 +742,22 @@ export default function VisitorsTab() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEditVisitor(visitor)}
+                        <motion.div
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
                         >
-                          <Edit className="h-3 w-3 mr-1" />
-                          Edit
-                        </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEditVisitor(visitor)}
+                            className="border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                          >
+                            <Edit className="h-3 w-3 mr-1" />
+                            Edit
+                          </Button>
+                        </motion.div>
                       </TableCell>
-                    </TableRow>
+                    </motion.tr>
                   ))}
                 </TableBody>
               </Table>
