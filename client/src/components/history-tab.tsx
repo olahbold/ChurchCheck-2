@@ -1804,16 +1804,15 @@ export default function HistoryTab() {
                             outerRadius={120}
                             paddingAngle={2}
                             dataKey="displayValue"
-                            label={({ name, cx, cy, midAngle, innerRadius, outerRadius, value, ...entry }) => {
+                            label={({ name, cx, cy, midAngle, innerRadius, outerRadius, payload }) => {
                               const RADIAN = Math.PI / 180;
                               const radius = innerRadius + (outerRadius - innerRadius) * 1.4;
                               const x = cx + radius * Math.cos(-midAngle * RADIAN);
                               const y = cy + radius * Math.sin(-midAngle * RADIAN);
                               
-                              // Calculate percentage based on original value, not displayValue
-                              const originalValue = entry.value || 0;
-                              const totalOriginal = methodsData.reduce((sum, item) => sum + item.value, 0);
-                              const actualPercent = totalOriginal > 0 ? (originalValue / totalOriginal * 100) : 0;
+                              // Get the original value from payload
+                              const originalValue = payload.value || 0;
+                              const actualPercent = totalCheckins > 0 ? (originalValue / totalCheckins * 100) : 0;
                               
                               return (
                                 <text 
