@@ -154,6 +154,7 @@ export default function ReportsAnalyticsTab() {
   const [reportParams, setReportParams] = useState<any>({});
   const [showReportListModal, setShowReportListModal] = useState(false);
   const [filteredReportType, setFilteredReportType] = useState<string | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // Fetch report data
   const { data: reportData, isLoading, refetch } = useQuery<ReportData>({
@@ -187,16 +188,47 @@ export default function ReportsAnalyticsTab() {
   const handleExportReport = async () => {
     if (!reportData) return;
 
-    const csvContent = convertToCSV(reportData, selectedReportConfig?.title || 'Report');
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${selectedReportConfig?.title?.replace(/\s+/g, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    document.body.removeChild(a);
+    try {
+      setIsDownloading(true);
+      
+      // Add a small delay to show the progress indicator
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      const csvContent = convertToCSV(reportData, selectedReportConfig?.title || 'Report');
+      
+      // Create BOM for proper UTF-8 encoding in Excel
+      const BOM = '\uFEFF';
+      const csvWithBOM = BOM + csvContent;
+      
+      const blob = new Blob([csvWithBOM], { 
+        type: 'text/csv;charset=utf-8' 
+      });
+      
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Generate unique filename with timestamp
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+      const filename = `${selectedReportConfig?.title?.replace(/\s+/g, '_').toLowerCase()}_${timestamp}_${Date.now().toString().slice(-6)}.csv`;
+      a.download = filename;
+      
+      // Force download
+      document.body.appendChild(a);
+      a.click();
+      
+      // Cleanup
+      setTimeout(() => {
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }, 100);
+      
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to download report. Please try again.');
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const convertToCSV = (data: ReportData, title: string): string => {
@@ -876,10 +908,20 @@ export default function ReportsAnalyticsTab() {
                       <Button 
                         onClick={handleExportReport}
                         variant="outline"
+                        disabled={isDownloading}
                         className="w-full"
                       >
-                        <Download className="mr-2 h-4 w-4" />
-                        Export CSV
+                        {isDownloading ? (
+                          <>
+                            <Activity className="mr-2 h-4 w-4 animate-spin" />
+                            Exporting...
+                          </>
+                        ) : (
+                          <>
+                            <Download className="mr-2 h-4 w-4" />
+                            Export CSV
+                          </>
+                        )}
                       </Button>
                     )}
                   </div>
@@ -950,10 +992,20 @@ export default function ReportsAnalyticsTab() {
                     </p>
                     <Button 
                       onClick={handleExportReport}
+                      disabled={isDownloading}
                       className="church-button-primary"
                     >
-                      <Download className="mr-2 h-4 w-4" />
-                      Download CSV Report
+                      {isDownloading ? (
+                        <>
+                          <Activity className="mr-2 h-4 w-4 animate-spin" />
+                          Preparing Download...
+                        </>
+                      ) : (
+                        <>
+                          <Download className="mr-2 h-4 w-4" />
+                          Download CSV Report
+                        </>
+                      )}
                     </Button>
                   </div>
                 </div>
