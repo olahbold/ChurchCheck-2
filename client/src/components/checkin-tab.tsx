@@ -541,23 +541,37 @@ export default function CheckInTab() {
             <CardContent className="p-6 h-full flex flex-col justify-between">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-slate-600">By Age Group</p>
+                  <p className="text-sm font-medium text-slate-600">
+                    {selectedEventId ? 'Members / Visitors' : 'By Age Group'}
+                  </p>
                   <motion.p 
                     className="text-lg font-bold text-slate-900"
                     initial={{ scale: 0.8, opacity: 0 }}
                     animate={{ scale: 1, opacity: 1 }}
                     transition={{ delay: 0.7, duration: 0.6 }}
                   >
-                    <AnimatedCounter target={selectedEventId ? (eventStats?.adult || 0) : (attendanceStats?.adult || 0)} />A / <AnimatedCounter target={selectedEventId ? (eventStats?.child || 0) : (attendanceStats?.child || 0)} />C / <AnimatedCounter target={selectedEventId ? (eventStats?.adolescent || 0) : (attendanceStats?.adolescent || 0)} />T
+                    {selectedEventId ? (
+                      <>
+                        <AnimatedCounter target={eventStats?.members || 0} />M / <AnimatedCounter target={eventStats?.visitors || 0} />V
+                      </>
+                    ) : (
+                      <>
+                        <AnimatedCounter target={attendanceStats?.adult || 0} />A / <AnimatedCounter target={attendanceStats?.child || 0} />C / <AnimatedCounter target={attendanceStats?.adolescent || 0} />T
+                      </>
+                    )}
                   </motion.p>
                 </div>
                 <motion.div 
-                  className="w-12 h-12 bg-orange-500/10 rounded-lg flex items-center justify-center"
+                  className={`w-12 h-12 ${selectedEventId ? 'bg-green-500/10' : 'bg-orange-500/10'} rounded-lg flex items-center justify-center`}
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   transition={{ delay: 0.5, type: "spring", stiffness: 300 }}
                 >
-                  <Baby className="text-orange-500 text-xl pulse-icon" />
+                  {selectedEventId ? (
+                    <UserPlus className="text-green-500 text-xl pulse-icon" />
+                  ) : (
+                    <Baby className="text-orange-500 text-xl pulse-icon" />
+                  )}
                 </motion.div>
               </div>
               <motion.p 
@@ -566,11 +580,20 @@ export default function CheckInTab() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 1.0 }}
               >
-                <Baby className="inline h-3 w-3 mr-1" />
-                Adult / Child / Teen
+                {selectedEventId ? (
+                  <>
+                    <UserPlus className="inline h-3 w-3 mr-1" />
+                    Members: {eventStats?.members || 0} | Visitors: {eventStats?.visitors || 0}
+                  </>
+                ) : (
+                  <>
+                    <Baby className="inline h-3 w-3 mr-1" />
+                    Adult / Child / Teen
+                  </>
+                )}
               </motion.p>
               <motion.div
-                className="absolute bottom-0 left-0 h-1 bg-gradient-to-r from-orange-500 to-orange-600"
+                className={`absolute bottom-0 left-0 h-1 bg-gradient-to-r ${selectedEventId ? 'from-green-500 to-green-600' : 'from-orange-500 to-orange-600'}`}
                 initial={{ width: 0 }}
                 animate={{ width: "100%" }}
                 transition={{ delay: 1.2, duration: 1.2 }}
