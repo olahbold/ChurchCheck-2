@@ -313,9 +313,24 @@ export function EventsTab() {
       animate="visible"
       variants={containerVariants}
     >
+      {/* Welcome Header */}
+      <Card className="bg-gradient-to-r from-slate-50 to-indigo-50 border border-slate-200">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold text-slate-900 mb-2">📅 Event Management Center</CardTitle>
+          <p className="text-slate-700 mb-3">
+            Create, schedule, and manage all church events for attendance tracking and member engagement.
+          </p>
+          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-3">
+            <p className="text-sm text-indigo-800">
+              🎯 <strong>Event Coordination:</strong> Set up Sunday services, prayer meetings, Bible studies, youth groups, and special events. Manage event details, track attendance, view real-time statistics, and organize your church calendar. Each event becomes available for member check-ins and attendance tracking.
+            </p>
+          </div>
+        </CardHeader>
+      </Card>
+      
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold">Event Management</h2>
+          <h2 className="text-2xl font-bold">📋 Event Management</h2>
           <p className="text-muted-foreground">Create and manage church events for attendance tracking</p>
         </div>
         <Button onClick={() => openDialog()} className="flex items-center gap-2">

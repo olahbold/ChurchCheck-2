@@ -352,6 +352,21 @@ export default function ReportsAnalyticsTab() {
 
   return (
     <div className="space-y-6">
+      {/* Welcome Header */}
+      <Card className="bg-gradient-to-r from-slate-50 to-emerald-50 border border-slate-200">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold text-slate-900 mb-2">📊 Reports & Analytics Hub</CardTitle>
+          <p className="text-slate-700 mb-3">
+            Generate comprehensive attendance reports and analyze church engagement patterns with powerful analytics tools.
+          </p>
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+            <p className="text-sm text-emerald-800">
+              📈 <strong>Data Intelligence:</strong> Access 8+ specialized reports including weekly attendance summaries, member attendance logs, missed services tracking, and demographic analytics. Generate custom reports with date ranges, export data to CSV for further analysis, and gain insights into member engagement patterns for pastoral care and church growth planning.
+            </p>
+          </div>
+        </CardHeader>
+      </Card>
+      
       {/* Analytics Overview */}
       <motion.div 
         className="grid grid-cols-1 md:grid-cols-4 gap-6"

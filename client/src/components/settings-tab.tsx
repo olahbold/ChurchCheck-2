@@ -414,6 +414,21 @@ export default function SettingsTab() {
 
   return (
     <div className="space-y-8">
+      {/* Welcome Header */}
+      <Card className="bg-gradient-to-r from-slate-50 to-cyan-50 border border-slate-200">
+        <CardHeader>
+          <CardTitle className="text-xl font-semibold text-slate-900 mb-2">⚙️ System Settings Center</CardTitle>
+          <p className="text-slate-700 mb-3">
+            Configure system preferences, manage data exports, bulk operations, and administrative settings.
+          </p>
+          <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-3">
+            <p className="text-sm text-cyan-800">
+              🔧 <strong>System Administration:</strong> Export member and attendance data to CSV, upload bulk member data, configure fingerprint scanner sensitivity, manage follow-up automation, perform cloud backups, restore data, and access subscription management. Complete control over your church management system's operation and data handling.
+            </p>
+          </div>
+        </CardHeader>
+      </Card>
+      
       <motion.div 
         className="grid grid-cols-1 lg:grid-cols-2 gap-8"
         initial="hidden"
