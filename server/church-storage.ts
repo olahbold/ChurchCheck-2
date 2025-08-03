@@ -108,7 +108,7 @@ export class ChurchStorage {
     lastLoginAt: string | null;
     createdAt: string;
   }>> {
-    return await db
+    const result = await db
       .select({
         id: superAdmins.id,
         email: superAdmins.email,
@@ -121,6 +121,13 @@ export class ChurchStorage {
       })
       .from(superAdmins)
       .orderBy(superAdmins.createdAt);
+    
+    return result.map(admin => ({
+      ...admin,
+      isActive: admin.isActive ?? false,
+      lastLoginAt: admin.lastLoginAt ? admin.lastLoginAt.toISOString() : null,
+      createdAt: admin.createdAt.toISOString()
+    }));
   }
 
   async updateSuperAdminLastLogin(adminId: string): Promise<void> {
@@ -238,7 +245,7 @@ export class ChurchStorage {
 
   async deleteChurchUser(id: string): Promise<boolean> {
     const result = await db.delete(churchUsers).where(eq(churchUsers.id, id));
-    return result.count > 0;
+    return (result.rowCount ?? 0) > 0;
   }
 
   // Subscription management
@@ -282,7 +289,7 @@ export class ChurchStorage {
     const memberCount = await this.getChurchMemberCount(churchId);
     
     // Check subscription limits
-    if (memberCount >= church.maxMembers) {
+    if (church.maxMembers && memberCount >= church.maxMembers) {
       return { 
         allowed: false, 
         reason: `Member limit reached (${church.maxMembers}). Upgrade your subscription to add more members.` 

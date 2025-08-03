@@ -7,6 +7,7 @@ import {
   reportConfigs,
   reportRuns,
   visitors,
+  users,
   type Member, 
   type InsertMember,
   type Event,
@@ -164,11 +165,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllMembers(churchId?: string): Promise<Member[]> {
-    let query = db.select().from(members);
     if (churchId) {
-      query = query.where(eq(members.churchId, churchId));
+      return await db.select().from(members).where(eq(members.churchId, churchId)).orderBy(members.firstName);
     }
-    return await query.orderBy(members.firstName);
+    return await db.select().from(members).orderBy(members.firstName);
   }
 
   async getMembersByParent(parentId: string): Promise<Member[]> {
