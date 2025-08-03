@@ -360,78 +360,108 @@ export function EventsTab() {
             <div>Loading events...</div>
           ) : (
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {filteredEvents.map((event: any) => (
-                <Card key={event.id} className="relative">
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-lg">{event.name}</CardTitle>
-                        <Badge
-                          className={`${getEventTypeBadgeColor(event.eventType)} text-white text-xs mt-1`}
+              {filteredEvents.map((event: any, index: number) => (
+                <motion.div
+                  key={event.id}
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ 
+                    duration: 0.4, 
+                    delay: index * 0.1,
+                    ease: "backOut"
+                  }}
+                  whileHover={{ 
+                    scale: 1.03, 
+                    y: -4,
+                    transition: { duration: 0.2 }
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Card className="relative transition-all duration-300 hover:shadow-lg cursor-pointer border-slate-200 hover:border-slate-300 dark:border-slate-700 dark:hover:border-slate-600">
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-start">
+                        <motion.div
+                          whileHover={{ x: 2 }}
+                          transition={{ duration: 0.2 }}
                         >
-                          {getEventTypeLabel(event.eventType)}
-                        </Badge>
+                          <CardTitle className="text-lg text-slate-900 dark:text-slate-100">{event.name}</CardTitle>
+                          <Badge
+                            className={`${getEventTypeBadgeColor(event.eventType)} text-white text-xs mt-1`}
+                          >
+                            {getEventTypeLabel(event.eventType)}
+                          </Badge>
+                        </motion.div>
+                        <div className="flex gap-1">
+                          <motion.div
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                          >
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => openDialog(event)}
+                              className="h-8 w-8 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </motion.div>
+                          <motion.div
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                          >
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteEventMutation.mutate(event.id)}
+                              className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </motion.div>
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openDialog(event)}
-                          className="h-8 w-8"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => deleteEventMutation.mutate(event.id)}
-                          className="h-8 w-8 text-red-600 hover:text-red-700"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {event.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
-                        {event.description}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
-                      {event.startDate ? format(new Date(event.startDate), "MMM dd, yyyy") : "No date set"}
-                    </div>
-                    
-                    {event.startTime && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        {event.startTime} {event.endTime && `- ${event.endTime}`}
-                      </div>
-                    )}
-                    
-                    {event.location && (
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Users className="h-4 w-4" />
-                        {event.location}
-                      </div>
-                    )}
-                    
-                    <div className="flex justify-between items-center pt-2">
-                      <Badge variant={event.isActive ? "default" : "secondary"}>
-                        {event.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                      
-                      {getEventAttendanceCount(event.id) > 0 && (
-                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                          <Users className="h-3 w-3 mr-1" />
-                          {getEventAttendanceCount(event.id)} attendees
-                        </Badge>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {event.description && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {event.description}
+                        </p>
                       )}
-                    </div>
-                  </CardContent>
-                </Card>
+                      
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Calendar className="h-4 w-4" />
+                        {event.startDate ? format(new Date(event.startDate), "MMM dd, yyyy") : "No date set"}
+                      </div>
+                      
+                      {event.startTime && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Clock className="h-4 w-4" />
+                          {event.startTime} {event.endTime && `- ${event.endTime}`}
+                        </div>
+                      )}
+                      
+                      {event.location && (
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Users className="h-4 w-4" />
+                          {event.location}
+                        </div>
+                      )}
+                      
+                      <div className="flex justify-between items-center pt-2">
+                        <Badge variant={event.isActive ? "default" : "secondary"}>
+                          {event.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                        
+                        {getEventAttendanceCount(event.id) > 0 && (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            <Users className="h-3 w-3 mr-1" />
+                            {getEventAttendanceCount(event.id)} attendees
+                          </Badge>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               ))}
             </div>
           )}

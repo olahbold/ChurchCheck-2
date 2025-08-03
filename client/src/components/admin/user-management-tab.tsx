@@ -643,17 +643,35 @@ export default function UserManagementTab() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {adminUsers.map((user) => (
-              <div key={user.id} className="flex items-center justify-between p-4 border border-slate-200 rounded-lg hover:bg-slate-50">
+            {adminUsers.map((user, index) => (
+              <motion.div 
+                key={user.id} 
+                className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-700 rounded-lg transition-all duration-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:shadow-md cursor-pointer"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                whileHover={{ 
+                  scale: 1.02, 
+                  y: -2,
+                  transition: { duration: 0.2 }
+                }}
+              >
                 <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-[hsl(258,90%,66%)] rounded-full flex items-center justify-center">
+                  <motion.div 
+                    className="w-12 h-12 bg-[hsl(258,90%,66%)] rounded-full flex items-center justify-center"
+                    whileHover={{ scale: 1.1 }}
+                    transition={{ duration: 0.2 }}
+                  >
                     <span className="text-white font-medium">
                       {user.fullName.split(' ').map(n => n[0]).join('').toUpperCase()}
                     </span>
-                  </div>
-                  <div>
+                  </motion.div>
+                  <motion.div
+                    whileHover={{ x: 2 }}
+                    transition={{ duration: 0.2 }}
+                  >
                     <div className="flex items-center space-x-3">
-                      <p className="font-medium text-slate-900">{user.fullName}</p>
+                      <p className="font-medium text-slate-900 dark:text-slate-100">{user.fullName}</p>
                       {getRoleBadge(user.role)}
                       {user.isActive ? (
                         <CheckCircle className="h-4 w-4 text-[hsl(142,76%,36%)]" />
@@ -661,7 +679,7 @@ export default function UserManagementTab() {
                         <XCircle className="h-4 w-4 text-[hsl(0,84%,60%)]" />
                       )}
                     </div>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-slate-500 dark:text-slate-400">
                       @{user.username} • {user.email}
                       {user.region && ` • ${user.region}`}
                     </p>
@@ -671,37 +689,52 @@ export default function UserManagementTab() {
                         Last login: {new Date(user.lastLogin).toLocaleDateString()}
                       </p>
                     )}
-                  </div>
+                  </motion.div>
                 </div>
                 <div className="flex space-x-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEdit(user)}
-                    className="text-xs"
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    <Edit className="h-3 w-3 mr-1" />
-                    Edit
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-xs"
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEdit(user)}
+                      className="text-xs border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                    >
+                      <Edit className="h-3 w-3 mr-1" />
+                      Edit
+                    </Button>
+                  </motion.div>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    <Key className="h-3 w-3 mr-1" />
-                    Reset
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDelete(user)}
-                    className="text-xs text-[hsl(0,84%,60%)] hover:text-[hsl(0,84%,60%)]"
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                    >
+                      <Key className="h-3 w-3 mr-1" />
+                      Reset
+                    </Button>
+                  </motion.div>
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
                   >
-                    <Trash2 className="h-3 w-3 mr-1" />
-                    Delete
-                  </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDelete(user)}
+                      className="text-xs text-[hsl(0,84%,60%)] hover:text-[hsl(0,84%,60%)] border-red-300 hover:bg-red-50 dark:border-red-700 dark:hover:bg-red-900/20"
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Delete
+                    </Button>
+                  </motion.div>
                 </div>
-              </div>
+              </motion.div>
             ))}
 
             {adminUsers.length === 0 && (

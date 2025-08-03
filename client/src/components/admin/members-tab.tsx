@@ -576,21 +576,35 @@ export function MembersTab() {
                 </tr>
               </thead>
               <tbody>
-                {filteredMembers.map((member) => (
-                  <tr key={member.id} className="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800">
+                {filteredMembers.map((member, index) => (
+                  <motion.tr 
+                    key={member.id} 
+                    className="border-b border-gray-100 dark:border-gray-800 transition-all duration-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:shadow-sm cursor-pointer"
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.03 }}
+                    whileHover={{ 
+                      scale: 1.01, 
+                      y: -1,
+                      transition: { duration: 0.2 }
+                    }}
+                  >
                     <td className="py-4 px-4">
-                      <div>
+                      <motion.div
+                        whileHover={{ x: 2 }}
+                        transition={{ duration: 0.2 }}
+                      >
                         <div className="font-medium text-gray-900 dark:text-white">
                           {member.title ? `${member.title} ` : ''}{member.firstName} {member.surname}
                         </div>
                         {member.parentId && (
                           <div className="text-sm text-gray-500">Child member</div>
                         )}
-                      </div>
+                      </motion.div>
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex flex-col gap-1">
-                        <span className="capitalize text-sm">{member.gender}</span>
+                        <span className="capitalize text-sm text-gray-700 dark:text-gray-300">{member.gender}</span>
                         <Badge variant="secondary" className={getAgeGroupBadge(member.ageGroup)}>
                           {member.ageGroup}
                         </Badge>
@@ -629,16 +643,22 @@ export function MembersTab() {
                       </Badge>
                     </td>
                     <td className="py-4 px-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEditMember(member)}
+                      <motion.div
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
                       >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
-                      </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEditMember(member)}
+                          className="border-slate-300 hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800"
+                        >
+                          <Edit className="h-3 w-3 mr-1" />
+                          Edit
+                        </Button>
+                      </motion.div>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>
