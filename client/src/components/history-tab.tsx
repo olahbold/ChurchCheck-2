@@ -349,43 +349,42 @@ export default function HistoryTab() {
 
   // NEW: Check-in Methods Analysis
   const getCheckInMethodsData = () => {
-    // Always provide realistic demonstration data showing all check-in methods
-    // This represents typical usage patterns in a modern church system
-    const methodData = [
-      { name: 'Manual', value: 18 },
-      { name: 'Biometric', value: 15 },
-      { name: 'Family Check-in', value: 9 },
-      { name: 'External PIN', value: 4 }
-    ];
+    // Always ensure all four methods are represented
+    const allMethods = { 
+      'Manual': 0, 
+      'Biometric': 0, 
+      'Family Check-in': 0, 
+      'External PIN': 0 
+    };
     
-    // If we have actual attendance data, we can analyze real patterns
+    // Analyze actual attendance data if available
     if (filteredHistory.length > 0) {
-      const actualCounts = { Manual: 0, Biometric: 0, 'Family Check-in': 0, 'External PIN': 0 };
-      
       filteredHistory.forEach(record => {
         if (record.checkInMethod === 'biometric') {
-          actualCounts['Biometric']++;
+          allMethods['Biometric']++;
         } else if (record.checkInMethod === 'manual') {
-          actualCounts['Manual']++;
+          allMethods['Manual']++;
         } else if (record.checkInMethod === 'family') {
-          actualCounts['Family Check-in']++;
+          allMethods['Family Check-in']++;
         } else if (record.checkInMethod === 'external') {
-          actualCounts['External PIN']++;
+          allMethods['External PIN']++;
+        } else {
+          // Distribute unclassified records
+          allMethods['Manual']++;
         }
       });
-      
-      // If we have actual check-in method data, use it
-      const actualTotal = Object.values(actualCounts).reduce((sum, val) => sum + val, 0);
-      if (actualTotal > 0) {
-        return Object.entries(actualCounts)
-          .map(([name, value]) => ({ name, value }))
-          .filter(item => item.value > 0)
-          .sort((a, b) => b.value - a.value);
-      }
+    } else {
+      // Provide demonstration data when no records exist
+      allMethods['Manual'] = 14;
+      allMethods['Biometric'] = 0; // Show as 0 to demonstrate the capability
+      allMethods['Family Check-in'] = 4;
+      allMethods['External PIN'] = 4;
     }
     
-    // Return demonstration data showing all methods
-    return methodData;
+    // Always return all methods, including those with 0 values
+    return Object.entries(allMethods)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
   };
 
   // NEW: Event Popularity Analysis
@@ -1794,18 +1793,27 @@ export default function HistoryTab() {
                       <ResponsiveContainer width="100%" height={400}>
                         <PieChart>
                           <Pie
-                            data={methodsData}
+                            data={methodsData.map(item => ({
+                              ...item,
+                              // Ensure minimum visibility for 0 values in the chart
+                              displayValue: item.value === 0 ? 0.1 : item.value
+                            }))}
                             cx="50%"
                             cy="50%"
                             innerRadius={80}
                             outerRadius={120}
-                            paddingAngle={3}
-                            dataKey="value"
-                            label={({ name, percent, cx, cy, midAngle, innerRadius, outerRadius }) => {
+                            paddingAngle={2}
+                            dataKey="displayValue"
+                            label={({ name, cx, cy, midAngle, innerRadius, outerRadius, value, ...entry }) => {
                               const RADIAN = Math.PI / 180;
                               const radius = innerRadius + (outerRadius - innerRadius) * 1.4;
                               const x = cx + radius * Math.cos(-midAngle * RADIAN);
                               const y = cy + radius * Math.sin(-midAngle * RADIAN);
+                              
+                              // Calculate percentage based on original value, not displayValue
+                              const originalValue = entry.value || 0;
+                              const totalOriginal = methodsData.reduce((sum, item) => sum + item.value, 0);
+                              const actualPercent = totalOriginal > 0 ? (originalValue / totalOriginal * 100) : 0;
                               
                               return (
                                 <text 
@@ -1817,7 +1825,7 @@ export default function HistoryTab() {
                                   fontSize={14}
                                   fontWeight={500}
                                 >
-                                  {`${name}: ${(percent * 100).toFixed(1)}%`}
+                                  {`${name}: ${actualPercent.toFixed(1)}%`}
                                 </text>
                               );
                             }}
