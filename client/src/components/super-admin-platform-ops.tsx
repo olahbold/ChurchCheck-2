@@ -551,54 +551,76 @@ export function SuperAdminPlatformOps({ onBack }: SuperAdminPlatformOpsProps) {
 
                 {/* Database & API Details */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <Database className="h-5 w-5" />
-                        <span>Database Health</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span>Status</span>
-                        <div className={`flex items-center space-x-2 ${getStatusColor(systemHealth.database.status)}`}>
-                          {getStatusIcon(systemHealth.database.status)}
-                          <span className="capitalize">{systemHealth.database.status}</span>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.5 }}
+                  >
+                    <Card className="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950 dark:to-green-950 border-emerald-200 dark:border-emerald-800 hover:shadow-lg transition-all duration-300">
+                      <CardHeader>
+                        <CardTitle className="flex items-center space-x-2 text-emerald-700 dark:text-emerald-300">
+                          <Database className="h-5 w-5 text-emerald-600 dark:text-emerald-400 pulse-icon" />
+                          <span>Database Health</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-emerald-700 dark:text-emerald-300">Status</span>
+                          <div className={`flex items-center space-x-2 ${getStatusColor(systemHealth.database.status)}`}>
+                            {getStatusIcon(systemHealth.database.status)}
+                            <span className="capitalize font-medium">{systemHealth.database.status}</span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>Response Time</span>
-                        <span>{systemHealth.database.responseTime}ms</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>Active Connections</span>
-                        <span>{systemHealth.database.connections}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
+                        <div className="flex items-center justify-between">
+                          <span className="text-emerald-700 dark:text-emerald-300">Response Time</span>
+                          <span className="font-mono text-lg font-bold text-emerald-900 dark:text-emerald-100">
+                            <AnimatedCounter target={systemHealth.database.responseTime} suffix="ms" />
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-emerald-700 dark:text-emerald-300">Active Connections</span>
+                          <span className="font-mono text-lg font-bold text-emerald-900 dark:text-emerald-100">
+                            <AnimatedCounter target={systemHealth.database.connections} />
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
 
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center space-x-2">
-                        <Server className="h-5 w-5" />
-                        <span>API Performance</span>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span>Average Response Time</span>
-                        <span>{systemHealth.api.responseTime}ms</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>Success Rate</span>
-                        <span>{systemHealth.api.successRate}%</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span>Requests/Minute</span>
-                        <span>{systemHealth.api.requestsPerMinute}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.6 }}
+                  >
+                    <Card className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-950 dark:to-blue-950 border-indigo-200 dark:border-indigo-800 hover:shadow-lg transition-all duration-300">
+                      <CardHeader>
+                        <CardTitle className="flex items-center space-x-2 text-indigo-700 dark:text-indigo-300">
+                          <Server className="h-5 w-5 text-indigo-600 dark:text-indigo-400 pulse-icon" />
+                          <span>API Performance</span>
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-indigo-700 dark:text-indigo-300">Average Response Time</span>
+                          <span className="font-mono text-lg font-bold text-indigo-900 dark:text-indigo-100">
+                            <AnimatedCounter target={systemHealth.api.responseTime} suffix="ms" />
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-indigo-700 dark:text-indigo-300">Success Rate</span>
+                          <span className="font-mono text-lg font-bold text-indigo-900 dark:text-indigo-100">
+                            <AnimatedCounter target={systemHealth.api.successRate} suffix="%" />
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-indigo-700 dark:text-indigo-300">Requests/Minute</span>
+                          <span className="font-mono text-lg font-bold text-indigo-900 dark:text-indigo-100">
+                            <AnimatedCounter target={systemHealth.api.requestsPerMinute} />
+                          </span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 </div>
               </>
             )}
@@ -777,69 +799,111 @@ export function SuperAdminPlatformOps({ onBack }: SuperAdminPlatformOpsProps) {
             {platformAnalytics && (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">User Growth</CardTitle>
-                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">+{platformAnalytics.userGrowth}%</div>
-                      <p className="text-xs text-muted-foreground">Month over month</p>
-                    </CardContent>
-                  </Card>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.1 }}
+                  >
+                    <Card className="h-[140px] stat-card-hover bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border-green-200 dark:border-green-800 hover:shadow-lg transition-all duration-300">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-green-700 dark:text-green-300">User Growth</CardTitle>
+                        <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400 pulse-icon" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-green-900 dark:text-green-100 mb-2">
+                          +<AnimatedCounter target={platformAnalytics.userGrowth} suffix="%" />
+                        </div>
+                        <p className="text-xs text-green-600 dark:text-green-400">Month over month</p>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
 
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Revenue Forecast</CardTitle>
-                      <BarChart3 className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">${platformAnalytics.revenueForecasting.next30Days}</div>
-                      <p className="text-xs text-muted-foreground">
-                        Next 30 days ({platformAnalytics.revenueForecasting.confidence}% confidence)
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                  >
+                    <Card className="h-[140px] stat-card-hover bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all duration-300">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">Revenue Forecast</CardTitle>
+                        <BarChart3 className="h-5 w-5 text-blue-600 dark:text-blue-400 pulse-icon" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-blue-900 dark:text-blue-100 mb-2">
+                          $<AnimatedCounter target={platformAnalytics.revenueForecasting.next30Days} />
+                        </div>
+                        <p className="text-xs text-blue-600 dark:text-blue-400">
+                          Next 30 days (<AnimatedCounter target={platformAnalytics.revenueForecasting.confidence} suffix="%" /> confidence)
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
 
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Top Feature</CardTitle>
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{platformAnalytics.featureAdoption.memberManagement}%</div>
-                      <p className="text-xs text-muted-foreground">Member Management adoption</p>
-                    </CardContent>
-                  </Card>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.3 }}
+                  >
+                    <Card className="h-[140px] stat-card-hover bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950 dark:to-violet-950 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all duration-300">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">Top Feature</CardTitle>
+                        <Users className="h-5 w-5 text-purple-600 dark:text-purple-400 pulse-icon" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-purple-900 dark:text-purple-100 mb-2">
+                          <AnimatedCounter target={platformAnalytics.featureAdoption.memberManagement} suffix="%" />
+                        </div>
+                        <p className="text-xs text-purple-600 dark:text-purple-400">Member Management adoption</p>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 </div>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center space-x-2">
-                      <Globe className="h-5 w-5" />
-                      <span>Geographic Distribution</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {platformAnalytics.geographicDistribution.map((geo, index) => (
-                        <div key={index} className="flex items-center justify-between">
-                          <span>{geo.country}</span>
-                          <div className="flex items-center space-x-3">
-                            <span className="text-sm text-muted-foreground">{geo.churches} churches</span>
-                            <div className="w-24 bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="h-2 bg-primary rounded-full"
-                                style={{ width: `${geo.percentage}%` }}
-                              ></div>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
+                >
+                  <Card className="bg-gradient-to-br from-slate-50 to-gray-50 dark:from-slate-950 dark:to-gray-950 border-slate-200 dark:border-slate-800 hover:shadow-lg transition-all duration-300">
+                    <CardHeader>
+                      <CardTitle className="flex items-center space-x-2 text-slate-700 dark:text-slate-300">
+                        <Globe className="h-5 w-5 text-slate-600 dark:text-slate-400 pulse-icon" />
+                        <span>Geographic Distribution</span>
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {platformAnalytics.geographicDistribution.map((geo, index) => (
+                          <motion.div 
+                            key={index} 
+                            className="flex items-center justify-between"
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.4, delay: 0.5 + (index * 0.1) }}
+                          >
+                            <span className="font-medium text-slate-700 dark:text-slate-300">{geo.country}</span>
+                            <div className="flex items-center space-x-3">
+                              <span className="text-sm text-slate-600 dark:text-slate-400">
+                                <AnimatedCounter target={geo.churches} /> churches
+                              </span>
+                              <div className="w-24 bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                                <motion.div 
+                                  className="h-2 bg-gradient-to-r from-purple-500 to-violet-500 rounded-full"
+                                  initial={{ width: 0 }}
+                                  animate={{ width: `${geo.percentage}%` }}
+                                  transition={{ duration: 1.5, delay: 0.8 + (index * 0.1), ease: "easeOut" }}
+                                />
+                              </div>
+                              <span className="text-sm font-bold text-slate-900 dark:text-slate-100 w-12">
+                                <AnimatedCounter target={geo.percentage} suffix="%" />
+                              </span>
                             </div>
-                            <span className="text-sm font-medium w-12">{geo.percentage}%</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               </>
             )}
           </TabsContent>
