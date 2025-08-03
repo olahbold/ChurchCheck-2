@@ -7,6 +7,57 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { motion } from "framer-motion";
+
+// Enhanced animated counter with spring effect
+function AnimatedCounter({ target, duration = 2500, suffix = "" }: { target: number; duration?: number; suffix?: string }) {
+  const [count, setCount] = useState(0);
+  
+  useEffect(() => {
+    let startTime = Date.now();
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Easing function for spring-like effect
+      const easeOutBack = (t: number) => {
+        const c1 = 1.70158;
+        const c3 = c1 + 1;
+        return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+      };
+      
+      const easedProgress = easeOutBack(progress);
+      const currentCount = Math.floor(easedProgress * target);
+      setCount(Math.min(currentCount, target));
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    const timer = setTimeout(() => {
+      requestAnimationFrame(animate);
+    }, 300);
+    
+    return () => clearTimeout(timer);
+  }, [target, duration]);
+  
+  return (
+    <motion.span
+      key={target}
+      initial={{ scale: 1.2, opacity: 0.8 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ 
+        type: "spring",
+        damping: 20,
+        stiffness: 300,
+        duration: 0.6
+      }}
+    >
+      {count}{suffix}
+    </motion.span>
+  );
+}
 import { 
   Activity,
   Server,
@@ -373,71 +424,129 @@ export function SuperAdminPlatformOps({ onBack }: SuperAdminPlatformOpsProps) {
               <>
                 {/* System Status Overview */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">System Status</CardTitle>
-                      <div className={getStatusColor(systemHealth.status)}>
-                        {getStatusIcon(systemHealth.status)}
-                      </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold capitalize">{systemHealth.status}</div>
-                      <p className="text-xs text-muted-foreground">
-                        Uptime: {Math.floor(systemHealth.uptime / 3600)}h {Math.floor((systemHealth.uptime % 3600) / 60)}m
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.1 }}
+                  >
+                    <Card className={`h-[140px] stat-card-hover ${
+                      systemHealth.status === 'critical' 
+                        ? 'bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-950 dark:to-orange-950 border-red-200 dark:border-red-800'
+                        : systemHealth.status === 'warning'
+                        ? 'bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-950 dark:to-orange-950 border-yellow-200 dark:border-yellow-800'
+                        : 'bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950 border-green-200 dark:border-green-800'
+                    } hover:shadow-lg transition-all duration-300`}>
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className={`text-sm font-medium ${
+                          systemHealth.status === 'critical' 
+                            ? 'text-red-700 dark:text-red-300'
+                            : systemHealth.status === 'warning'
+                            ? 'text-yellow-700 dark:text-yellow-300'
+                            : 'text-green-700 dark:text-green-300'
+                        }`}>System Status</CardTitle>
+                        <div className={`${getStatusColor(systemHealth.status)} pulse-icon`}>
+                          {getStatusIcon(systemHealth.status)}
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className={`text-3xl font-bold capitalize mb-2 ${
+                          systemHealth.status === 'critical' 
+                            ? 'text-red-900 dark:text-red-100'
+                            : systemHealth.status === 'warning'
+                            ? 'text-yellow-900 dark:text-yellow-100'
+                            : 'text-green-900 dark:text-green-100'
+                        }`}>{systemHealth.status}</div>
+                        <p className={`text-xs ${
+                          systemHealth.status === 'critical' 
+                            ? 'text-red-600 dark:text-red-400'
+                            : systemHealth.status === 'warning'
+                            ? 'text-yellow-600 dark:text-yellow-400'
+                            : 'text-green-600 dark:text-green-400'
+                        }`}>
+                          Uptime: <AnimatedCounter target={Math.floor(systemHealth.uptime / 3600)} />h <AnimatedCounter target={Math.floor((systemHealth.uptime % 3600) / 60)} />m
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
 
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">CPU Usage</CardTitle>
-                      <Cpu className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{systemHealth.cpu}%</div>
-                      <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                        <div 
-                          className={`h-2 rounded-full ${
-                            systemHealth.cpu > 80 ? 'bg-red-500' : 
-                            systemHealth.cpu > 60 ? 'bg-yellow-500' : 'bg-green-500'
-                          }`}
-                          style={{ width: `${systemHealth.cpu}%` }}
-                        ></div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                  >
+                    <Card className="h-[140px] stat-card-hover bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 border-blue-200 dark:border-blue-800 hover:shadow-lg transition-all duration-300">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-blue-700 dark:text-blue-300">CPU Usage</CardTitle>
+                        <Cpu className="h-5 w-5 text-blue-600 dark:text-blue-400 pulse-icon" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-blue-900 dark:text-blue-100 mb-2">
+                          <AnimatedCounter target={systemHealth.cpu} suffix="%" />
+                        </div>
+                        <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-1.5 mt-3">
+                          <motion.div 
+                            className={`h-1.5 rounded-full ${
+                              systemHealth.cpu > 80 ? 'bg-gradient-to-r from-red-500 to-orange-500' : 
+                              systemHealth.cpu > 60 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : 'bg-gradient-to-r from-blue-500 to-indigo-500'
+                            }`}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${systemHealth.cpu}%` }}
+                            transition={{ duration: 2, delay: 0.8, ease: "easeOut" }}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
 
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Memory Usage</CardTitle>
-                      <HardDrive className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{systemHealth.memory}%</div>
-                      <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                        <div 
-                          className={`h-2 rounded-full ${
-                            systemHealth.memory > 80 ? 'bg-red-500' : 
-                            systemHealth.memory > 60 ? 'bg-yellow-500' : 'bg-green-500'
-                          }`}
-                          style={{ width: `${systemHealth.memory}%` }}
-                        ></div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.3 }}
+                  >
+                    <Card className="h-[140px] stat-card-hover bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950 dark:to-violet-950 border-purple-200 dark:border-purple-800 hover:shadow-lg transition-all duration-300">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-purple-700 dark:text-purple-300">Memory Usage</CardTitle>
+                        <HardDrive className="h-5 w-5 text-purple-600 dark:text-purple-400 pulse-icon" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-purple-900 dark:text-purple-100 mb-2">
+                          <AnimatedCounter target={systemHealth.memory} suffix="%" />
+                        </div>
+                        <div className="w-full bg-purple-200 dark:bg-purple-800 rounded-full h-1.5 mt-3">
+                          <motion.div 
+                            className={`h-1.5 rounded-full ${
+                              systemHealth.memory > 80 ? 'bg-gradient-to-r from-red-500 to-orange-500' : 
+                              systemHealth.memory > 60 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : 'bg-gradient-to-r from-purple-500 to-violet-500'
+                            }`}
+                            initial={{ width: 0 }}
+                            animate={{ width: `${systemHealth.memory}%` }}
+                            transition={{ duration: 2, delay: 0.8, ease: "easeOut" }}
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
 
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">API Response</CardTitle>
-                      <Zap className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{systemHealth.api.responseTime}ms</div>
-                      <p className="text-xs text-muted-foreground">
-                        {systemHealth.api.successRate}% success rate
-                      </p>
-                    </CardContent>
-                  </Card>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.4 }}
+                  >
+                    <Card className="h-[140px] stat-card-hover bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950 dark:to-red-950 border-orange-200 dark:border-orange-800 hover:shadow-lg transition-all duration-300">
+                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-orange-700 dark:text-orange-300">API Response</CardTitle>
+                        <Zap className="h-5 w-5 text-orange-600 dark:text-orange-400 pulse-icon" />
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-3xl font-bold text-orange-900 dark:text-orange-100 mb-2">
+                          <AnimatedCounter target={systemHealth.api.responseTime} suffix="ms" />
+                        </div>
+                        <p className="text-xs text-orange-600 dark:text-orange-400">
+                          <AnimatedCounter target={systemHealth.api.successRate} suffix="%" /> success rate
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
                 </div>
 
                 {/* Database & API Details */}
