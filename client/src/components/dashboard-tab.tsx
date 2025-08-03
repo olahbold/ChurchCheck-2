@@ -534,8 +534,9 @@ export default function DashboardTab() {
             y: -4,
             transition: { duration: 0.2 }
           }}
+          className="cursor-pointer"
         >
-          <Card className="church-card overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600">
+          <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-600 h-full bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                 <motion.div
@@ -703,7 +704,7 @@ export default function DashboardTab() {
             transition: { duration: 0.2 }
           }}
         >
-          <Card className="church-card overflow-hidden transition-all duration-300 hover:shadow-lg hover:border-slate-300 dark:hover:border-slate-600">
+          <Card className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-600 h-full bg-white dark:bg-gray-800 border border-slate-200 dark:border-slate-700">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
                 <motion.div
