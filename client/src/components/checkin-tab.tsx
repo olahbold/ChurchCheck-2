@@ -330,12 +330,12 @@ export default function CheckInTab() {
   };
 
   // Check if kiosk mode is enabled and available
-  const isKioskAvailable = churchData?.kioskModeEnabled && selectedEventId;
-  const kioskTimeoutMinutes = churchData?.kioskSessionTimeout || 60;
+  const isKioskAvailable = (churchData as any)?.kioskModeEnabled && selectedEventId;
+  const kioskTimeoutMinutes = (churchData as any)?.kioskSessionTimeout || 60;
 
   // Show kiosk mode if active
   if (isKioskMode && selectedEventId) {
-    const selectedEvent = activeEvents.find(e => e.id === selectedEventId);
+    const selectedEvent = Array.isArray(activeEvents) ? activeEvents.find((e: any) => e.id === selectedEventId) : null;
     
     return (
       <KioskMode

@@ -254,7 +254,7 @@ export default function ReportsAnalyticsTab() {
       
     } catch (error) {
       console.error('Export error:', error);
-      alert(`Failed to download report: ${error.message}. Please try again.`);
+      alert(`Failed to download report: ${(error as Error).message}. Please try again.`);
     } finally {
       setIsDownloading(false);
     }
@@ -282,7 +282,7 @@ export default function ReportsAnalyticsTab() {
 
       // Build headers
       const baseHeaders = ['No.', 'Member Name', 'First Name', 'Surname', 'Gender', 'Age Group', 'Phone', 'Title'];
-      const dateHeaders = attendanceDates?.map(date => {
+      const dateHeaders = attendanceDates?.map((date: any) => {
         const formattedDate = new Date(date).toLocaleDateString('en-US', { 
           month: '2-digit', 
           day: '2-digit', 
@@ -308,7 +308,7 @@ export default function ReportsAnalyticsTab() {
           `"${member.title || ''}"`
         ];
 
-        const dateData = attendanceDates?.map(date => {
+        const dateData = attendanceDates?.map((date: any) => {
           const dateKey = `date_${date.replace(/-/g, '_')}`;
           return `"${member[dateKey] || 'NO'}"`;
         }) || [];
@@ -480,7 +480,7 @@ export default function ReportsAnalyticsTab() {
                   <th className="border border-slate-200 p-2 text-left font-medium text-slate-900">Gender</th>
                   <th className="border border-slate-200 p-2 text-left font-medium text-slate-900">Age Group</th>
                   <th className="border border-slate-200 p-2 text-left font-medium text-slate-900">Phone</th>
-                  {attendanceDates?.map((date, index) => (
+                  {attendanceDates?.map((date: any, index: number) => (
                     <th key={index} className="border border-slate-200 p-2 text-center font-medium text-slate-900 min-w-[80px]">
                       {new Date(date).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit' })}
                     </th>
@@ -498,7 +498,7 @@ export default function ReportsAnalyticsTab() {
                     <td className="border border-slate-200 p-2 text-slate-700">{member.gender}</td>
                     <td className="border border-slate-200 p-2 text-slate-700">{member.ageGroup}</td>
                     <td className="border border-slate-200 p-2 text-slate-700">{member.phone}</td>
-                    {attendanceDates?.map((date, dateIndex) => {
+                    {attendanceDates?.map((date: any, dateIndex: number) => {
                       const dateKey = `date_${date.replace(/-/g, '_')}`;
                       const status = member[dateKey];
                       const isPresent = status === 'YES';

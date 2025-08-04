@@ -1069,7 +1069,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/export/attendance", async (req, res) => {
+  app.get("/api/export/attendance", async (req: AuthenticatedRequest, res) => {
     try {
       const { startDate, endDate } = req.query;
       
@@ -1110,7 +1110,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Export monthly report
-  app.get("/api/export/monthly-report", async (req, res) => {
+  app.get("/api/export/monthly-report", async (req: AuthenticatedRequest, res) => {
     try {
       const { month, year } = req.query;
       

@@ -139,7 +139,7 @@ export default function CheckInTab() {
                 required
               >
                 <option value="">Choose an event...</option>
-                {activeEvents.map((event: any) => (
+                {Array.isArray(activeEvents) && activeEvents.map((event: any) => (
                   <option key={event.id} value={event.id}>
                     {event.name} ({event.eventType.replace(/_/g, ' ')})
                   </option>

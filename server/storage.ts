@@ -102,6 +102,7 @@ export interface IStorage {
   getGroupAttendanceTrend(startDate: string, endDate: string): Promise<any>;
   getFamilyCheckInSummary(date: string): Promise<any>;
   getFollowUpActionTracker(): Promise<any>;
+  getAttendanceInRange(startDate: string, endDate: string, churchId: string): Promise<any[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -368,50 +369,6 @@ export class DatabaseStorage implements IStorage {
       ...record,
       isVisitor: !record.memberId,
     }));
-  }
-
-  async getAttendanceInRange(startDate: string, endDate: string, churchId: string): Promise<any[]> {
-    const result = await db
-      .select({
-        id: attendanceRecords.id,
-        memberId: attendanceRecords.memberId,
-        visitorId: attendanceRecords.visitorId,
-        attendanceDate: attendanceRecords.attendanceDate,
-        checkInTime: attendanceRecords.checkInTime,
-        checkInMethod: attendanceRecords.checkInMethod,
-        isGuest: attendanceRecords.isGuest,
-        visitorName: attendanceRecords.visitorName,
-        visitorGender: attendanceRecords.visitorGender,
-        visitorAgeGroup: attendanceRecords.visitorAgeGroup,
-        eventId: attendanceRecords.eventId,
-        member: {
-          id: members.id,
-          firstName: members.firstName,
-          surname: members.surname,
-          gender: members.gender,
-          ageGroup: members.ageGroup,
-          phone: members.phone,
-          email: members.email,
-        },
-        event: {
-          id: events.id,
-          name: events.name,
-          eventType: events.eventType,
-        }
-      })
-      .from(attendanceRecords)
-      .leftJoin(members, eq(attendanceRecords.memberId, members.id))
-      .leftJoin(events, eq(attendanceRecords.eventId, events.id))
-      .where(
-        and(
-          eq(attendanceRecords.churchId, churchId),
-          sql`${attendanceRecords.attendanceDate} >= ${startDate}`,
-          sql`${attendanceRecords.attendanceDate} <= ${endDate}`
-        )
-      )
-      .orderBy(desc(attendanceRecords.checkInTime));
-
-    return result;
   }
 
   // Get attendance count for specific events (all time)
@@ -1454,5 +1411,39 @@ export class DatabaseStorage implements IStorage {
 
   async deleteEvent(id: string): Promise<void> {
     await db.delete(events).where(eq(events.id, id));
+  }
+
+  async getAttendanceInRange(startDate: string, endDate: string, churchId: string): Promise<any[]> {
+    return await db
+      .select({
+        id: attendanceRecords.id,
+        memberId: attendanceRecords.memberId,
+        visitorId: attendanceRecords.visitorId,
+        attendanceDate: attendanceRecords.attendanceDate,
+        checkInTime: attendanceRecords.checkInTime,
+        checkInMethod: attendanceRecords.checkInMethod,
+        isGuest: attendanceRecords.isGuest,
+        isVisitor: sql`CASE WHEN ${attendanceRecords.visitorId} IS NOT NULL THEN true ELSE false END`,
+        member: {
+          id: sql`COALESCE(${members.id}, ${visitors.id})`,
+          firstName: sql`COALESCE(${members.firstName}, SPLIT_PART(${visitors.name}, ' ', 1))`,
+          surname: sql`COALESCE(${members.surname}, SPLIT_PART(${visitors.name}, ' ', 2))`,
+          gender: sql`COALESCE(${members.gender}, ${visitors.gender})`,
+          ageGroup: sql`COALESCE(${members.ageGroup}, ${visitors.ageGroup})`,
+          phone: sql`COALESCE(${members.phone}, ${visitors.phone})`,
+          email: sql`COALESCE(${members.email}, ${visitors.email})`,
+        }
+      })
+      .from(attendanceRecords)
+      .leftJoin(members, eq(attendanceRecords.memberId, members.id))
+      .leftJoin(visitors, eq(attendanceRecords.visitorId, visitors.id))
+      .where(
+        and(
+          gte(attendanceRecords.attendanceDate, startDate),
+          lte(attendanceRecords.attendanceDate, endDate),
+          eq(attendanceRecords.churchId, churchId)
+        )
+      )
+      .orderBy(desc(attendanceRecords.attendanceDate), desc(attendanceRecords.checkInTime));
   }
 }

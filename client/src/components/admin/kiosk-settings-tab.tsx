@@ -433,14 +433,14 @@ export function KioskSettingsTab() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {activeEvents && activeEvents.length > 0 ? (
+              {activeEvents && Array.isArray(activeEvents) && activeEvents.length > 0 ? (
                 <div className="space-y-4">
                   <div className="bg-white dark:bg-blue-900 rounded-lg border border-blue-200 dark:border-blue-700 p-4">
                     <p className="font-medium text-blue-900 dark:text-blue-100 mb-2">
-                      Available Events ({activeEvents.length})
+                      Available Events ({Array.isArray(activeEvents) ? activeEvents.length : 0})
                     </p>
                     <div className="space-y-2 text-sm text-blue-700 dark:text-blue-300">
-                      {activeEvents.map((event: any) => (
+                      {Array.isArray(activeEvents) && activeEvents.map((event: any) => (
                         <div key={event.id} className="flex items-center justify-between">
                           <span>• {event.name}</span>
                           <span className="text-blue-500 dark:text-blue-400">
@@ -465,7 +465,7 @@ export function KioskSettingsTab() {
                           queryClient.invalidateQueries({ queryKey: ["/api/churches/kiosk-settings"] });
                           toast({
                             title: "Kiosk Session Started",
-                            description: `Members can now self check-in to any of ${activeEvents.length} active events. Admin session extended for kiosk duration.`,
+                            description: `Members can now self check-in to any of ${Array.isArray(activeEvents) ? activeEvents.length : 0} active events. Admin session extended for kiosk duration.`,
                           });
                     }).catch(() => {
                       toast({
