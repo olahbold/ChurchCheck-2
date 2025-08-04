@@ -62,8 +62,20 @@ import { KioskMode } from "@/components/kiosk-mode";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { AttendanceStats, CheckInResult, MemberWithChildren } from "@/lib/types";
-import { Search, Users, Check, UserPlus, Baby, UserCheck, X, AlertCircle, Fingerprint, Download, Trash2, Monitor, Clock } from "lucide-react";
+import { Search, Users, Check, UserPlus, Baby, UserCheck, X, AlertCircle, Fingerprint, Download, Trash2, Monitor, Clock, ChevronsUpDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export default function CheckInTab() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -79,6 +91,7 @@ export default function CheckInTab() {
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   const [isKioskMode, setIsKioskMode] = useState(false);
   const [kioskSessionStart, setKioskSessionStart] = useState<Date | null>(null);
+  const [eventDropdownOpen, setEventDropdownOpen] = useState(false);
   const { toast } = useToast();
 
   // Get church data for kiosk settings
@@ -398,19 +411,50 @@ export default function CheckInTab() {
             <div className="space-y-4">
               <div>
                 <label className="text-sm font-medium mb-2 block">Select Event</label>
-                <select
-                  value={selectedEventId}
-                  onChange={(e) => setSelectedEventId(e.target.value)}
-                  className="w-full p-2 border rounded-md"
-                  required
-                >
-                  <option value="">Choose an event...</option>
-                  {activeEvents.map((event: any) => (
-                    <option key={event.id} value={event.id}>
-                      {event.name} ({event.eventType.replace(/_/g, ' ')})
-                    </option>
-                  ))}
-                </select>
+                <Popover open={eventDropdownOpen} onOpenChange={setEventDropdownOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={eventDropdownOpen}
+                      className="w-full justify-between"
+                    >
+                      {selectedEventId 
+                        ? (() => {
+                            const event = activeEvents.find((e: any) => e.id === selectedEventId);
+                            return event ? `${event.name} (${event.eventType.replace(/_/g, ' ')})` : "Choose an event...";
+                          })()
+                        : "Choose an event..."
+                      }
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search events..." className="h-9" />
+                      <CommandEmpty>No events found.</CommandEmpty>
+                      <CommandGroup>
+                        {activeEvents.map((event: any) => (
+                          <CommandItem
+                            key={event.id}
+                            value={`${event.name} ${event.eventType.replace(/_/g, ' ')}`}
+                            onSelect={() => {
+                              setSelectedEventId(event.id);
+                              setEventDropdownOpen(false);
+                            }}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${
+                                selectedEventId === event.id ? "opacity-100" : "opacity-0"
+                              }`}
+                            />
+                            {event.name} ({event.eventType.replace(/_/g, ' ')})
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
                 {!selectedEventId && (
                   <p className="text-sm text-red-600 mt-1">Please select an event before checking in members</p>
                 )}
