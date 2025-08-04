@@ -2487,11 +2487,11 @@ export default function HistoryTab() {
                   <Card className="church-card">
                     <CardContent className="p-4">
                       <div className="space-y-2">
-                        <p className="text-sm font-medium text-slate-600">Return Rate</p>
+                        <p className="text-sm font-medium text-slate-600">Contacted</p>
                         <p className="text-2xl font-bold text-green-600">
                           {conversionData.totalVisitors > 0 ? Math.round((conversionData.returnVisitors / conversionData.totalVisitors) * 100) : 0}%
                         </p>
-                        <p className="text-xs text-slate-500">Came back</p>
+                        <p className="text-xs text-slate-500">Follow-up completed</p>
                       </div>
                     </CardContent>
                   </Card>
