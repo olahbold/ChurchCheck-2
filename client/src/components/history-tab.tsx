@@ -2573,7 +2573,7 @@ export default function HistoryTab() {
                               status === 'member' ? 'bg-green-100 text-green-700 border-green-300' :
                               'bg-gray-100 text-gray-700 border-gray-300'
                             }>
-                              {count} visitor{count !== 1 ? 's' : ''}
+                              {count as number} visitor{(count as number) !== 1 ? 's' : ''}
                             </Badge>
                           </div>
                           
@@ -2628,15 +2628,28 @@ export default function HistoryTab() {
           {/* NEW: Family Network Analysis */}
           {analyticsView === "families" && (() => {
             const familyData = (() => {
-              // Group members by family relationships
-              const familyGroups = allMembers.reduce((acc, member) => {
-                const familyKey = member.familyId || `individual_${member.id}`;
-                if (!acc[familyKey]) {
-                  acc[familyKey] = [];
+              // Group members by family relationships using parent_id
+              const familyGroups: Record<string, any[]> = {};
+              
+              // First, identify family heads (members with no parent_id)
+              const familyHeads = allMembers.filter(member => !member.parentId);
+              
+              // Create family groups starting with heads
+              familyHeads.forEach(head => {
+                familyGroups[head.id] = [head];
+              });
+              
+              // Add children to their respective family groups
+              allMembers.forEach(member => {
+                if (member.parentId && familyGroups[member.parentId]) {
+                  familyGroups[member.parentId].push(member);
+                } else if (member.parentId) {
+                  // If parent not found, create a new group for this member
+                  if (!familyGroups[`orphaned_${member.id}`]) {
+                    familyGroups[`orphaned_${member.id}`] = [member];
+                  }
                 }
-                acc[familyKey].push(member);
-                return acc;
-              }, {} as Record<string, any[]>);
+              });
 
               const totalFamilies = Object.keys(familyGroups).length;
               const singleMemberFamilies = Object.values(familyGroups).filter(family => family.length === 1).length;
