@@ -667,7 +667,17 @@ export default function RegisterTab() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Age Group</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select 
+                        onValueChange={(value) => {
+                          try {
+                            console.log("Age group changing to:", value);
+                            field.onChange(value);
+                          } catch (error) {
+                            console.error("Age group change error:", error);
+                          }
+                        }} 
+                        value={field.value}
+                      >
                         <FormControl>
                           <SelectTrigger className="church-form-input">
                             <SelectValue placeholder="Select age group" />
