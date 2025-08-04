@@ -2784,8 +2784,54 @@ export default function HistoryTab() {
                             </span>
                             <Badge variant="outline">{family.length} members</Badge>
                           </div>
-                          <div className="text-sm text-slate-600">
-                            {family.map(member => `${member.firstName} ${member.surname}`).join(', ')}
+                          <div className="space-y-2">
+                            {family.map(member => (
+                              <div key={member.id} className="flex items-center justify-between text-sm">
+                                <span className="font-medium text-slate-700">
+                                  {member.firstName} {member.surname}
+                                </span>
+                                <div className="flex items-center space-x-2">
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-xs px-2 py-0.5 ${
+                                      member.gender === 'male' 
+                                        ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                        : 'bg-pink-50 text-pink-700 border-pink-200'
+                                    }`}
+                                  >
+                                    {member.gender === 'male' ? '♂' : '♀'} {member.gender}
+                                  </Badge>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-xs px-2 py-0.5 ${
+                                      member.ageGroup === 'child' 
+                                        ? 'bg-green-50 text-green-700 border-green-200' 
+                                        : member.ageGroup === 'adolescent'
+                                        ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                        : 'bg-purple-50 text-purple-700 border-purple-200'
+                                    }`}
+                                  >
+                                    {member.ageGroup}
+                                  </Badge>
+                                  {member.relationshipToHead && member.relationshipToHead !== 'head' && (
+                                    <Badge 
+                                      variant="outline" 
+                                      className="text-xs px-2 py-0.5 bg-gray-50 text-gray-700 border-gray-200"
+                                    >
+                                      {member.relationshipToHead}
+                                    </Badge>
+                                  )}
+                                  {member.relationshipToHead === 'head' && (
+                                    <Badge 
+                                      variant="outline" 
+                                      className="text-xs px-2 py-0.5 bg-amber-50 text-amber-700 border-amber-200 font-medium"
+                                    >
+                                      👑 head
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
                       ))}
