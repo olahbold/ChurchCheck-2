@@ -66,8 +66,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { User, Phone, Mail, Calendar, Heart, MessageSquare, Filter, Users, UserCheck, Clock, Search, Edit, Plus, UserPlus, Save, X, Download } from "lucide-react";
+import { User, Phone, Mail, Calendar, Heart, MessageSquare, Filter, Users, UserCheck, Clock, Search, Edit, Plus, UserPlus, Save, X, Download, ChevronsUpDown, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export default function VisitorsTab() {
   const [filterStatus, setFilterStatus] = useState<"all" | "pending" | "contacted" | "member">("all");
@@ -77,6 +89,8 @@ export default function VisitorsTab() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [editNotes, setEditNotes] = useState("");
   const [editStatus, setEditStatus] = useState<"pending" | "contacted" | "member">("pending");
+  const [editEventDropdownOpen, setEditEventDropdownOpen] = useState(false);
+  const [addEventDropdownOpen, setAddEventDropdownOpen] = useState(false);
 
   // Animation variants
   const containerVariants = {
@@ -807,21 +821,65 @@ export default function VisitorsTab() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Event</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select event (optional)" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="none">No event selected</SelectItem>
-                            {activeEvents.map((event: any) => (
-                              <SelectItem key={event.id} value={event.id}>
-                                {event.name} ({event.eventType.replace(/_/g, ' ')})
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Popover open={editEventDropdownOpen} onOpenChange={setEditEventDropdownOpen}>
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                variant="outline"
+                                role="combobox"
+                                className="w-full justify-between"
+                              >
+                                {field.value && field.value !== "none"
+                                  ? (() => {
+                                      const event = activeEvents.find((e: any) => e.id === field.value);
+                                      return event ? `${event.name} (${event.eventType.replace(/_/g, ' ')})` : "Select event (optional)";
+                                    })()
+                                  : "Select event (optional)"
+                                }
+                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-full p-0">
+                            <Command>
+                              <CommandInput placeholder="Search events..." />
+                              <CommandEmpty>No events found.</CommandEmpty>
+                              <CommandGroup>
+                                <CommandItem
+                                  value="none"
+                                  onSelect={() => {
+                                    field.onChange("none");
+                                    setEditEventDropdownOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={`mr-2 h-4 w-4 ${
+                                      field.value === "none" ? "opacity-100" : "opacity-0"
+                                    }`}
+                                  />
+                                  No event selected
+                                </CommandItem>
+                                {activeEvents.map((event: any) => (
+                                  <CommandItem
+                                    key={event.id}
+                                    value={`${event.name} ${event.eventType.replace(/_/g, ' ')}`}
+                                    onSelect={() => {
+                                      field.onChange(event.id);
+                                      setEditEventDropdownOpen(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={`mr-2 h-4 w-4 ${
+                                        field.value === event.id ? "opacity-100" : "opacity-0"
+                                      }`}
+                                    />
+                                    {event.name} ({event.eventType.replace(/_/g, ' ')})
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </Command>
+                          </PopoverContent>
+                        </Popover>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1148,20 +1206,51 @@ export default function VisitorsTab() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Event *</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select event for attendance tracking" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {activeEvents.map((event: any) => (
-                            <SelectItem key={event.id} value={event.id}>
-                              {event.name} ({event.eventType.replace(/_/g, ' ')})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Popover open={addEventDropdownOpen} onOpenChange={setAddEventDropdownOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className="w-full justify-between"
+                            >
+                              {field.value
+                                ? (() => {
+                                    const event = activeEvents.find((e: any) => e.id === field.value);
+                                    return event ? `${event.name} (${event.eventType.replace(/_/g, ' ')})` : "Select event for attendance tracking";
+                                  })()
+                                : "Select event for attendance tracking"
+                              }
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput placeholder="Search events..." />
+                            <CommandEmpty>No events found.</CommandEmpty>
+                            <CommandGroup>
+                              {activeEvents.map((event: any) => (
+                                <CommandItem
+                                  key={event.id}
+                                  value={`${event.name} ${event.eventType.replace(/_/g, ' ')}`}
+                                  onSelect={() => {
+                                    field.onChange(event.id);
+                                    setAddEventDropdownOpen(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={`mr-2 h-4 w-4 ${
+                                      field.value === event.id ? "opacity-100" : "opacity-0"
+                                    }`}
+                                  />
+                                  {event.name} ({event.eventType.replace(/_/g, ' ')})
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
