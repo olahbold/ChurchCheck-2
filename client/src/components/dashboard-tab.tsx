@@ -194,8 +194,30 @@ export default function DashboardTab() {
   const avgWeeklyAttendance = Math.round(totalTodaysAttendance * 1.2); // More realistic estimate
 
   const filteredMembers = members.filter(member => {
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const fullName = `${member.firstName} ${member.surname}`.toLowerCase();
+      const email = member.email?.toLowerCase() || '';
+      const phone = member.phone || '';
+      
+      if (!fullName.includes(query) && !email.includes(query) && !phone.includes(query)) {
+        return false;
+      }
+    }
+    
+    // Group filter
+    if (groupFilter !== 'all') {
+      if (groupFilter === 'male' && member.gender !== 'male') return false;
+      if (groupFilter === 'female' && member.gender !== 'female') return false;
+      if (groupFilter === 'child' && member.ageGroup !== 'child') return false;
+      if (groupFilter === 'adolescent' && member.ageGroup !== 'adolescent') return false;
+    }
+    
+    // Status filter
     if (statusFilter === 'current' && !member.isCurrentMember) return false;
     if (statusFilter === 'new' && member.isCurrentMember) return false;
+    
     return true;
   });
 
