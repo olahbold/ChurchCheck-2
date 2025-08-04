@@ -2425,14 +2425,14 @@ export default function HistoryTab() {
               
               // Calculate funnel stages based on actual visitor data
               const firstVisit = totalVisitors; // All visitors had a first visit
-              const contacted = statusCounts['contacted'] || 0; // Visitors who were contacted (return engagement)
+              const contacted = statusCounts['contacted'] || 0; // Visitors who were contacted
               const converted = statusCounts['member'] || 0; // Visitors who became members
               
-              // Calculate return visitors (those who were contacted = engaged again)
-              const returnVisitors = contacted + converted; // Contacted + converted visitors engaged again
+              // Return visitors = those who were contacted (showing return engagement)
+              const returnVisitors = contacted; // Only contacted visitors (not including converted yet)
               
-              // Frequent visitors are those who progressed past initial contact
-              const frequentVisitors = converted; // Only converted visitors are considered "frequent"
+              // Frequent visitors = those who converted to members (highest engagement level)
+              const frequentVisitors = converted; // Only converted visitors
               
               const conversionRate = totalVisitors > 0 ? Math.round((converted / totalVisitors) * 100) : 0;
 
@@ -2607,11 +2607,12 @@ export default function HistoryTab() {
                     <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
                       <h4 className="font-medium text-blue-900 mb-2">Conversion Insights</h4>
                       <div className="text-sm text-blue-700 space-y-1">
-                        <p>• {conversionData.newMembers} of {conversionData.totalVisitors} visitors have successfully converted to members</p>
-                        <p>• {conversionData.returnVisitors} visitors have been contacted for follow-up engagement</p>
-                        <p>• Overall conversion rate: {conversionData.conversionRate}%</p>
-                        {conversionData.totalVisitors > 0 && conversionData.newMembers === 0 && (
-                          <p className="text-orange-600">• Consider implementing more follow-up programs to improve conversion rates</p>
+                        <p>• <strong>{conversionData.newMembers}</strong> of <strong>{conversionData.totalVisitors}</strong> visitors have converted to members</p>
+                        <p>• <strong>{conversionData.returnVisitors}</strong> visitor{conversionData.returnVisitors !== 1 ? 's have' : ' has'} been contacted for follow-up</p>
+                        <p>• <strong>{conversionData.totalVisitors - conversionData.returnVisitors - conversionData.newMembers}</strong> visitor{(conversionData.totalVisitors - conversionData.returnVisitors - conversionData.newMembers) !== 1 ? 's are' : ' is'} still pending initial follow-up</p>
+                        <p>• Current conversion rate: <strong>{conversionData.conversionRate}%</strong></p>
+                        {conversionData.returnVisitors === 0 && conversionData.newMembers === 0 && conversionData.totalVisitors > 0 && (
+                          <p className="text-orange-600">• Consider starting follow-up programs - all visitors are still in pending status</p>
                         )}
                       </div>
                     </div>
