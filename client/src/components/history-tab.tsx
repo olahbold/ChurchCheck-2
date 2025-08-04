@@ -2765,140 +2765,173 @@ export default function HistoryTab() {
                   </CardContent>
                 </Card>
 
-                {/* Family Lifecycle Dashboard */}
+                {/* Family Groups */}
                 <Card className="church-card">
                   <CardHeader>
-                    <CardTitle>Family Lifecycle Dashboard</CardTitle>
-                    <CardDescription>Track family transitions and life stages for proactive pastoral care</CardDescription>
+                    <CardTitle>Family Groups</CardTitle>
+                    <CardDescription>Overview of family connections</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {Object.entries(familyData.familyGroups)
+                        .filter(([_, family]) => family.length > 1)
+                        .slice(0, 10)
+                        .map(([familyId, family]) => (
+                        <div key={familyId} className="p-4 border rounded-lg bg-slate-50">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-medium text-slate-900">
+                              {family[0]?.surname || 'Unknown'} Family
+                            </span>
+                            <Badge variant="outline">{family.length} members</Badge>
+                          </div>
+                          <div className="space-y-2">
+                            {family.map(member => (
+                              <div key={member.id} className="flex items-center justify-between text-sm">
+                                <span className="font-medium text-slate-700">
+                                  {member.firstName} {member.surname}
+                                </span>
+                                <div className="flex items-center space-x-2">
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-xs px-2 py-0.5 ${
+                                      member.gender === 'male' 
+                                        ? 'bg-blue-50 text-blue-700 border-blue-200' 
+                                        : 'bg-pink-50 text-pink-700 border-pink-200'
+                                    }`}
+                                  >
+                                    {member.gender === 'male' ? '♂' : '♀'} {member.gender}
+                                  </Badge>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`text-xs px-2 py-0.5 ${
+                                      member.ageGroup === 'child' 
+                                        ? 'bg-green-50 text-green-700 border-green-200' 
+                                        : member.ageGroup === 'adolescent'
+                                        ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
+                                        : 'bg-purple-50 text-purple-700 border-purple-200'
+                                    }`}
+                                  >
+                                    {member.ageGroup}
+                                  </Badge>
+                                  {member.relationshipToHead && member.relationshipToHead !== 'head' && (
+                                    <Badge 
+                                      variant="outline" 
+                                      className="text-xs px-2 py-0.5 bg-gray-50 text-gray-700 border-gray-200"
+                                    >
+                                      {member.relationshipToHead}
+                                    </Badge>
+                                  )}
+                                  {member.relationshipToHead === 'head' && (
+                                    <Badge 
+                                      variant="outline" 
+                                      className="text-xs px-2 py-0.5 bg-amber-50 text-amber-700 border-amber-200 font-medium"
+                                    >
+                                      👑 head
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Family Attendance Synchronization */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Family Attendance Synchronization</CardTitle>
+                    <CardDescription>Track how often families attend together vs. split attendance</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {(() => {
-                      // Calculate family lifecycle insights
-                      const familyLifecycleData = Object.entries(familyData.familyGroups)
+                      // Calculate family attendance sync data
+                      const familyAttendanceSync = Object.entries(familyData.familyGroups)
                         .filter(([_, family]) => family.length > 1)
                         .map(([familyId, family]) => {
-                          // Analyze family composition for lifecycle stage
-                          const adults = family.filter(member => member.ageGroup === 'adult');
-                          const adolescents = family.filter(member => member.ageGroup === 'adolescent');
-                          const children = family.filter(member => member.ageGroup === 'child');
-                          
-                          // Determine family lifecycle stage
-                          let lifecycleStage = '';
-                          let stageColor = '';
-                          let stageDescription = '';
-                          
-                          if (children.length > 0 && adolescents.length === 0) {
-                            lifecycleStage = 'Young Families';
-                            stageColor = 'green';
-                            stageDescription = 'Families with young children - focus on parenting support';
-                          } else if (children.length > 0 && adolescents.length > 0) {
-                            lifecycleStage = 'Growing Families';
-                            stageColor = 'blue';
-                            stageDescription = 'Mixed ages - youth programs and family activities';
-                          } else if (adolescents.length > 0 && children.length === 0) {
-                            lifecycleStage = 'Teen Families';
-                            stageColor = 'purple';
-                            stageDescription = 'Teenagers - youth ministry and college prep';
-                          } else if (adults.length === 2 && adolescents.length === 0 && children.length === 0) {
-                            lifecycleStage = 'Empty Nest';
-                            stageColor = 'orange';
-                            stageDescription = 'Adult couples - mentoring and ministry opportunities';
-                          } else {
-                            lifecycleStage = 'Multi-Generational';
-                            stageColor = 'indigo';
-                            stageDescription = 'Complex family structure - comprehensive support';
-                          }
-
-                          // Get recent attendance for engagement level
+                          // Get all attendance records for this family
                           const familyAttendance = attendanceHistory.filter((record: AttendanceRecord) => 
                             family.some(member => member.id === record.memberId)
                           );
-                          
-                          const recentAttendance = familyAttendance.filter(record => {
-                            const recordDate = new Date(record.checkInTime);
-                            const thirtyDaysAgo = new Date();
-                            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                            return recordDate >= thirtyDaysAgo;
-                          }).length;
 
-                          // Calculate family stability (consistency over time)
-                          const attendanceByMonth = familyAttendance.reduce((acc: Record<string, number>, record: AttendanceRecord) => {
-                            const month = record.checkInTime.substring(0, 7); // YYYY-MM
-                            acc[month] = (acc[month] || 0) + 1;
+                          // Group by date to see family unity per day
+                          const attendanceByDate = familyAttendance.reduce((acc: Record<string, string[]>, record: AttendanceRecord) => {
+                            const date = record.checkInTime.split('T')[0];
+                            if (!acc[date]) acc[date] = [];
+                            if (record.memberId) acc[date].push(record.memberId);
                             return acc;
-                          }, {});
+                          }, {} as Record<string, string[]>);
+
+                          // Calculate sync metrics
+                          const totalAttendanceDays = Object.keys(attendanceByDate).length;
+                          const fullFamilyDays = Object.values(attendanceByDate).filter(
+                            (memberIds: string[]) => memberIds.length === family.length
+                          ).length;
                           
-                          const monthlyAttendance = Object.values(attendanceByMonth);
-                          const stability = monthlyAttendance.length > 1 ? 
-                            Math.round((1 - (Math.max(...monthlyAttendance) - Math.min(...monthlyAttendance)) / Math.max(...monthlyAttendance, 1)) * 100) : 100;
+                          const syncRate = totalAttendanceDays > 0 ? 
+                            Math.round((fullFamilyDays / totalAttendanceDays) * 100) : 0;
+
+                          // Recent attendance pattern (last 4 weeks)
+                          const recentDates = Object.keys(attendanceByDate)
+                            .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+                            .slice(0, 8); // Last 8 attendance days
+
+                          const recentSyncRate = recentDates.length > 0 ? 
+                            Math.round((recentDates.filter(date => 
+                              attendanceByDate[date].length === family.length
+                            ).length / recentDates.length) * 100) : 0;
 
                           return {
                             familyName: `${family[0]?.surname || 'Unknown'} Family`,
                             familySize: family.length,
-                            lifecycleStage,
-                            stageColor,
-                            stageDescription,
-                            adults: adults.length,
-                            adolescents: adolescents.length,
-                            children: children.length,
-                            recentAttendance,
-                            stability,
-                            needsTransitionSupport: (lifecycleStage === 'Empty Nest' && recentAttendance < 4) || 
-                                                  (lifecycleStage === 'Teen Families' && stability < 70)
+                            syncRate,
+                            recentSyncRate,
+                            totalDays: totalAttendanceDays,
+                            fullFamilyDays,
+                            lastAttendance: recentDates[0] || null,
+                            needsAttention: recentSyncRate < 30 && totalAttendanceDays > 2
                           };
-                        });
+                        })
+                        .sort((a, b) => b.syncRate - a.syncRate);
 
-                      // Group by lifecycle stage
-                      const stageGroups = familyLifecycleData.reduce((acc: Record<string, any[]>, family) => {
-                        if (!acc[family.lifecycleStage]) acc[family.lifecycleStage] = [];
-                        acc[family.lifecycleStage].push(family);
-                        return acc;
-                      }, {});
-
-                      const transitionFamilies = familyLifecycleData.filter(f => f.needsTransitionSupport);
+                      const avgSyncRate = familyAttendanceSync.length > 0 ? 
+                        Math.round(familyAttendanceSync.reduce((sum, family) => sum + family.syncRate, 0) / familyAttendanceSync.length) : 0;
+                      
+                      const atRiskFamilies = familyAttendanceSync.filter(family => family.needsAttention);
 
                       return (
                         <div className="space-y-6">
-                          {/* Lifecycle Overview */}
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            {Object.entries(stageGroups).map(([stage, families]) => (
-                              <div key={stage} className={`p-3 rounded-lg border ${
-                                stage === 'Young Families' ? 'bg-green-50 border-green-200' :
-                                stage === 'Growing Families' ? 'bg-blue-50 border-blue-200' :
-                                stage === 'Teen Families' ? 'bg-purple-50 border-purple-200' :
-                                stage === 'Empty Nest' ? 'bg-orange-50 border-orange-200' :
-                                'bg-indigo-50 border-indigo-200'
-                              }`}>
-                                <div className={`text-xl font-bold ${
-                                  stage === 'Young Families' ? 'text-green-700' :
-                                  stage === 'Growing Families' ? 'text-blue-700' :
-                                  stage === 'Teen Families' ? 'text-purple-700' :
-                                  stage === 'Empty Nest' ? 'text-orange-700' :
-                                  'text-indigo-700'
-                                }`}>{families.length}</div>
-                                <div className={`text-xs ${
-                                  stage === 'Young Families' ? 'text-green-600' :
-                                  stage === 'Growing Families' ? 'text-blue-600' :
-                                  stage === 'Teen Families' ? 'text-purple-600' :
-                                  stage === 'Empty Nest' ? 'text-orange-600' :
-                                  'text-indigo-600'
-                                }`}>{stage}</div>
+                          {/* Sync Metrics */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                              <div className="text-2xl font-bold text-green-700">{avgSyncRate}%</div>
+                              <div className="text-sm text-green-600">Average Family Unity</div>
+                            </div>
+                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                              <div className="text-2xl font-bold text-blue-700">
+                                {familyAttendanceSync.filter(f => f.syncRate >= 80).length}
                               </div>
-                            ))}
+                              <div className="text-sm text-blue-600">High Unity Families (80%+)</div>
+                            </div>
+                            <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                              <div className="text-2xl font-bold text-orange-700">{atRiskFamilies.length}</div>
+                              <div className="text-sm text-orange-600">Families Needing Attention</div>
+                            </div>
                           </div>
 
-                          {/* Family Lifecycle Details */}
+                          {/* Family Sync Chart */}
                           <div className="space-y-3 max-h-80 overflow-y-auto">
-                            {familyLifecycleData.slice(0, 8).map((family, index) => (
+                            {familyAttendanceSync.slice(0, 8).map((family, index) => (
                               <div 
                                 key={index} 
                                 className={`p-4 rounded-lg border ${
-                                  family.needsTransitionSupport ? 'bg-yellow-50 border-yellow-200' :
-                                  family.stageColor === 'green' ? 'bg-green-50 border-green-200' :
-                                  family.stageColor === 'blue' ? 'bg-blue-50 border-blue-200' :
-                                  family.stageColor === 'purple' ? 'bg-purple-50 border-purple-200' :
-                                  family.stageColor === 'orange' ? 'bg-orange-50 border-orange-200' :
-                                  'bg-indigo-50 border-indigo-200'
+                                  family.needsAttention 
+                                    ? 'bg-red-50 border-red-200' 
+                                    : family.syncRate >= 80 
+                                    ? 'bg-green-50 border-green-200'
+                                    : 'bg-slate-50 border-slate-200'
                                 }`}
                               >
                                 <div className="flex items-center justify-between mb-2">
@@ -2907,282 +2940,58 @@ export default function HistoryTab() {
                                     <Badge 
                                       variant="outline" 
                                       className={`${
-                                        family.stageColor === 'green' ? 'bg-green-100 text-green-700 border-green-300' :
-                                        family.stageColor === 'blue' ? 'bg-blue-100 text-blue-700 border-blue-300' :
-                                        family.stageColor === 'purple' ? 'bg-purple-100 text-purple-700 border-purple-300' :
-                                        family.stageColor === 'orange' ? 'bg-orange-100 text-orange-700 border-orange-300' :
-                                        'bg-indigo-100 text-indigo-700 border-indigo-300'
+                                        family.syncRate >= 80 
+                                          ? 'bg-green-100 text-green-700 border-green-300'
+                                          : family.syncRate >= 50
+                                          ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
+                                          : 'bg-red-100 text-red-700 border-red-300'
                                       }`}
                                     >
-                                      {family.lifecycleStage}
+                                      {family.syncRate}% unity
                                     </Badge>
-                                    {family.needsTransitionSupport && (
-                                      <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-300">
-                                        Transition Support
+                                    {family.needsAttention && (
+                                      <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">
+                                        Needs attention
                                       </Badge>
                                     )}
                                   </div>
                                 </div>
-                                
-                                <div className="text-sm text-slate-600 mb-2">{family.stageDescription}</div>
-                                
-                                <div className="grid grid-cols-3 gap-3 text-xs text-slate-600 mb-2">
-                                  <div className="text-center">
-                                    <div className="font-medium text-slate-800">{family.adults}</div>
-                                    <div>Adults</div>
-                                  </div>
-                                  <div className="text-center">
-                                    <div className="font-medium text-slate-800">{family.adolescents}</div>
-                                    <div>Teens</div>
-                                  </div>
-                                  <div className="text-center">
-                                    <div className="font-medium text-slate-800">{family.children}</div>
-                                    <div>Children</div>
-                                  </div>
-                                </div>
-                                
                                 <div className="flex items-center justify-between text-sm text-slate-600">
-                                  <span>Recent activity: {family.recentAttendance} visits</span>
-                                  <span>Stability: {family.stability}%</span>
+                                  <span>{family.familySize} members</span>
+                                  <span>{family.fullFamilyDays}/{family.totalDays} full family days</span>
+                                  <span>Recent: {family.recentSyncRate}%</span>
+                                </div>
+                                {/* Progress bar */}
+                                <div className="mt-2 w-full bg-slate-200 rounded-full h-2">
+                                  <div 
+                                    className={`h-2 rounded-full ${
+                                      family.syncRate >= 80 ? 'bg-green-500'
+                                      : family.syncRate >= 50 ? 'bg-yellow-500'
+                                      : 'bg-red-500'
+                                    }`}
+                                    style={{ width: `${family.syncRate}%` }}
+                                  />
                                 </div>
                               </div>
                             ))}
                           </div>
 
-                          {/* Ministry Recommendations */}
-                          {transitionFamilies.length > 0 && (
-                            <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-                              <h4 className="font-medium text-yellow-900 mb-2">Families in Transition</h4>
-                              <div className="text-sm text-yellow-700 space-y-1">
-                                {transitionFamilies.slice(0, 3).map((family, index) => (
+                          {/* Pastoral Care Insights */}
+                          {atRiskFamilies.length > 0 && (
+                            <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                              <h4 className="font-medium text-orange-900 mb-2">Pastoral Care Opportunities</h4>
+                              <div className="text-sm text-orange-700 space-y-1">
+                                {atRiskFamilies.slice(0, 3).map((family, index) => (
                                   <p key={index}>
-                                    • <strong>{family.familyName}</strong> ({family.lifecycleStage}) - may benefit from transition support and targeted ministry
+                                    • <strong>{family.familyName}</strong> has low recent attendance unity ({family.recentSyncRate}%) - consider family outreach
                                   </p>
                                 ))}
+                                {atRiskFamilies.length > 3 && (
+                                  <p>• +{atRiskFamilies.length - 3} more families may benefit from pastoral attention</p>
+                                )}
                               </div>
                             </div>
                           )}
-                        </div>
-                      );
-                    })()}
-                  </CardContent>
-                </Card>
-
-                {/* Family Check-in Behavior Analysis */}
-                <Card className="church-card">
-                  <CardHeader>
-                    <CardTitle>Family Check-in Behavior Analysis</CardTitle>
-                    <CardDescription>Understand how families prefer to check in to optimize the experience</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    {(() => {
-                      // Analyze family check-in behavior patterns
-                      const familyCheckinBehavior = Object.entries(familyData.familyGroups)
-                        .filter(([_, family]) => family.length > 1)
-                        .map(([familyId, family]) => {
-                          // Get all attendance records for this family
-                          const familyAttendance = attendanceHistory.filter((record: AttendanceRecord) => 
-                            family.some(member => member.id === record.memberId)
-                          );
-
-                          // Group by date to analyze check-in patterns
-                          const checkinsByDate = familyAttendance.reduce((acc: Record<string, any[]>, record: AttendanceRecord) => {
-                            const date = record.checkInTime.split('T')[0];
-                            if (!acc[date]) acc[date] = [];
-                            acc[date].push({
-                              memberId: record.memberId,
-                              time: new Date(record.checkInTime),
-                              method: record.checkInMethod
-                            });
-                            return acc;
-                          }, {});
-
-                          // Analyze check-in patterns
-                          let simultaneousCheckins = 0;
-                          let staggeredCheckins = 0;
-                          let biometricUsage = 0;
-                          let manualUsage = 0;
-                          let totalCheckinDays = 0;
-
-                          Object.values(checkinsByDate).forEach((dayCheckins) => {
-                            if (dayCheckins.length <= 1) return;
-                            totalCheckinDays++;
-
-                            // Sort by time to analyze timing
-                            dayCheckins.sort((a, b) => a.time.getTime() - b.time.getTime());
-                            
-                            // Check if all check-ins happened within 5 minutes (simultaneous)
-                            const firstTime = dayCheckins[0].time;
-                            const lastTime = dayCheckins[dayCheckins.length - 1].time;
-                            const timeDiff = (lastTime.getTime() - firstTime.getTime()) / (1000 * 60); // minutes
-                            
-                            if (timeDiff <= 5) {
-                              simultaneousCheckins++;
-                            } else {
-                              staggeredCheckins++;
-                            }
-
-                            // Count check-in methods
-                            dayCheckins.forEach(checkin => {
-                              if (checkin.method === 'biometric' || checkin.method === 'fingerprint') {
-                                biometricUsage++;
-                              } else {
-                                manualUsage++;
-                              }
-                            });
-                          });
-
-                          // Calculate percentages
-                          const simultaneousRate = totalCheckinDays > 0 ? Math.round((simultaneousCheckins / totalCheckinDays) * 100) : 0;
-                          const biometricRate = (biometricUsage + manualUsage) > 0 ? Math.round((biometricUsage / (biometricUsage + manualUsage)) * 100) : 0;
-
-                          // Determine family check-in style
-                          let checkinStyle = '';
-                          let styleColor = '';
-                          let recommendation = '';
-
-                          if (simultaneousRate >= 80) {
-                            checkinStyle = 'Group Check-in';
-                            styleColor = 'green';
-                            recommendation = 'Families prefer checking in together - optimize for group workflows';
-                          } else if (simultaneousRate >= 50) {
-                            checkinStyle = 'Mixed Pattern';
-                            styleColor = 'blue';
-                            recommendation = 'Flexible check-in approach - provide both individual and group options';
-                          } else {
-                            checkinStyle = 'Individual Check-in';
-                            styleColor = 'orange';
-                            recommendation = 'Members prefer individual check-in - focus on quick individual workflows';
-                          }
-
-                          return {
-                            familyName: `${family[0]?.surname || 'Unknown'} Family`,
-                            familySize: family.length,
-                            checkinStyle,
-                            styleColor,
-                            recommendation,
-                            simultaneousRate,
-                            biometricRate,
-                            totalCheckinDays,
-                            avgCheckinTime: totalCheckinDays > 0 ? Math.round(familyAttendance.length / totalCheckinDays * 10) / 10 : 0
-                          };
-                        })
-                        .filter(family => family.totalCheckinDays > 0); // Only families with check-in data
-
-                      // Overall behavior patterns
-                      const overallSimultaneousRate = familyCheckinBehavior.length > 0 ? 
-                        Math.round(familyCheckinBehavior.reduce((sum, f) => sum + f.simultaneousRate, 0) / familyCheckinBehavior.length) : 0;
-                      
-                      const overallBiometricRate = familyCheckinBehavior.length > 0 ? 
-                        Math.round(familyCheckinBehavior.reduce((sum, f) => sum + f.biometricRate, 0) / familyCheckinBehavior.length) : 0;
-
-                      const groupCheckinFamilies = familyCheckinBehavior.filter(f => f.simultaneousRate >= 80);
-                      const individualCheckinFamilies = familyCheckinBehavior.filter(f => f.simultaneousRate < 50);
-
-                      return (
-                        <div className="space-y-6">
-                          {/* Check-in Behavior Overview */}
-                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                              <div className="text-2xl font-bold text-blue-700">{overallSimultaneousRate}%</div>
-                              <div className="text-sm text-blue-600">Average Group Check-in Rate</div>
-                            </div>
-                            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                              <div className="text-2xl font-bold text-green-700">{groupCheckinFamilies.length}</div>
-                              <div className="text-sm text-green-600">Group Check-in Families</div>
-                            </div>
-                            <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                              <div className="text-2xl font-bold text-orange-700">{individualCheckinFamilies.length}</div>
-                              <div className="text-sm text-orange-600">Individual Check-in Families</div>
-                            </div>
-                            <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-                              <div className="text-2xl font-bold text-purple-700">{overallBiometricRate}%</div>
-                              <div className="text-sm text-purple-600">Biometric Usage Rate</div>
-                            </div>
-                          </div>
-
-                          {/* Family Check-in Patterns */}
-                          <div className="space-y-3 max-h-80 overflow-y-auto">
-                            {familyCheckinBehavior.slice(0, 8).map((family, index) => (
-                              <div 
-                                key={index} 
-                                className={`p-4 rounded-lg border ${
-                                  family.styleColor === 'green' ? 'bg-green-50 border-green-200' :
-                                  family.styleColor === 'blue' ? 'bg-blue-50 border-blue-200' :
-                                  'bg-orange-50 border-orange-200'
-                                }`}
-                              >
-                                <div className="flex items-center justify-between mb-2">
-                                  <span className="font-medium text-slate-900">{family.familyName}</span>
-                                  <Badge 
-                                    variant="outline" 
-                                    className={`${
-                                      family.styleColor === 'green' ? 'bg-green-100 text-green-700 border-green-300' :
-                                      family.styleColor === 'blue' ? 'bg-blue-100 text-blue-700 border-blue-300' :
-                                      'bg-orange-100 text-orange-700 border-orange-300'
-                                    }`}
-                                  >
-                                    {family.checkinStyle}
-                                  </Badge>
-                                </div>
-                                
-                                <div className="text-sm text-slate-600 mb-3">{family.recommendation}</div>
-                                
-                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs text-slate-600 mb-2">
-                                  <div className="text-center">
-                                    <div className="font-medium text-slate-800">{family.simultaneousRate}%</div>
-                                    <div>Group Rate</div>
-                                  </div>
-                                  <div className="text-center">
-                                    <div className="font-medium text-slate-800">{family.biometricRate}%</div>
-                                    <div>Biometric</div>
-                                  </div>
-                                  <div className="text-center">
-                                    <div className="font-medium text-slate-800">{family.totalCheckinDays}</div>
-                                    <div>Check-in Days</div>
-                                  </div>
-                                </div>
-                                
-                                <div className="flex items-center justify-between text-sm text-slate-600">
-                                  <span>{family.familySize} members</span>
-                                  <span>Avg {family.avgCheckinTime} members/day</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* Optimization Recommendations */}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                              <h4 className="font-medium text-green-900 mb-2">Check-in Optimization</h4>
-                              <div className="text-sm text-green-700 space-y-1">
-                                <p>• {overallSimultaneousRate}% of families prefer group check-in</p>
-                                <p>• {overallBiometricRate}% biometric adoption rate</p>
-                                <p>• Consider family-friendly check-in stations</p>
-                                {groupCheckinFamilies.length > individualCheckinFamilies.length && (
-                                  <p>• Prioritize group check-in workflows</p>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                              <h4 className="font-medium text-blue-900 mb-2">Technology Adoption</h4>
-                              <div className="text-sm text-blue-700 space-y-1">
-                                {overallBiometricRate >= 60 ? (
-                                  <>
-                                    <p>• High biometric adoption - expand biometric options</p>
-                                    <p>• Consider family biometric enrollment programs</p>
-                                  </>
-                                ) : (
-                                  <>
-                                    <p>• Moderate biometric adoption - provide training</p>
-                                    <p>• Keep manual backup options available</p>
-                                  </>
-                                )}
-                                <p>• Monitor check-in speed and user satisfaction</p>
-                              </div>
-                            </div>
-                          </div>
                         </div>
                       );
                     })()}
@@ -3413,16 +3222,16 @@ export default function HistoryTab() {
                   </CardContent>
                 </Card>
 
-                {/* Family Attendance Synchronization */}
+                {/* Family Check-in Behavior Analysis */}
                 <Card className="church-card">
                   <CardHeader>
-                    <CardTitle>Family Attendance Synchronization</CardTitle>
-                    <CardDescription>Track how often families attend together vs. split attendance</CardDescription>
+                    <CardTitle>Family Check-in Behavior Analysis</CardTitle>
+                    <CardDescription>Understand how families prefer to check in to optimize the experience</CardDescription>
                   </CardHeader>
                   <CardContent>
                     {(() => {
-                      // Calculate family attendance sync data
-                      const familyAttendanceSync = Object.entries(familyData.familyGroups)
+                      // Analyze family check-in behavior patterns
+                      const familyCheckinBehavior = Object.entries(familyData.familyGroups)
                         .filter(([_, family]) => family.length > 1)
                         .map(([familyId, family]) => {
                           // Get all attendance records for this family
@@ -3430,82 +3239,344 @@ export default function HistoryTab() {
                             family.some(member => member.id === record.memberId)
                           );
 
-                          // Group by date to see family unity per day
-                          const attendanceByDate = familyAttendance.reduce((acc: Record<string, string[]>, record: AttendanceRecord) => {
+                          // Group by date to analyze check-in patterns
+                          const checkinsByDate = familyAttendance.reduce((acc: Record<string, any[]>, record: AttendanceRecord) => {
                             const date = record.checkInTime.split('T')[0];
                             if (!acc[date]) acc[date] = [];
-                            if (record.memberId) acc[date].push(record.memberId);
+                            acc[date].push({
+                              memberId: record.memberId,
+                              time: new Date(record.checkInTime),
+                              method: record.checkInMethod
+                            });
                             return acc;
-                          }, {} as Record<string, string[]>);
+                          }, {});
 
-                          // Calculate sync metrics
-                          const totalAttendanceDays = Object.keys(attendanceByDate).length;
-                          const fullFamilyDays = Object.values(attendanceByDate).filter(
-                            (memberIds: string[]) => memberIds.length === family.length
-                          ).length;
-                          
-                          const syncRate = totalAttendanceDays > 0 ? 
-                            Math.round((fullFamilyDays / totalAttendanceDays) * 100) : 0;
+                          // Analyze check-in patterns
+                          let simultaneousCheckins = 0;
+                          let staggeredCheckins = 0;
+                          let biometricUsage = 0;
+                          let manualUsage = 0;
+                          let totalCheckinDays = 0;
 
-                          // Recent attendance pattern (last 4 weeks)
-                          const recentDates = Object.keys(attendanceByDate)
-                            .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
-                            .slice(0, 8); // Last 8 attendance days
+                          Object.values(checkinsByDate).forEach((dayCheckins) => {
+                            if (dayCheckins.length <= 1) return;
+                            totalCheckinDays++;
 
-                          const recentSyncRate = recentDates.length > 0 ? 
-                            Math.round((recentDates.filter(date => 
-                              attendanceByDate[date].length === family.length
-                            ).length / recentDates.length) * 100) : 0;
+                            // Sort by time to analyze timing
+                            dayCheckins.sort((a, b) => a.time.getTime() - b.time.getTime());
+                            
+                            // Check if all check-ins happened within 5 minutes (simultaneous)
+                            const firstTime = dayCheckins[0].time;
+                            const lastTime = dayCheckins[dayCheckins.length - 1].time;
+                            const timeDiff = (lastTime.getTime() - firstTime.getTime()) / (1000 * 60); // minutes
+                            
+                            if (timeDiff <= 5) {
+                              simultaneousCheckins++;
+                            } else {
+                              staggeredCheckins++;
+                            }
+
+                            // Count check-in methods
+                            dayCheckins.forEach(checkin => {
+                              if (checkin.method === 'biometric' || checkin.method === 'fingerprint') {
+                                biometricUsage++;
+                              } else {
+                                manualUsage++;
+                              }
+                            });
+                          });
+
+                          // Calculate percentages
+                          const simultaneousRate = totalCheckinDays > 0 ? Math.round((simultaneousCheckins / totalCheckinDays) * 100) : 0;
+                          const biometricRate = (biometricUsage + manualUsage) > 0 ? Math.round((biometricUsage / (biometricUsage + manualUsage)) * 100) : 0;
+
+                          // Determine family check-in style
+                          let checkinStyle = '';
+                          let styleColor = '';
+                          let recommendation = '';
+
+                          if (simultaneousRate >= 80) {
+                            checkinStyle = 'Group Check-in';
+                            styleColor = 'green';
+                            recommendation = 'Families prefer checking in together - optimize for group workflows';
+                          } else if (simultaneousRate >= 50) {
+                            checkinStyle = 'Mixed Pattern';
+                            styleColor = 'blue';
+                            recommendation = 'Flexible check-in approach - provide both individual and group options';
+                          } else {
+                            checkinStyle = 'Individual Check-in';
+                            styleColor = 'orange';
+                            recommendation = 'Members prefer individual check-in - focus on quick individual workflows';
+                          }
 
                           return {
                             familyName: `${family[0]?.surname || 'Unknown'} Family`,
                             familySize: family.length,
-                            syncRate,
-                            recentSyncRate,
-                            totalDays: totalAttendanceDays,
-                            fullFamilyDays,
-                            lastAttendance: recentDates[0] || null,
-                            needsAttention: recentSyncRate < 30 && totalAttendanceDays > 2
+                            checkinStyle,
+                            styleColor,
+                            recommendation,
+                            simultaneousRate,
+                            biometricRate,
+                            totalCheckinDays,
+                            avgCheckinTime: totalCheckinDays > 0 ? Math.round(familyAttendance.length / totalCheckinDays * 10) / 10 : 0
                           };
                         })
-                        .sort((a, b) => b.syncRate - a.syncRate);
+                        .filter(family => family.totalCheckinDays > 0); // Only families with check-in data
 
-                      const avgSyncRate = familyAttendanceSync.length > 0 ? 
-                        Math.round(familyAttendanceSync.reduce((sum, family) => sum + family.syncRate, 0) / familyAttendanceSync.length) : 0;
+                      // Overall behavior patterns
+                      const overallSimultaneousRate = familyCheckinBehavior.length > 0 ? 
+                        Math.round(familyCheckinBehavior.reduce((sum, f) => sum + f.simultaneousRate, 0) / familyCheckinBehavior.length) : 0;
                       
-                      const atRiskFamilies = familyAttendanceSync.filter(family => family.needsAttention);
+                      const overallBiometricRate = familyCheckinBehavior.length > 0 ? 
+                        Math.round(familyCheckinBehavior.reduce((sum, f) => sum + f.biometricRate, 0) / familyCheckinBehavior.length) : 0;
+
+                      const groupCheckinFamilies = familyCheckinBehavior.filter(f => f.simultaneousRate >= 80);
+                      const individualCheckinFamilies = familyCheckinBehavior.filter(f => f.simultaneousRate < 50);
 
                       return (
                         <div className="space-y-6">
-                          {/* Sync Metrics */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                              <div className="text-2xl font-bold text-green-700">{avgSyncRate}%</div>
-                              <div className="text-sm text-green-600">Average Family Unity</div>
-                            </div>
+                          {/* Check-in Behavior Overview */}
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                             <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                              <div className="text-2xl font-bold text-blue-700">
-                                {familyAttendanceSync.filter(f => f.syncRate >= 80).length}
-                              </div>
-                              <div className="text-sm text-blue-600">High Unity Families (80%+)</div>
+                              <div className="text-2xl font-bold text-blue-700">{overallSimultaneousRate}%</div>
+                              <div className="text-sm text-blue-600">Average Group Check-in Rate</div>
+                            </div>
+                            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                              <div className="text-2xl font-bold text-green-700">{groupCheckinFamilies.length}</div>
+                              <div className="text-sm text-green-600">Group Check-in Families</div>
                             </div>
                             <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
-                              <div className="text-2xl font-bold text-orange-700">{atRiskFamilies.length}</div>
-                              <div className="text-sm text-orange-600">Families Needing Attention</div>
+                              <div className="text-2xl font-bold text-orange-700">{individualCheckinFamilies.length}</div>
+                              <div className="text-sm text-orange-600">Individual Check-in Families</div>
+                            </div>
+                            <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                              <div className="text-2xl font-bold text-purple-700">{overallBiometricRate}%</div>
+                              <div className="text-sm text-purple-600">Biometric Usage Rate</div>
                             </div>
                           </div>
 
-                          {/* Family Sync Chart */}
+                          {/* Family Check-in Patterns */}
                           <div className="space-y-3 max-h-80 overflow-y-auto">
-                            {familyAttendanceSync.slice(0, 8).map((family, index) => (
+                            {familyCheckinBehavior.slice(0, 8).map((family, index) => (
                               <div 
                                 key={index} 
                                 className={`p-4 rounded-lg border ${
-                                  family.needsAttention 
-                                    ? 'bg-red-50 border-red-200' 
-                                    : family.syncRate >= 80 
-                                    ? 'bg-green-50 border-green-200'
-                                    : 'bg-slate-50 border-slate-200'
+                                  family.styleColor === 'green' ? 'bg-green-50 border-green-200' :
+                                  family.styleColor === 'blue' ? 'bg-blue-50 border-blue-200' :
+                                  'bg-orange-50 border-orange-200'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="font-medium text-slate-900">{family.familyName}</span>
+                                  <Badge 
+                                    variant="outline" 
+                                    className={`${
+                                      family.styleColor === 'green' ? 'bg-green-100 text-green-700 border-green-300' :
+                                      family.styleColor === 'blue' ? 'bg-blue-100 text-blue-700 border-blue-300' :
+                                      'bg-orange-100 text-orange-700 border-orange-300'
+                                    }`}
+                                  >
+                                    {family.checkinStyle}
+                                  </Badge>
+                                </div>
+                                
+                                <div className="text-sm text-slate-600 mb-3">{family.recommendation}</div>
+                                
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs text-slate-600 mb-2">
+                                  <div className="text-center">
+                                    <div className="font-medium text-slate-800">{family.simultaneousRate}%</div>
+                                    <div>Group Rate</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="font-medium text-slate-800">{family.biometricRate}%</div>
+                                    <div>Biometric</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="font-medium text-slate-800">{family.totalCheckinDays}</div>
+                                    <div>Check-in Days</div>
+                                  </div>
+                                </div>
+                                
+                                <div className="flex items-center justify-between text-sm text-slate-600">
+                                  <span>{family.familySize} members</span>
+                                  <span>Avg {family.avgCheckinTime} members/day</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Optimization Recommendations */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                              <h4 className="font-medium text-green-900 mb-2">Check-in Optimization</h4>
+                              <div className="text-sm text-green-700 space-y-1">
+                                <p>• {overallSimultaneousRate}% of families prefer group check-in</p>
+                                <p>• {overallBiometricRate}% biometric adoption rate</p>
+                                <p>• Consider family-friendly check-in stations</p>
+                                {groupCheckinFamilies.length > individualCheckinFamilies.length && (
+                                  <p>• Prioritize group check-in workflows</p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                              <h4 className="font-medium text-blue-900 mb-2">Technology Adoption</h4>
+                              <div className="text-sm text-blue-700 space-y-1">
+                                {overallBiometricRate >= 60 ? (
+                                  <>
+                                    <p>• High biometric adoption - expand biometric options</p>
+                                    <p>• Consider family biometric enrollment programs</p>
+                                  </>
+                                ) : (
+                                  <>
+                                    <p>• Moderate biometric adoption - provide training</p>
+                                    <p>• Keep manual backup options available</p>
+                                  </>
+                                )}
+                                <p>• Monitor check-in speed and user satisfaction</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+
+                {/* Family Lifecycle Dashboard */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Family Lifecycle Dashboard</CardTitle>
+                    <CardDescription>Track family transitions and life stages for proactive pastoral care</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      // Calculate family lifecycle insights
+                      const familyLifecycleData = Object.entries(familyData.familyGroups)
+                        .filter(([_, family]) => family.length > 1)
+                        .map(([familyId, family]) => {
+                          // Analyze family composition for lifecycle stage
+                          const adults = family.filter(member => member.ageGroup === 'adult');
+                          const adolescents = family.filter(member => member.ageGroup === 'adolescent');
+                          const children = family.filter(member => member.ageGroup === 'child');
+                          
+                          // Determine family lifecycle stage
+                          let lifecycleStage = '';
+                          let stageColor = '';
+                          let stageDescription = '';
+                          
+                          if (children.length > 0 && adolescents.length === 0) {
+                            lifecycleStage = 'Young Families';
+                            stageColor = 'green';
+                            stageDescription = 'Families with young children - focus on parenting support';
+                          } else if (children.length > 0 && adolescents.length > 0) {
+                            lifecycleStage = 'Growing Families';
+                            stageColor = 'blue';
+                            stageDescription = 'Mixed ages - youth programs and family activities';
+                          } else if (adolescents.length > 0 && children.length === 0) {
+                            lifecycleStage = 'Teen Families';
+                            stageColor = 'purple';
+                            stageDescription = 'Teenagers - youth ministry and college prep';
+                          } else if (adults.length === 2 && adolescents.length === 0 && children.length === 0) {
+                            lifecycleStage = 'Empty Nest';
+                            stageColor = 'orange';
+                            stageDescription = 'Adult couples - mentoring and ministry opportunities';
+                          } else {
+                            lifecycleStage = 'Multi-Generational';
+                            stageColor = 'indigo';
+                            stageDescription = 'Complex family structure - comprehensive support';
+                          }
+
+                          // Get recent attendance for engagement level
+                          const familyAttendance = attendanceHistory.filter((record: AttendanceRecord) => 
+                            family.some(member => member.id === record.memberId)
+                          );
+                          
+                          const recentAttendance = familyAttendance.filter(record => {
+                            const recordDate = new Date(record.checkInTime);
+                            const thirtyDaysAgo = new Date();
+                            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                            return recordDate >= thirtyDaysAgo;
+                          }).length;
+
+                          // Calculate family stability (consistency over time)
+                          const attendanceByMonth = familyAttendance.reduce((acc: Record<string, number>, record: AttendanceRecord) => {
+                            const month = record.checkInTime.substring(0, 7); // YYYY-MM
+                            acc[month] = (acc[month] || 0) + 1;
+                            return acc;
+                          }, {});
+                          
+                          const monthlyAttendance = Object.values(attendanceByMonth);
+                          const stability = monthlyAttendance.length > 1 ? 
+                            Math.round((1 - (Math.max(...monthlyAttendance) - Math.min(...monthlyAttendance)) / Math.max(...monthlyAttendance, 1)) * 100) : 100;
+
+                          return {
+                            familyName: `${family[0]?.surname || 'Unknown'} Family`,
+                            familySize: family.length,
+                            lifecycleStage,
+                            stageColor,
+                            stageDescription,
+                            adults: adults.length,
+                            adolescents: adolescents.length,
+                            children: children.length,
+                            recentAttendance,
+                            stability,
+                            needsTransitionSupport: (lifecycleStage === 'Empty Nest' && recentAttendance < 4) || 
+                                                  (lifecycleStage === 'Teen Families' && stability < 70)
+                          };
+                        });
+
+                      // Group by lifecycle stage
+                      const stageGroups = familyLifecycleData.reduce((acc: Record<string, any[]>, family) => {
+                        if (!acc[family.lifecycleStage]) acc[family.lifecycleStage] = [];
+                        acc[family.lifecycleStage].push(family);
+                        return acc;
+                      }, {});
+
+                      const transitionFamilies = familyLifecycleData.filter(f => f.needsTransitionSupport);
+
+                      return (
+                        <div className="space-y-6">
+                          {/* Lifecycle Overview */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            {Object.entries(stageGroups).map(([stage, families]) => (
+                              <div key={stage} className={`p-3 rounded-lg border ${
+                                stage === 'Young Families' ? 'bg-green-50 border-green-200' :
+                                stage === 'Growing Families' ? 'bg-blue-50 border-blue-200' :
+                                stage === 'Teen Families' ? 'bg-purple-50 border-purple-200' :
+                                stage === 'Empty Nest' ? 'bg-orange-50 border-orange-200' :
+                                'bg-indigo-50 border-indigo-200'
+                              }`}>
+                                <div className={`text-xl font-bold ${
+                                  stage === 'Young Families' ? 'text-green-700' :
+                                  stage === 'Growing Families' ? 'text-blue-700' :
+                                  stage === 'Teen Families' ? 'text-purple-700' :
+                                  stage === 'Empty Nest' ? 'text-orange-700' :
+                                  'text-indigo-700'
+                                }`}>{families.length}</div>
+                                <div className={`text-xs ${
+                                  stage === 'Young Families' ? 'text-green-600' :
+                                  stage === 'Growing Families' ? 'text-blue-600' :
+                                  stage === 'Teen Families' ? 'text-purple-600' :
+                                  stage === 'Empty Nest' ? 'text-orange-600' :
+                                  'text-indigo-600'
+                                }`}>{stage}</div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Family Lifecycle Details */}
+                          <div className="space-y-3 max-h-80 overflow-y-auto">
+                            {familyLifecycleData.slice(0, 8).map((family, index) => (
+                              <div 
+                                key={index} 
+                                className={`p-4 rounded-lg border ${
+                                  family.needsTransitionSupport ? 'bg-yellow-50 border-yellow-200' :
+                                  family.stageColor === 'green' ? 'bg-green-50 border-green-200' :
+                                  family.stageColor === 'blue' ? 'bg-blue-50 border-blue-200' :
+                                  family.stageColor === 'purple' ? 'bg-purple-50 border-purple-200' :
+                                  family.stageColor === 'orange' ? 'bg-orange-50 border-orange-200' :
+                                  'bg-indigo-50 border-indigo-200'
                                 }`}
                               >
                                 <div className="flex items-center justify-between mb-2">
@@ -3514,135 +3585,64 @@ export default function HistoryTab() {
                                     <Badge 
                                       variant="outline" 
                                       className={`${
-                                        family.syncRate >= 80 
-                                          ? 'bg-green-100 text-green-700 border-green-300'
-                                          : family.syncRate >= 50
-                                          ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
-                                          : 'bg-red-100 text-red-700 border-red-300'
+                                        family.stageColor === 'green' ? 'bg-green-100 text-green-700 border-green-300' :
+                                        family.stageColor === 'blue' ? 'bg-blue-100 text-blue-700 border-blue-300' :
+                                        family.stageColor === 'purple' ? 'bg-purple-100 text-purple-700 border-purple-300' :
+                                        family.stageColor === 'orange' ? 'bg-orange-100 text-orange-700 border-orange-300' :
+                                        'bg-indigo-100 text-indigo-700 border-indigo-300'
                                       }`}
                                     >
-                                      {family.syncRate}% unity
+                                      {family.lifecycleStage}
                                     </Badge>
-                                    {family.needsAttention && (
-                                      <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">
-                                        Needs attention
+                                    {family.needsTransitionSupport && (
+                                      <Badge variant="outline" className="bg-yellow-100 text-yellow-700 border-yellow-300">
+                                        Transition Support
                                       </Badge>
                                     )}
                                   </div>
                                 </div>
-                                <div className="flex items-center justify-between text-sm text-slate-600">
-                                  <span>{family.familySize} members</span>
-                                  <span>{family.fullFamilyDays}/{family.totalDays} full family days</span>
-                                  <span>Recent: {family.recentSyncRate}%</span>
+                                
+                                <div className="text-sm text-slate-600 mb-2">{family.stageDescription}</div>
+                                
+                                <div className="grid grid-cols-3 gap-3 text-xs text-slate-600 mb-2">
+                                  <div className="text-center">
+                                    <div className="font-medium text-slate-800">{family.adults}</div>
+                                    <div>Adults</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="font-medium text-slate-800">{family.adolescents}</div>
+                                    <div>Teens</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="font-medium text-slate-800">{family.children}</div>
+                                    <div>Children</div>
+                                  </div>
                                 </div>
-                                {/* Progress bar */}
-                                <div className="mt-2 w-full bg-slate-200 rounded-full h-2">
-                                  <div 
-                                    className={`h-2 rounded-full ${
-                                      family.syncRate >= 80 ? 'bg-green-500'
-                                      : family.syncRate >= 50 ? 'bg-yellow-500'
-                                      : 'bg-red-500'
-                                    }`}
-                                    style={{ width: `${family.syncRate}%` }}
-                                  />
+                                
+                                <div className="flex items-center justify-between text-sm text-slate-600">
+                                  <span>Recent activity: {family.recentAttendance} visits</span>
+                                  <span>Stability: {family.stability}%</span>
                                 </div>
                               </div>
                             ))}
                           </div>
 
-                          {/* Pastoral Care Insights */}
-                          {atRiskFamilies.length > 0 && (
-                            <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
-                              <h4 className="font-medium text-orange-900 mb-2">Pastoral Care Opportunities</h4>
-                              <div className="text-sm text-orange-700 space-y-1">
-                                {atRiskFamilies.slice(0, 3).map((family, index) => (
+                          {/* Ministry Recommendations */}
+                          {transitionFamilies.length > 0 && (
+                            <div className="p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                              <h4 className="font-medium text-yellow-900 mb-2">Families in Transition</h4>
+                              <div className="text-sm text-yellow-700 space-y-1">
+                                {transitionFamilies.slice(0, 3).map((family, index) => (
                                   <p key={index}>
-                                    • <strong>{family.familyName}</strong> has low recent attendance unity ({family.recentSyncRate}%) - consider family outreach
+                                    • <strong>{family.familyName}</strong> ({family.lifecycleStage}) - may benefit from transition support and targeted ministry
                                   </p>
                                 ))}
-                                {atRiskFamilies.length > 3 && (
-                                  <p>• +{atRiskFamilies.length - 3} more families may benefit from pastoral attention</p>
-                                )}
                               </div>
                             </div>
                           )}
                         </div>
                       );
                     })()}
-                  </CardContent>
-                </Card>
-
-                {/* Family List */}
-                <Card className="church-card">
-                  <CardHeader>
-                    <CardTitle>Family Groups</CardTitle>
-                    <CardDescription>Overview of family connections</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {Object.entries(familyData.familyGroups)
-                        .filter(([_, family]) => family.length > 1)
-                        .slice(0, 10)
-                        .map(([familyId, family]) => (
-                        <div key={familyId} className="p-4 border rounded-lg bg-slate-50">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-slate-900">
-                              {family[0]?.surname || 'Unknown'} Family
-                            </span>
-                            <Badge variant="outline">{family.length} members</Badge>
-                          </div>
-                          <div className="space-y-2">
-                            {family.map(member => (
-                              <div key={member.id} className="flex items-center justify-between text-sm">
-                                <span className="font-medium text-slate-700">
-                                  {member.firstName} {member.surname}
-                                </span>
-                                <div className="flex items-center space-x-2">
-                                  <Badge 
-                                    variant="outline" 
-                                    className={`text-xs px-2 py-0.5 ${
-                                      member.gender === 'male' 
-                                        ? 'bg-blue-50 text-blue-700 border-blue-200' 
-                                        : 'bg-pink-50 text-pink-700 border-pink-200'
-                                    }`}
-                                  >
-                                    {member.gender === 'male' ? '♂' : '♀'} {member.gender}
-                                  </Badge>
-                                  <Badge 
-                                    variant="outline" 
-                                    className={`text-xs px-2 py-0.5 ${
-                                      member.ageGroup === 'child' 
-                                        ? 'bg-green-50 text-green-700 border-green-200' 
-                                        : member.ageGroup === 'adolescent'
-                                        ? 'bg-yellow-50 text-yellow-700 border-yellow-200'
-                                        : 'bg-purple-50 text-purple-700 border-purple-200'
-                                    }`}
-                                  >
-                                    {member.ageGroup}
-                                  </Badge>
-                                  {member.relationshipToHead && member.relationshipToHead !== 'head' && (
-                                    <Badge 
-                                      variant="outline" 
-                                      className="text-xs px-2 py-0.5 bg-gray-50 text-gray-700 border-gray-200"
-                                    >
-                                      {member.relationshipToHead}
-                                    </Badge>
-                                  )}
-                                  {member.relationshipToHead === 'head' && (
-                                    <Badge 
-                                      variant="outline" 
-                                      className="text-xs px-2 py-0.5 bg-amber-50 text-amber-700 border-amber-200 font-medium"
-                                    >
-                                      👑 head
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
                   </CardContent>
                 </Card>
               </div>
