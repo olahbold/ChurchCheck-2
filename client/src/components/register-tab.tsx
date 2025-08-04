@@ -8,7 +8,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -589,24 +589,24 @@ export default function RegisterTab() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Title</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ""}>
-                        <FormControl>
-                          <SelectTrigger className="church-form-input">
-                            <SelectValue placeholder="Select title" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="none">No title</SelectItem>
-                          <SelectItem value="Mr">Mr</SelectItem>
-                          <SelectItem value="Mrs">Mrs</SelectItem>
-                          <SelectItem value="Ms">Ms</SelectItem>
-                          <SelectItem value="Dr">Dr</SelectItem>
-                          <SelectItem value="Pastor">Pastor</SelectItem>
-                          <SelectItem value="Rev">Rev</SelectItem>
-                          <SelectItem value="Elder">Elder</SelectItem>
-                          <SelectItem value="Deacon">Deacon</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <select 
+                          {...field}
+                          value={field.value || ""}
+                          className="church-form-input flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="">Select title</option>
+                          <option value="none">No title</option>
+                          <option value="Mr">Mr</option>
+                          <option value="Mrs">Mrs</option>
+                          <option value="Ms">Ms</option>
+                          <option value="Dr">Dr</option>
+                          <option value="Pastor">Pastor</option>
+                          <option value="Rev">Rev</option>
+                          <option value="Elder">Elder</option>
+                          <option value="Deacon">Deacon</option>
+                        </select>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -646,17 +646,16 @@ export default function RegisterTab() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Gender</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger className="church-form-input">
-                            <SelectValue placeholder="Select gender" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="male">Male</SelectItem>
-                          <SelectItem value="female">Female</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <select 
+                          {...field}
+                          className="church-form-input flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="">Select gender</option>
+                          <option value="male">Male</option>
+                          <option value="female">Female</option>
+                        </select>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -667,28 +666,17 @@ export default function RegisterTab() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Age Group</FormLabel>
-                      <Select 
-                        onValueChange={(value) => {
-                          try {
-                            console.log("Age group changing to:", value);
-                            field.onChange(value);
-                          } catch (error) {
-                            console.error("Age group change error:", error);
-                          }
-                        }} 
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="church-form-input">
-                            <SelectValue placeholder="Select age group" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="child">Child</SelectItem>
-                          <SelectItem value="adolescent">Adolescent</SelectItem>
-                          <SelectItem value="adult">Adult</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <select 
+                          {...field}
+                          className="church-form-input flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="">Select age group</option>
+                          <option value="child">Child</option>
+                          <option value="adolescent">Adolescent</option>
+                          <option value="adult">Adult</option>
+                        </select>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -818,21 +806,22 @@ export default function RegisterTab() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Link to Parent</FormLabel>
-                      <Select onValueChange={handleParentSelection} value={field.value || ""}>
-                        <FormControl>
-                          <SelectTrigger className="church-form-input">
-                            <SelectValue placeholder="Select parent (optional)" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="none">No parent link</SelectItem>
+                      <FormControl>
+                        <select 
+                          {...field}
+                          onChange={(e) => handleParentSelection(e.target.value)}
+                          value={field.value || ""}
+                          className="church-form-input flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <option value="">Select parent (optional)</option>
+                          <option value="none">No parent link</option>
                           {potentialParents.map((parent) => (
-                            <SelectItem key={parent.id} value={parent.id}>
+                            <option key={parent.id} value={parent.id}>
                               {parent.firstName} {parent.surname}
-                            </SelectItem>
+                            </option>
                           ))}
-                        </SelectContent>
-                      </Select>
+                        </select>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -854,42 +843,40 @@ export default function RegisterTab() {
                       return (
                         <FormItem>
                           <FormLabel>Join Existing Family</FormLabel>
-                          <Select 
-                            onValueChange={(value) => {
-                              if (value === "new-family") {
-                                field.onChange("");
-                                form.setValue("relationshipToHead", "head" as const);
-                                form.setValue("isFamilyHead", true);
-                              } else if (value === "no-family") {
-                                field.onChange("");
-                                form.setValue("relationshipToHead", "head");
-                                form.setValue("isFamilyHead", false);
-                              } else {
-                                field.onChange(value);
-                                form.setValue("isFamilyHead", false);
-                                // Set default relationship for joining family
-                                if (form.getValues("relationshipToHead") === "head") {
-                                  form.setValue("relationshipToHead", "child");
+                          <FormControl>
+                            <select 
+                              {...field}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (value === "new-family") {
+                                  field.onChange("");
+                                  form.setValue("relationshipToHead", "head" as const);
+                                  form.setValue("isFamilyHead", true);
+                                } else if (value === "no-family") {
+                                  field.onChange("");
+                                  form.setValue("relationshipToHead", "head");
+                                  form.setValue("isFamilyHead", false);
+                                } else {
+                                  field.onChange(value);
+                                  form.setValue("isFamilyHead", false);
+                                  // Set default relationship for joining family
+                                  if (form.getValues("relationshipToHead") === "head") {
+                                    form.setValue("relationshipToHead", "child");
+                                  }
                                 }
-                              }
-                            }} 
-                            value={field.value || "no-family"}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="church-form-input">
-                                <SelectValue placeholder="Select family option" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="no-family">Individual (No Family)</SelectItem>
-                              <SelectItem value="new-family">Start New Family</SelectItem>
+                              }} 
+                              value={field.value || "no-family"}
+                              className="church-form-input flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <option value="no-family">Individual (No Family)</option>
+                              <option value="new-family">Start New Family</option>
                               {existingFamilies.map((family) => (
-                                <SelectItem key={family.familyGroupId} value={family.familyGroupId!}>
+                                <option key={family.familyGroupId} value={family.familyGroupId!}>
                                   {family.firstName} {family.surname}'s Family
-                                </SelectItem>
+                                </option>
                               ))}
-                            </SelectContent>
-                          </Select>
+                            </select>
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       );
@@ -903,21 +890,21 @@ export default function RegisterTab() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Relationship to Family Head</FormLabel>
-                          <Select onValueChange={field.onChange} value={field.value || ""}>
-                            <FormControl>
-                              <SelectTrigger className="church-form-input">
-                                <SelectValue placeholder="Select relationship" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="head">Head of Family</SelectItem>
-                              <SelectItem value="spouse">Spouse</SelectItem>
-                              <SelectItem value="child">Child</SelectItem>
-                              <SelectItem value="parent">Parent</SelectItem>
-                              <SelectItem value="sibling">Sibling</SelectItem>
-                              <SelectItem value="other">Other Relative</SelectItem>
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <select 
+                              {...field}
+                              value={field.value || ""}
+                              className="church-form-input flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              <option value="">Select relationship</option>
+                              <option value="head">Head of Family</option>
+                              <option value="spouse">Spouse</option>
+                              <option value="child">Child</option>
+                              <option value="parent">Parent</option>
+                              <option value="sibling">Sibling</option>
+                              <option value="other">Other Relative</option>
+                            </select>
+                          </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
