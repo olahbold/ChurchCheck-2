@@ -194,7 +194,7 @@ export default function RegisterTab() {
       fingerprintId: member.fingerprintId || "",
       parentId: member.parentId || "",
       familyGroupId: member.familyGroupId || "",
-      relationshipToHead: member.relationshipToHead as "head" | "spouse" | "child" | "parent" | "sibling" | "other" || undefined,
+      relationshipToHead: (member.relationshipToHead as "head" | "spouse" | "child" | "parent" | "sibling" | "other") || undefined,
       isFamilyHead: member.isFamilyHead || false,
     });
     
@@ -371,7 +371,7 @@ export default function RegisterTab() {
     if (data.relationshipToHead === "head" || (!data.familyGroupId && data.isFamilyHead)) {
       // Starting a new family - family group ID will be set to member ID on server
       memberData.familyGroupId = undefined;
-      memberData.relationshipToHead = "head";
+      memberData.relationshipToHead = "head" as const;
       memberData.isFamilyHead = true;
     } else if (data.familyGroupId && data.familyGroupId !== "") {
       // Joining existing family
@@ -855,7 +855,7 @@ export default function RegisterTab() {
                             onValueChange={(value) => {
                               if (value === "new-family") {
                                 field.onChange("");
-                                form.setValue("relationshipToHead", "head");
+                                form.setValue("relationshipToHead", "head" as const);
                                 form.setValue("isFamilyHead", true);
                               } else if (value === "no-family") {
                                 field.onChange("");
