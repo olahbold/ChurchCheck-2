@@ -592,19 +592,25 @@ export class DatabaseStorage implements IStorage {
       threeWeeksAgo.setDate(threeWeeksAgo.getDate() - 21);
       const threeWeeksAgoStr = threeWeeksAgo.toISOString().split('T')[0];
 
-      // Find all current members
+      // Find all current members for this church
       const allMembers = await db.select({ 
         id: members.id, 
         firstName: members.firstName, 
         surname: members.surname 
-      }).from(members).where(eq(members.isCurrentMember, true));
+      }).from(members).where(
+        and(
+          eq(members.isCurrentMember, true),
+          eq(members.churchId, this.churchId)
+        )
+      );
 
-      // Find members who have attended in the last 3 weeks
+      // Find members who have attended in the last 3 weeks for this church
       const recentAttendees = await db
         .select({ memberId: attendanceRecords.memberId })
         .from(attendanceRecords)
         .where(
           and(
+            eq(attendanceRecords.churchId, this.churchId),
             gte(attendanceRecords.attendanceDate, threeWeeksAgoStr),
             isNotNull(attendanceRecords.memberId)
           )
@@ -618,8 +624,20 @@ export class DatabaseStorage implements IStorage {
         member => !recentAttendeeIds.has(member.id)
       );
 
+      // Remove follow-up records for members who have attended recently
+      const membersWithRecentAttendance = allMembers.filter(
+        member => recentAttendeeIds.has(member.id)
+      );
+
+      for (const member of membersWithRecentAttendance) {
+        await db.delete(followUpRecords)
+          .where(eq(followUpRecords.memberId, member.id));
+        console.log(`Removed follow-up for recently attended member: ${member.firstName} ${member.surname}`);
+      }
+
       console.log(`Found ${membersWithoutRecentAttendance.length} members needing follow-up`);
 
+      // Add follow-up records for members who haven't attended recently
       for (const member of membersWithoutRecentAttendance) {
         await this.updateFollowUpRecord({
           churchId: this.churchId,
