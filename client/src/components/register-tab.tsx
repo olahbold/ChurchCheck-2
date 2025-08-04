@@ -328,7 +328,7 @@ export default function RegisterTab() {
     },
   });
 
-  const onSubmit = (data: InsertMember) => {
+  const onSubmit = (data: ClientMemberForm) => {
     const authToken = localStorage.getItem('auth_token');
     const churchData = localStorage.getItem('church_data');
     
