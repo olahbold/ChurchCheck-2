@@ -2590,6 +2590,9 @@ export default function HistoryTab() {
                                 {visitor.email && (
                                   <div className="text-xs text-slate-600 truncate">{visitor.email}</div>
                                 )}
+                                {visitor.phone && (
+                                  <div className="text-xs text-slate-600">{visitor.phone}</div>
+                                )}
                               </div>
                             ))}
                           </div>
