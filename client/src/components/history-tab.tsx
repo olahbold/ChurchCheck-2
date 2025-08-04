@@ -191,6 +191,11 @@ export default function HistoryTab() {
     queryKey: ['/api/members'],
   });
 
+  // Get all visitors for conversion analysis
+  const { data: visitors = [] } = useQuery<any[]>({
+    queryKey: ['/api/visitors'],
+  });
+
   // Get statistics for the selected date range
   const { data: rangeStats } = useQuery<AttendanceStats>({
     queryKey: ['/api/attendance/stats-range', startDateStr, endDateStr],
@@ -2407,35 +2412,37 @@ export default function HistoryTab() {
           {/* NEW: Visitor Conversion Funnel */}
           {analyticsView === "conversion" && (() => {
             const conversionData = (() => {
-              // Get visitors who became members
-              const visitorAttendances = attendanceHistory.filter(record => record.isVisitor);
-              const totalVisitors = new Set(visitorAttendances.map(v => v.visitorName)).size;
+              // Use actual visitor data from the visitors table
+              const allVisitors = visitors || [];
+              const totalVisitors = allVisitors.length;
               
-              // Count visitors who attended multiple times
-              const visitorFrequency = visitorAttendances.reduce((acc, record) => {
-                const name = record.visitorName || 'Unknown';
-                acc[name] = (acc[name] || 0) + 1;
+              // Track visitor journey progression based on follow_up_status
+              const statusCounts = allVisitors.reduce((acc, visitor) => {
+                const status = visitor.followUpStatus || 'pending';
+                acc[status] = (acc[status] || 0) + 1;
                 return acc;
               }, {} as Record<string, number>);
-
-              const returnVisitors = Object.values(visitorFrequency).filter(count => count > 1).length;
-              const frequentVisitors = Object.values(visitorFrequency).filter(count => count >= 3).length;
               
-              // Calculate actual conversions - members who converted from visitors
-              // This should be a subset of total visitors, not all new members
-              const actualConversions = Math.min(
-                Math.floor(frequentVisitors * 0.6), // 60% of frequent visitors convert
-                totalVisitors // Cannot exceed total visitors
-              );
-
-              const conversionRate = totalVisitors > 0 ? Math.round((actualConversions / totalVisitors) * 100) : 0;
+              // Calculate funnel stages based on actual visitor data
+              const firstVisit = totalVisitors; // All visitors had a first visit
+              const contacted = statusCounts['contacted'] || 0; // Visitors who were contacted (return engagement)
+              const converted = statusCounts['member'] || 0; // Visitors who became members
+              
+              // Calculate return visitors (those who were contacted = engaged again)
+              const returnVisitors = contacted + converted; // Contacted + converted visitors engaged again
+              
+              // Frequent visitors are those who progressed past initial contact
+              const frequentVisitors = converted; // Only converted visitors are considered "frequent"
+              
+              const conversionRate = totalVisitors > 0 ? Math.round((converted / totalVisitors) * 100) : 0;
 
               return {
-                totalVisitors,
+                totalVisitors: firstVisit,
                 returnVisitors,
                 frequentVisitors,
-                newMembers: actualConversions,
-                conversionRate
+                newMembers: converted,
+                conversionRate,
+                statusBreakdown: statusCounts
               };
             })();
 
@@ -2540,6 +2547,73 @@ export default function HistoryTab() {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Detailed Visitor Status Breakdown */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Visitor Journey Details</CardTitle>
+                    <CardDescription>Track individual visitor progression and status</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {conversionData.statusBreakdown && Object.entries(conversionData.statusBreakdown).map(([status, count]) => (
+                        <div key={status} className="border rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="font-medium capitalize text-slate-700">
+                              {status === 'pending' ? 'First Visit (Pending Follow-up)' :
+                               status === 'contacted' ? 'Return Visit (Contacted)' :
+                               status === 'member' ? 'Converted to Member' : status}
+                            </span>
+                            <Badge variant="outline" className={
+                              status === 'pending' ? 'bg-yellow-100 text-yellow-700 border-yellow-300' :
+                              status === 'contacted' ? 'bg-blue-100 text-blue-700 border-blue-300' :
+                              status === 'member' ? 'bg-green-100 text-green-700 border-green-300' :
+                              'bg-gray-100 text-gray-700 border-gray-300'
+                            }>
+                              {count} visitor{count !== 1 ? 's' : ''}
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                            {visitors
+                              .filter(visitor => (visitor.followUpStatus || 'pending') === status)
+                              .slice(0, 6) // Show max 6 per status
+                              .map(visitor => (
+                              <div key={visitor.id} className="text-sm p-2 bg-slate-50 rounded border">
+                                <div className="font-medium text-slate-900">{visitor.name}</div>
+                                <div className="text-xs text-slate-500">
+                                  {visitor.visitDate ? format(new Date(visitor.visitDate), 'MMM dd, yyyy') : 'No date'}
+                                </div>
+                                {visitor.email && (
+                                  <div className="text-xs text-slate-600 truncate">{visitor.email}</div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          
+                          {visitors.filter(visitor => (visitor.followUpStatus || 'pending') === status).length > 6 && (
+                            <div className="mt-2 text-sm text-slate-500">
+                              +{visitors.filter(visitor => (visitor.followUpStatus || 'pending') === status).length - 6} more visitors
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Summary Insights */}
+                    <div className="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <h4 className="font-medium text-blue-900 mb-2">Conversion Insights</h4>
+                      <div className="text-sm text-blue-700 space-y-1">
+                        <p>• {conversionData.newMembers} of {conversionData.totalVisitors} visitors have successfully converted to members</p>
+                        <p>• {conversionData.returnVisitors} visitors have been contacted for follow-up engagement</p>
+                        <p>• Overall conversion rate: {conversionData.conversionRate}%</p>
+                        {conversionData.totalVisitors > 0 && conversionData.newMembers === 0 && (
+                          <p className="text-orange-600">• Consider implementing more follow-up programs to improve conversion rates</p>
+                        )}
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
