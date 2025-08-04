@@ -2778,22 +2778,22 @@ export default function HistoryTab() {
                         .filter(([_, family]) => family.length > 1)
                         .map(([familyId, family]) => {
                           // Get all attendance records for this family
-                          const familyAttendance = attendanceData.filter(record => 
+                          const familyAttendance = attendanceHistory.filter((record: AttendanceRecord) => 
                             family.some(member => member.id === record.memberId)
                           );
 
                           // Group by date to see family unity per day
-                          const attendanceByDate = familyAttendance.reduce((acc, record) => {
+                          const attendanceByDate = familyAttendance.reduce((acc: Record<string, string[]>, record: AttendanceRecord) => {
                             const date = record.checkInTime.split('T')[0];
                             if (!acc[date]) acc[date] = [];
-                            acc[date].push(record.memberId);
+                            if (record.memberId) acc[date].push(record.memberId);
                             return acc;
                           }, {} as Record<string, string[]>);
 
                           // Calculate sync metrics
                           const totalAttendanceDays = Object.keys(attendanceByDate).length;
                           const fullFamilyDays = Object.values(attendanceByDate).filter(
-                            memberIds => memberIds.length === family.length
+                            (memberIds: string[]) => memberIds.length === family.length
                           ).length;
                           
                           const syncRate = totalAttendanceDays > 0 ? 
