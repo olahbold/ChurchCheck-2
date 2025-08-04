@@ -2765,6 +2765,230 @@ export default function HistoryTab() {
                   </CardContent>
                 </Card>
 
+                {/* Family Engagement Score */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Family Engagement Score</CardTitle>
+                    <CardDescription>Comprehensive family ministry health combining attendance, unity, and participation</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      // Calculate Family Engagement Scores
+                      const familyEngagementScores = Object.entries(familyData.familyGroups)
+                        .filter(([_, family]) => family.length > 1)
+                        .map(([familyId, family]) => {
+                          // Get all attendance records for this family
+                          const familyAttendance = attendanceHistory.filter((record: AttendanceRecord) => 
+                            family.some(member => member.id === record.memberId)
+                          );
+
+                          // 1. Attendance Frequency Score (40% weight)
+                          const totalPossibleAttendance = family.length * 10; // Assume 10 possible service days
+                          const actualAttendance = familyAttendance.length;
+                          const attendanceScore = Math.min((actualAttendance / totalPossibleAttendance) * 100, 100);
+
+                          // 2. Family Unity Score (30% weight) 
+                          const attendanceByDate = familyAttendance.reduce((acc: Record<string, string[]>, record: AttendanceRecord) => {
+                            const date = record.checkInTime.split('T')[0];
+                            if (!acc[date]) acc[date] = [];
+                            if (record.memberId) acc[date].push(record.memberId);
+                            return acc;
+                          }, {} as Record<string, string[]>);
+
+                          const totalAttendanceDays = Object.keys(attendanceByDate).length;
+                          const fullFamilyDays = Object.values(attendanceByDate).filter(
+                            (memberIds: string[]) => memberIds.length === family.length
+                          ).length;
+                          const unityScore = totalAttendanceDays > 0 ? (fullFamilyDays / totalAttendanceDays) * 100 : 0;
+
+                          // 3. Event Diversity Score (20% weight)
+                          const uniqueEvents = new Set(familyAttendance.map(record => record.event?.name || 'Main Service'));
+                          const diversityScore = Math.min((uniqueEvents.size / 3) * 100, 100); // Max 3 different event types
+
+                          // 4. Consistency Score (10% weight) - recent vs historical attendance
+                          const recentDates = Object.keys(attendanceByDate)
+                            .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+                            .slice(0, 4); // Last 4 attendance days
+                          const recentAttendance = recentDates.length;
+                          const historicalAvg = totalAttendanceDays / 4; // Rough historical average
+                          const consistencyScore = recentAttendance >= historicalAvg ? 100 : (recentAttendance / historicalAvg) * 100;
+
+                          // Calculate weighted engagement score
+                          const engagementScore = Math.round(
+                            (attendanceScore * 0.4) + 
+                            (unityScore * 0.3) + 
+                            (diversityScore * 0.2) + 
+                            (consistencyScore * 0.1)
+                          );
+
+                          // Determine engagement level
+                          let engagementLevel = 'Low';
+                          let levelColor = 'red';
+                          if (engagementScore >= 80) {
+                            engagementLevel = 'Excellent';
+                            levelColor = 'green';
+                          } else if (engagementScore >= 65) {
+                            engagementLevel = 'Good';
+                            levelColor = 'blue';
+                          } else if (engagementScore >= 45) {
+                            engagementLevel = 'Fair';
+                            levelColor = 'yellow';
+                          }
+
+                          return {
+                            familyName: `${family[0]?.surname || 'Unknown'} Family`,
+                            familySize: family.length,
+                            engagementScore,
+                            engagementLevel,
+                            levelColor,
+                            attendanceScore: Math.round(attendanceScore),
+                            unityScore: Math.round(unityScore),
+                            diversityScore: Math.round(diversityScore),
+                            consistencyScore: Math.round(consistencyScore),
+                            totalAttendance: actualAttendance,
+                            uniqueEvents: uniqueEvents.size,
+                            recentActivity: recentAttendance
+                          };
+                        })
+                        .sort((a, b) => b.engagementScore - a.engagementScore);
+
+                      const avgEngagementScore = familyEngagementScores.length > 0 ? 
+                        Math.round(familyEngagementScores.reduce((sum, family) => sum + family.engagementScore, 0) / familyEngagementScores.length) : 0;
+                      
+                      const excellentFamilies = familyEngagementScores.filter(f => f.engagementScore >= 80);
+                      const atRiskFamilies = familyEngagementScores.filter(f => f.engagementScore < 45);
+
+                      return (
+                        <div className="space-y-6">
+                          {/* Engagement Metrics */}
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                              <div className="text-2xl font-bold text-blue-700">{avgEngagementScore}</div>
+                              <div className="text-sm text-blue-600">Average Engagement Score</div>
+                            </div>
+                            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                              <div className="text-2xl font-bold text-green-700">{excellentFamilies.length}</div>
+                              <div className="text-sm text-green-600">Excellent Families (80+)</div>
+                            </div>
+                            <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                              <div className="text-2xl font-bold text-orange-700">{atRiskFamilies.length}</div>
+                              <div className="text-sm text-orange-600">At-Risk Families (&lt;45)</div>
+                            </div>
+                            <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                              <div className="text-2xl font-bold text-purple-700">
+                                {familyEngagementScores.filter(f => f.uniqueEvents >= 2).length}
+                              </div>
+                              <div className="text-sm text-purple-600">Multi-Event Families</div>
+                            </div>
+                          </div>
+
+                          {/* Family Engagement Chart */}
+                          <div className="space-y-3 max-h-96 overflow-y-auto">
+                            {familyEngagementScores.slice(0, 10).map((family, index) => (
+                              <div 
+                                key={index} 
+                                className={`p-4 rounded-lg border ${
+                                  family.levelColor === 'green' ? 'bg-green-50 border-green-200' :
+                                  family.levelColor === 'blue' ? 'bg-blue-50 border-blue-200' :
+                                  family.levelColor === 'yellow' ? 'bg-yellow-50 border-yellow-200' :
+                                  'bg-red-50 border-red-200'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between mb-3">
+                                  <span className="font-medium text-slate-900">{family.familyName}</span>
+                                  <div className="flex items-center space-x-2">
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`font-medium ${
+                                        family.levelColor === 'green' ? 'bg-green-100 text-green-700 border-green-300' :
+                                        family.levelColor === 'blue' ? 'bg-blue-100 text-blue-700 border-blue-300' :
+                                        family.levelColor === 'yellow' ? 'bg-yellow-100 text-yellow-700 border-yellow-300' :
+                                        'bg-red-100 text-red-700 border-red-300'
+                                      }`}
+                                    >
+                                      {family.engagementScore} - {family.engagementLevel}
+                                    </Badge>
+                                  </div>
+                                </div>
+
+                                {/* Score Breakdown */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs text-slate-600 mb-3">
+                                  <div className="text-center">
+                                    <div className="font-medium text-slate-800">{family.attendanceScore}%</div>
+                                    <div>Attendance</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="font-medium text-slate-800">{family.unityScore}%</div>
+                                    <div>Unity</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="font-medium text-slate-800">{family.diversityScore}%</div>
+                                    <div>Diversity</div>
+                                  </div>
+                                  <div className="text-center">
+                                    <div className="font-medium text-slate-800">{family.consistencyScore}%</div>
+                                    <div>Consistency</div>
+                                  </div>
+                                </div>
+
+                                {/* Summary Stats */}
+                                <div className="flex items-center justify-between text-sm text-slate-600 mb-2">
+                                  <span>{family.familySize} members</span>
+                                  <span>{family.totalAttendance} total visits</span>
+                                  <span>{family.uniqueEvents} event types</span>
+                                  <span>{family.recentActivity} recent visits</span>
+                                </div>
+
+                                {/* Progress bar */}
+                                <div className="w-full bg-slate-200 rounded-full h-3">
+                                  <div 
+                                    className={`h-3 rounded-full ${
+                                      family.levelColor === 'green' ? 'bg-green-500' :
+                                      family.levelColor === 'blue' ? 'bg-blue-500' :
+                                      family.levelColor === 'yellow' ? 'bg-yellow-500' :
+                                      'bg-red-500'
+                                    }`}
+                                    style={{ width: `${family.engagementScore}%` }}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Ministry Recommendations */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {excellentFamilies.length > 0 && (
+                              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                                <h4 className="font-medium text-green-900 mb-2">Leadership Opportunities</h4>
+                                <div className="text-sm text-green-700 space-y-1">
+                                  {excellentFamilies.slice(0, 3).map((family, index) => (
+                                    <p key={index}>
+                                      • <strong>{family.familyName}</strong> - Consider for family ministry leadership roles
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {atRiskFamilies.length > 0 && (
+                              <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+                                <h4 className="font-medium text-red-900 mb-2">Family Support Needed</h4>
+                                <div className="text-sm text-red-700 space-y-1">
+                                  {atRiskFamilies.slice(0, 3).map((family, index) => (
+                                    <p key={index}>
+                                      • <strong>{family.familyName}</strong> - Low engagement ({family.engagementScore}) - pastoral outreach recommended
+                                    </p>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+
                 {/* Family Attendance Synchronization */}
                 <Card className="church-card">
                   <CardHeader>
