@@ -83,7 +83,11 @@ export const members = pgTable("members", {
   weddingAnniversary: varchar("wedding_anniversary", { length: 10 }),
   isCurrentMember: boolean("is_current_member").notNull().default(true),
   fingerprintId: text("fingerprint_id"), // Simulated fingerprint identifier
-  parentId: varchar("parent_id"), // For family linking
+  parentId: varchar("parent_id"), // Legacy field - for backward compatibility
+  // New family structure fields
+  familyGroupId: varchar("family_group_id"), // Links all family members
+  relationshipToHead: varchar("relationship_to_head", { length: 20 }).default("head"), // "head", "spouse", "child", "parent", "sibling", "other"
+  isFamilyHead: boolean("is_family_head").default(true), // Quick identifier for family head
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -255,6 +259,9 @@ export const visitorsRelations = relations(visitors, ({ one, many }) => ({
   attendanceRecords: many(attendanceRecords),
 }));
 
+// Family relationship types
+export const relationshipTypes = ["head", "spouse", "child", "parent", "sibling", "other"] as const;
+
 // Insert schemas - using transform with refined validation
 export const insertMemberSchema = createInsertSchema(members, {
   title: z.string().optional().or(z.literal("")),
@@ -268,6 +275,10 @@ export const insertMemberSchema = createInsertSchema(members, {
   address: z.string().optional().or(z.literal("")),
   fingerprintId: z.string().optional().or(z.literal("")),
   parentId: z.string().optional().or(z.literal("")),
+  // New family fields
+  familyGroupId: z.string().optional().or(z.literal("")),
+  relationshipToHead: z.enum(relationshipTypes).default("head"),
+  isFamilyHead: z.boolean().default(true),
 }).omit({
   id: true,
   createdAt: true,
@@ -315,6 +326,10 @@ export const updateMemberSchema = z.object({
   isCurrentMember: z.boolean().optional(),
   fingerprintId: z.string().optional(),
   parentId: z.string().optional(),
+  // New family fields
+  familyGroupId: z.string().optional(),
+  relationshipToHead: z.enum(relationshipTypes).optional(),
+  isFamilyHead: z.boolean().optional(),
 });
 
 export const insertAttendanceRecordSchema = createInsertSchema(attendanceRecords, {

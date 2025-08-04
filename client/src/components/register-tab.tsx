@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FingerprintScanner } from "@/components/ui/fingerprint-scanner";
 import { useToast } from "@/hooks/use-toast";
-import { Save, X, Link, Unlink, Fingerprint, Search, RotateCcw, AlertTriangle, CheckCircle, UserPlus, ChevronRight, Download } from "lucide-react";
+import { Save, X, Link, Unlink, Fingerprint, Search, RotateCcw, AlertTriangle, CheckCircle, UserPlus, ChevronRight, Download, Users } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function RegisterTab() {
@@ -87,6 +87,9 @@ export default function RegisterTab() {
     isCurrentMember: z.boolean(),
     fingerprintId: z.string().optional().or(z.literal("")),
     parentId: z.string().optional().or(z.literal("")),
+    familyGroupId: z.string().optional().or(z.literal("")),
+    relationshipToHead: z.enum(["head", "spouse", "child", "parent", "sibling", "other"]).optional(),
+    isFamilyHead: z.boolean().optional(),
   }).superRefine((data, ctx) => {
     // Phone validation based on age group
     if (data.ageGroup === "adult" && (!data.phone || data.phone.trim() === "")) {
@@ -94,6 +97,15 @@ export default function RegisterTab() {
         code: z.ZodIssueCode.custom,
         message: "Phone number is required for adults",
         path: ["phone"]
+      });
+    }
+    
+    // Family relationship validation
+    if (data.familyGroupId && !data.relationshipToHead) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Relationship to family head is required when joining a family",
+        path: ["relationshipToHead"]
       });
     }
   });
@@ -115,6 +127,9 @@ export default function RegisterTab() {
       isCurrentMember: true,
       fingerprintId: "",
       parentId: "",
+      familyGroupId: "",
+      relationshipToHead: undefined,
+      isFamilyHead: false,
     },
   });
 
@@ -178,6 +193,9 @@ export default function RegisterTab() {
       isCurrentMember: member.isCurrentMember,
       fingerprintId: member.fingerprintId || "",
       parentId: member.parentId || "",
+      familyGroupId: member.familyGroupId || "",
+      relationshipToHead: member.relationshipToHead as "head" | "spouse" | "child" | "parent" | "sibling" | "other" || undefined,
+      isFamilyHead: member.isFamilyHead || false,
     });
     
     // Set existing fingerprint if available
@@ -343,10 +361,27 @@ export default function RegisterTab() {
       return;
     }
     
-    const memberData = {
+    // Process family data
+    let memberData = {
       ...data,
       fingerprintId: enrolledFingerprintId || undefined,
     };
+
+    // Handle family group logic
+    if (data.relationshipToHead === "head" || (!data.familyGroupId && data.isFamilyHead)) {
+      // Starting a new family - family group ID will be set to member ID on server
+      memberData.familyGroupId = undefined;
+      memberData.relationshipToHead = "head";
+      memberData.isFamilyHead = true;
+    } else if (data.familyGroupId && data.familyGroupId !== "") {
+      // Joining existing family
+      memberData.isFamilyHead = false;
+    } else {
+      // Individual member (no family)
+      memberData.familyGroupId = undefined;
+      memberData.relationshipToHead = undefined;
+      memberData.isFamilyHead = false;
+    }
     
     if (isUpdateMode && selectedMember) {
       setShowUpdateConfirmation(true);
@@ -800,6 +835,120 @@ export default function RegisterTab() {
                   )}
                 />
               )}
+
+              {/* Family Selection Section */}
+              <div className="border-t border-slate-200 pt-6 space-y-4">
+                <h3 className="text-lg font-semibold text-slate-900">Family Information</h3>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="familyGroupId"
+                    render={({ field }) => {
+                      // Get existing families (members with isFamilyHead: true)
+                      const existingFamilies = members.filter(m => m.isFamilyHead);
+                      
+                      return (
+                        <FormItem>
+                          <FormLabel>Join Existing Family</FormLabel>
+                          <Select 
+                            onValueChange={(value) => {
+                              if (value === "new-family") {
+                                field.onChange("");
+                                form.setValue("relationshipToHead", "head");
+                                form.setValue("isFamilyHead", true);
+                              } else if (value === "no-family") {
+                                field.onChange("");
+                                form.setValue("relationshipToHead", undefined);
+                                form.setValue("isFamilyHead", false);
+                              } else {
+                                field.onChange(value);
+                                form.setValue("isFamilyHead", false);
+                                // Clear relationship - user will select it separately
+                                if (form.getValues("relationshipToHead") === "head") {
+                                  form.setValue("relationshipToHead", undefined);
+                                }
+                              }
+                            }} 
+                            value={field.value || "no-family"}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="church-form-input">
+                                <SelectValue placeholder="Select family option" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="no-family">Individual (No Family)</SelectItem>
+                              <SelectItem value="new-family">Start New Family</SelectItem>
+                              {existingFamilies.map((family) => (
+                                <SelectItem key={family.familyGroupId} value={family.familyGroupId!}>
+                                  {family.firstName} {family.surname}'s Family
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+
+                  {form.watch("familyGroupId") && form.watch("familyGroupId") !== "" && (
+                    <FormField
+                      control={form.control}
+                      name="relationshipToHead"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Relationship to Family Head</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value || ""}>
+                            <FormControl>
+                              <SelectTrigger className="church-form-input">
+                                <SelectValue placeholder="Select relationship" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="head">Head of Family</SelectItem>
+                              <SelectItem value="spouse">Spouse</SelectItem>
+                              <SelectItem value="child">Child</SelectItem>
+                              <SelectItem value="parent">Parent</SelectItem>
+                              <SelectItem value="sibling">Sibling</SelectItem>
+                              <SelectItem value="other">Other Relative</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
+                </div>
+
+                {form.watch("familyGroupId") && form.watch("familyGroupId") !== "" && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start space-x-3">
+                      <div className="flex-shrink-0">
+                        <Users className="h-5 w-5 text-blue-600 mt-0.5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-blue-900">Family Information</h4>
+                        <p className="text-sm text-blue-700 mt-1">
+                          {(() => {
+                            const selectedFamilyId = form.watch("familyGroupId");
+                            if (selectedFamilyId) {
+                              const familyMembers = members.filter(m => m.familyGroupId === selectedFamilyId);
+                              const familyHead = familyMembers.find(m => m.isFamilyHead);
+                              
+                              if (familyHead) {
+                                return `This person will be added to ${familyHead.firstName} ${familyHead.surname}'s family. Current members: ${familyMembers.map(m => `${m.firstName} ${m.surname} (${m.relationshipToHead})`).join(', ')}.`;
+                              }
+                            }
+                            return "Starting a new family - this person will be the family head.";
+                          })()}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Biometric Enrollment Section */}
               <div className="border-t border-slate-200 pt-6">

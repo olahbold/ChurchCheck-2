@@ -105,8 +105,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const memberData = insertMemberSchema.parse(memberDataWithChurch);
       const storage = getStorage(req);
-      const member = await storage.createMember(memberData);
-      res.json(member);
+      
+      // Handle family group logic for new family heads
+      if (memberData.relationshipToHead === 'head' && memberData.isFamilyHead) {
+        // Create the member first, then update with their ID as familyGroupId
+        const member = await storage.createMember(memberData);
+        
+        // Update the member to set familyGroupId to their own ID
+        await storage.updateMember(member.id, { 
+          familyGroupId: member.id 
+        });
+        
+        // Return the updated member
+        const updatedMember = await storage.getMember(member.id);
+        res.json(updatedMember);
+      } else {
+        // Regular member creation (joining existing family or individual)
+        const member = await storage.createMember(memberData);
+        res.json(member);
+      }
     } catch (error) {
       console.error('Member creation error:', error);
       res.status(400).json({ error: error instanceof Error ? error.message : "Invalid member data" });

@@ -2628,26 +2628,19 @@ export default function HistoryTab() {
           {/* NEW: Family Network Analysis */}
           {analyticsView === "families" && (() => {
             const familyData = (() => {
-              // Group members by family relationships using parent_id
+              // Group members by family relationships using new family_group_id
               const familyGroups: Record<string, any[]> = {};
               
-              // First, identify family heads (members with no parent_id)
-              const familyHeads = allMembers.filter(member => !member.parentId);
-              
-              // Create family groups starting with heads
-              familyHeads.forEach(head => {
-                familyGroups[head.id] = [head];
-              });
-              
-              // Add children to their respective family groups
+              // Group all members by their family_group_id
               allMembers.forEach(member => {
-                if (member.parentId && familyGroups[member.parentId]) {
-                  familyGroups[member.parentId].push(member);
-                } else if (member.parentId) {
-                  // If parent not found, create a new group for this member
-                  if (!familyGroups[`orphaned_${member.id}`]) {
-                    familyGroups[`orphaned_${member.id}`] = [member];
+                if (member.familyGroupId) {
+                  if (!familyGroups[member.familyGroupId]) {
+                    familyGroups[member.familyGroupId] = [];
                   }
+                  familyGroups[member.familyGroupId].push(member);
+                } else {
+                  // Members without family groups get their own family
+                  familyGroups[`individual_${member.id}`] = [member];
                 }
               });
 
