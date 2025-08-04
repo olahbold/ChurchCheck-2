@@ -128,7 +128,7 @@ export default function RegisterTab() {
       fingerprintId: "",
       parentId: "",
       familyGroupId: "",
-      relationshipToHead: undefined,
+      relationshipToHead: "head",
       isFamilyHead: false,
     },
   });
@@ -184,7 +184,7 @@ export default function RegisterTab() {
       surname: member.surname,
       gender: member.gender as "male" | "female",
       ageGroup: member.ageGroup as "child" | "adolescent" | "adult",
-      phone: member.phone,
+      phone: member.phone || "",
       email: member.email || "",
       whatsappNumber: member.whatsappNumber || "",
       address: member.address || "",
@@ -194,7 +194,7 @@ export default function RegisterTab() {
       fingerprintId: member.fingerprintId || "",
       parentId: member.parentId || "",
       familyGroupId: member.familyGroupId || "",
-      relationshipToHead: (member.relationshipToHead as "head" | "spouse" | "child" | "parent" | "sibling" | "other") || undefined,
+      relationshipToHead: (member.relationshipToHead as "head" | "spouse" | "child" | "parent" | "sibling" | "other") || "head",
       isFamilyHead: member.isFamilyHead || false,
     });
     
@@ -379,7 +379,7 @@ export default function RegisterTab() {
     } else {
       // Individual member (no family)
       memberData.familyGroupId = undefined;
-      memberData.relationshipToHead = undefined;
+      memberData.relationshipToHead = "head";
       memberData.isFamilyHead = false;
     }
     
@@ -859,14 +859,14 @@ export default function RegisterTab() {
                                 form.setValue("isFamilyHead", true);
                               } else if (value === "no-family") {
                                 field.onChange("");
-                                form.setValue("relationshipToHead", undefined);
+                                form.setValue("relationshipToHead", "head");
                                 form.setValue("isFamilyHead", false);
                               } else {
                                 field.onChange(value);
                                 form.setValue("isFamilyHead", false);
-                                // Clear relationship - user will select it separately
+                                // Set default relationship for joining family
                                 if (form.getValues("relationshipToHead") === "head") {
-                                  form.setValue("relationshipToHead", undefined);
+                                  form.setValue("relationshipToHead", "child");
                                 }
                               }
                             }} 
