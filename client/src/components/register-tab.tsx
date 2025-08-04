@@ -88,7 +88,7 @@ export default function RegisterTab() {
     fingerprintId: z.string().optional().or(z.literal("")),
     parentId: z.string().optional().or(z.literal("")),
     familyGroupId: z.string().optional().or(z.literal("")),
-    relationshipToHead: z.enum(["head", "spouse", "child", "parent", "sibling", "other"]).optional(),
+    relationshipToHead: z.enum(["head", "spouse", "child", "parent", "sibling", "other"]).nullable().optional(),
     isFamilyHead: z.boolean().optional(),
   }).superRefine((data, ctx) => {
     // Phone validation based on age group
@@ -192,7 +192,7 @@ export default function RegisterTab() {
       weddingAnniversary: member.weddingAnniversary || "",
       isCurrentMember: member.isCurrentMember,
       fingerprintId: member.fingerprintId || "",
-      parentId: member.parentId || "",
+      parentId: member.parentId || undefined,
       familyGroupId: member.familyGroupId || "",
       relationshipToHead: (member.relationshipToHead as "head" | "spouse" | "child" | "parent" | "sibling" | "other") || undefined,
       isFamilyHead: member.isFamilyHead || false,
