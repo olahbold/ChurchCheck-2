@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AttendanceStats, MemberWithChildren } from "@/lib/types";
-import { Users, Calendar, AlertTriangle, TrendingUp, Download, Search, MessageSquare, Mail, CheckCircle, Phone } from "lucide-react";
+import { Users, Calendar, AlertTriangle, TrendingUp, Download, Search, MessageSquare, Mail, CheckCircle, Phone, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 
@@ -138,6 +138,29 @@ export default function DashboardTab() {
       toast({
         title: "Error",
         description: "Failed to send follow-up",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Mutation for updating follow-up absences
+  const updateAbsencesMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest('/api/follow-up/update-absences', {
+        method: 'POST',
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/follow-up'] });
+      toast({
+        title: "Follow-up queue updated",
+        description: "Successfully identified members needing follow-up based on recent attendance",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update follow-up queue",
         variant: "destructive",
       });
     }
@@ -773,20 +796,45 @@ export default function DashboardTab() {
                   Reach out to members who've missed 3+ services with personalized messages
                 </motion.p>
               </div>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Button 
-                  className="church-button-primary" 
-                  size="sm"
-                  onClick={handleSendAll}
-                  disabled={followUpMembers.length === 0 || isSendingAll}
+              <div className="flex gap-2">
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  {isSendingAll ? 'Sending...' : 'Send All'}
-                </Button>
-              </motion.div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateAbsencesMutation.mutate()}
+                    disabled={updateAbsencesMutation.isPending}
+                  >
+                    {updateAbsencesMutation.isPending ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2" />
+                        Update Queue
+                      </>
+                    )}
+                  </Button>
+                </motion.div>
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <Button 
+                    className="church-button-primary" 
+                    size="sm"
+                    onClick={handleSendAll}
+                    disabled={followUpMembers.length === 0 || isSendingAll}
+                  >
+                    <MessageSquare className="mr-2 h-4 w-4" />
+                    {isSendingAll ? 'Sending...' : 'Send All'}
+                  </Button>
+                </motion.div>
+              </div>
             </CardHeader>
           <CardContent>
             <motion.div 
