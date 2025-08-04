@@ -556,16 +556,25 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getMembersNeedingFollowUp(): Promise<(Member & { followUpRecord: FollowUpRecord })[]> {
+  async getMembersNeedingFollowUp(): Promise<(Member & { followUpRecord: FollowUpRecord; lastAttended: string | null })[]> {
     const result = await db
-      .select()
+      .select({
+        member: members,
+        followUpRecord: followUpRecords,
+        lastAttended: sql<string>`(
+          SELECT MAX(ar.attendance_date) 
+          FROM attendance_records ar 
+          WHERE ar.member_id = ${members.id}
+        )`
+      })
       .from(members)
       .innerJoin(followUpRecords, eq(members.id, followUpRecords.memberId))
       .where(eq(followUpRecords.needsFollowUp, true));
 
     return result.map(row => ({
-      ...row.members,
-      followUpRecord: row.follow_up_records,
+      ...row.member,
+      followUpRecord: row.followUpRecord,
+      lastAttended: row.lastAttended,
     }));
   }
 

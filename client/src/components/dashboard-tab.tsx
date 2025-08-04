@@ -874,7 +874,7 @@ export default function DashboardTab() {
                     </span>
                   </div>
                   <p className="text-sm text-slate-600 mb-3">
-                    Last attended: {new Date(Date.now() - 21 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                    Last attended: {member.lastAttended ? new Date(member.lastAttended).toLocaleDateString() : 'Never'}
                   </p>
                   <div className="flex space-x-2">
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
