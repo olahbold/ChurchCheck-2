@@ -2765,6 +2765,165 @@ export default function HistoryTab() {
                   </CardContent>
                 </Card>
 
+                {/* Family Attendance Synchronization */}
+                <Card className="church-card">
+                  <CardHeader>
+                    <CardTitle>Family Attendance Synchronization</CardTitle>
+                    <CardDescription>Track how often families attend together vs. split attendance</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      // Calculate family attendance sync data
+                      const familyAttendanceSync = Object.entries(familyData.familyGroups)
+                        .filter(([_, family]) => family.length > 1)
+                        .map(([familyId, family]) => {
+                          // Get all attendance records for this family
+                          const familyAttendance = attendanceData.filter(record => 
+                            family.some(member => member.id === record.memberId)
+                          );
+
+                          // Group by date to see family unity per day
+                          const attendanceByDate = familyAttendance.reduce((acc, record) => {
+                            const date = record.checkInTime.split('T')[0];
+                            if (!acc[date]) acc[date] = [];
+                            acc[date].push(record.memberId);
+                            return acc;
+                          }, {} as Record<string, string[]>);
+
+                          // Calculate sync metrics
+                          const totalAttendanceDays = Object.keys(attendanceByDate).length;
+                          const fullFamilyDays = Object.values(attendanceByDate).filter(
+                            memberIds => memberIds.length === family.length
+                          ).length;
+                          
+                          const syncRate = totalAttendanceDays > 0 ? 
+                            Math.round((fullFamilyDays / totalAttendanceDays) * 100) : 0;
+
+                          // Recent attendance pattern (last 4 weeks)
+                          const recentDates = Object.keys(attendanceByDate)
+                            .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+                            .slice(0, 8); // Last 8 attendance days
+
+                          const recentSyncRate = recentDates.length > 0 ? 
+                            Math.round((recentDates.filter(date => 
+                              attendanceByDate[date].length === family.length
+                            ).length / recentDates.length) * 100) : 0;
+
+                          return {
+                            familyName: `${family[0]?.surname || 'Unknown'} Family`,
+                            familySize: family.length,
+                            syncRate,
+                            recentSyncRate,
+                            totalDays: totalAttendanceDays,
+                            fullFamilyDays,
+                            lastAttendance: recentDates[0] || null,
+                            needsAttention: recentSyncRate < 30 && totalAttendanceDays > 2
+                          };
+                        })
+                        .sort((a, b) => b.syncRate - a.syncRate);
+
+                      const avgSyncRate = familyAttendanceSync.length > 0 ? 
+                        Math.round(familyAttendanceSync.reduce((sum, family) => sum + family.syncRate, 0) / familyAttendanceSync.length) : 0;
+                      
+                      const atRiskFamilies = familyAttendanceSync.filter(family => family.needsAttention);
+
+                      return (
+                        <div className="space-y-6">
+                          {/* Sync Metrics */}
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                              <div className="text-2xl font-bold text-green-700">{avgSyncRate}%</div>
+                              <div className="text-sm text-green-600">Average Family Unity</div>
+                            </div>
+                            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                              <div className="text-2xl font-bold text-blue-700">
+                                {familyAttendanceSync.filter(f => f.syncRate >= 80).length}
+                              </div>
+                              <div className="text-sm text-blue-600">High Unity Families (80%+)</div>
+                            </div>
+                            <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                              <div className="text-2xl font-bold text-orange-700">{atRiskFamilies.length}</div>
+                              <div className="text-sm text-orange-600">Families Needing Attention</div>
+                            </div>
+                          </div>
+
+                          {/* Family Sync Chart */}
+                          <div className="space-y-3 max-h-80 overflow-y-auto">
+                            {familyAttendanceSync.slice(0, 8).map((family, index) => (
+                              <div 
+                                key={index} 
+                                className={`p-4 rounded-lg border ${
+                                  family.needsAttention 
+                                    ? 'bg-red-50 border-red-200' 
+                                    : family.syncRate >= 80 
+                                    ? 'bg-green-50 border-green-200'
+                                    : 'bg-slate-50 border-slate-200'
+                                }`}
+                              >
+                                <div className="flex items-center justify-between mb-2">
+                                  <span className="font-medium text-slate-900">{family.familyName}</span>
+                                  <div className="flex items-center space-x-2">
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`${
+                                        family.syncRate >= 80 
+                                          ? 'bg-green-100 text-green-700 border-green-300'
+                                          : family.syncRate >= 50
+                                          ? 'bg-yellow-100 text-yellow-700 border-yellow-300'
+                                          : 'bg-red-100 text-red-700 border-red-300'
+                                      }`}
+                                    >
+                                      {family.syncRate}% unity
+                                    </Badge>
+                                    {family.needsAttention && (
+                                      <Badge variant="outline" className="bg-orange-100 text-orange-700 border-orange-300">
+                                        Needs attention
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex items-center justify-between text-sm text-slate-600">
+                                  <span>{family.familySize} members</span>
+                                  <span>{family.fullFamilyDays}/{family.totalDays} full family days</span>
+                                  <span>Recent: {family.recentSyncRate}%</span>
+                                </div>
+                                {/* Progress bar */}
+                                <div className="mt-2 w-full bg-slate-200 rounded-full h-2">
+                                  <div 
+                                    className={`h-2 rounded-full ${
+                                      family.syncRate >= 80 ? 'bg-green-500'
+                                      : family.syncRate >= 50 ? 'bg-yellow-500'
+                                      : 'bg-red-500'
+                                    }`}
+                                    style={{ width: `${family.syncRate}%` }}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Pastoral Care Insights */}
+                          {atRiskFamilies.length > 0 && (
+                            <div className="mt-4 p-4 bg-orange-50 rounded-lg border border-orange-200">
+                              <h4 className="font-medium text-orange-900 mb-2">Pastoral Care Opportunities</h4>
+                              <div className="text-sm text-orange-700 space-y-1">
+                                {atRiskFamilies.slice(0, 3).map((family, index) => (
+                                  <p key={index}>
+                                    • <strong>{family.familyName}</strong> has low recent attendance unity ({family.recentSyncRate}%) - consider family outreach
+                                  </p>
+                                ))}
+                                {atRiskFamilies.length > 3 && (
+                                  <p>• +{atRiskFamilies.length - 3} more families may benefit from pastoral attention</p>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+
                 {/* Family List */}
                 <Card className="church-card">
                   <CardHeader>
