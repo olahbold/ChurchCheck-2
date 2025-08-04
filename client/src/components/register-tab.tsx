@@ -356,6 +356,7 @@ export default function RegisterTab() {
     // Process family data
     let memberData = {
       ...data,
+      churchId,
       fingerprintId: enrolledFingerprintId || undefined,
     };
 
