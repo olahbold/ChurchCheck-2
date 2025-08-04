@@ -16,8 +16,20 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { FingerprintScanner } from "@/components/ui/fingerprint-scanner";
 import { useToast } from "@/hooks/use-toast";
-import { Save, X, Link, Unlink, Fingerprint, Search, RotateCcw, AlertTriangle, CheckCircle, UserPlus, ChevronRight, Download, Users } from "lucide-react";
+import { Save, X, Link, Unlink, Fingerprint, Search, RotateCcw, AlertTriangle, CheckCircle, UserPlus, ChevronRight, Download, Users, Check, ChevronsUpDown } from "lucide-react";
 import { motion } from "framer-motion";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export default function RegisterTab() {
   const [showFingerprintEnroll, setShowFingerprintEnroll] = useState(false);
@@ -30,6 +42,7 @@ export default function RegisterTab() {
   const [showFingerprintDialog, setShowFingerprintDialog] = useState(false);
   const [showParentContactDialog, setShowParentContactDialog] = useState(false);
   const [pendingParentId, setPendingParentId] = useState<string | null>(null);
+  const [familyDropdownOpen, setFamilyDropdownOpen] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -840,43 +853,79 @@ export default function RegisterTab() {
                       // Get existing families (members with isFamilyHead: true)
                       const existingFamilies = members.filter(m => m.isFamilyHead);
                       
+                      // Create family options for combobox
+                      const familyOptions = [
+                        { value: "no-family", label: "Individual (No Family)" },
+                        { value: "new-family", label: "Start New Family" },
+                        ...existingFamilies.map((family) => ({
+                          value: family.familyGroupId!,
+                          label: `${family.firstName} ${family.surname}'s Family`
+                        }))
+                      ];
+
+                      // Get current display value
+                      const currentValue = field.value || "no-family";
+                      const currentOption = familyOptions.find(option => option.value === currentValue);
+                      
                       return (
-                        <FormItem>
+                        <FormItem className="flex flex-col">
                           <FormLabel>Join Existing Family</FormLabel>
-                          <FormControl>
-                            <select 
-                              {...field}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                if (value === "new-family") {
-                                  field.onChange("");
-                                  form.setValue("relationshipToHead", "head" as const);
-                                  form.setValue("isFamilyHead", true);
-                                } else if (value === "no-family") {
-                                  field.onChange("");
-                                  form.setValue("relationshipToHead", "head");
-                                  form.setValue("isFamilyHead", false);
-                                } else {
-                                  field.onChange(value);
-                                  form.setValue("isFamilyHead", false);
-                                  // Set default relationship for joining family
-                                  if (form.getValues("relationshipToHead") === "head") {
-                                    form.setValue("relationshipToHead", "child");
-                                  }
-                                }
-                              }} 
-                              value={field.value || "no-family"}
-                              className="church-form-input flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                            >
-                              <option value="no-family">Individual (No Family)</option>
-                              <option value="new-family">Start New Family</option>
-                              {existingFamilies.map((family) => (
-                                <option key={family.familyGroupId} value={family.familyGroupId!}>
-                                  {family.firstName} {family.surname}'s Family
-                                </option>
-                              ))}
-                            </select>
-                          </FormControl>
+                          <Popover open={familyDropdownOpen} onOpenChange={setFamilyDropdownOpen}>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  aria-expanded={familyDropdownOpen}
+                                  className="w-full justify-between church-form-input"
+                                >
+                                  {currentOption?.label || "Select family option..."}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full p-0" align="start">
+                              <Command>
+                                <CommandInput placeholder="Search families..." className="h-9" />
+                                <CommandEmpty>No families found.</CommandEmpty>
+                                <CommandGroup>
+                                  {familyOptions.map((option) => (
+                                    <CommandItem
+                                      key={option.value}
+                                      value={option.label}
+                                      onSelect={() => {
+                                        const value = option.value;
+                                        if (value === "new-family") {
+                                          field.onChange("");
+                                          form.setValue("relationshipToHead", "head" as const);
+                                          form.setValue("isFamilyHead", true);
+                                        } else if (value === "no-family") {
+                                          field.onChange("");
+                                          form.setValue("relationshipToHead", "head");
+                                          form.setValue("isFamilyHead", false);
+                                        } else {
+                                          field.onChange(value);
+                                          form.setValue("isFamilyHead", false);
+                                          // Set default relationship for joining family
+                                          if (form.getValues("relationshipToHead") === "head") {
+                                            form.setValue("relationshipToHead", "child");
+                                          }
+                                        }
+                                        setFamilyDropdownOpen(false);
+                                      }}
+                                    >
+                                      <Check
+                                        className={`mr-2 h-4 w-4 ${
+                                          currentValue === option.value ? "opacity-100" : "opacity-0"
+                                        }`}
+                                      />
+                                      {option.label}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                           <FormMessage />
                         </FormItem>
                       );
