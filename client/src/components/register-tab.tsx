@@ -70,8 +70,7 @@ export default function RegisterTab() {
     }
   };
 
-  // The insertMemberSchema already excludes id, createdAt, updatedAt
-  // We need to create a client version that excludes churchId for form validation
+  // Create client schema - similar to insertMemberSchema but omit churchId for client-side form validation
   const clientMemberSchema = z.object({
     title: z.string().optional().or(z.literal("")),
     firstName: z.string().min(1, "First name is required"),
@@ -88,8 +87,8 @@ export default function RegisterTab() {
     fingerprintId: z.string().optional().or(z.literal("")),
     parentId: z.string().optional().or(z.literal("")),
     familyGroupId: z.string().optional().or(z.literal("")),
-    relationshipToHead: z.enum(["head", "spouse", "child", "parent", "sibling", "other"]).nullable().optional(),
-    isFamilyHead: z.boolean().optional(),
+    relationshipToHead: z.enum(["head", "spouse", "child", "parent", "sibling", "other"]).default("head"),
+    isFamilyHead: z.boolean().default(false),
   }).superRefine((data, ctx) => {
     // Phone validation based on age group
     if (data.ageGroup === "adult" && (!data.phone || data.phone.trim() === "")) {
@@ -99,18 +98,11 @@ export default function RegisterTab() {
         path: ["phone"]
       });
     }
-    
-    // Family relationship validation
-    if (data.familyGroupId && !data.relationshipToHead) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Relationship to family head is required when joining a family",
-        path: ["relationshipToHead"]
-      });
-    }
   });
   
-  const form = useForm<InsertMember>({
+  type ClientMemberForm = z.infer<typeof clientMemberSchema>;
+  
+  const form = useForm<ClientMemberForm>({
     resolver: zodResolver(clientMemberSchema),
     defaultValues: {
       title: "",
