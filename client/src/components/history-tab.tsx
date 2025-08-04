@@ -2448,9 +2448,9 @@ export default function HistoryTab() {
 
             const funnelData = [
               { stage: 'First Visit', count: conversionData.totalVisitors, percentage: 100 },
-              { stage: 'Return Visit', count: conversionData.returnVisitors, percentage: conversionData.totalVisitors > 0 ? Math.round((conversionData.returnVisitors / conversionData.totalVisitors) * 100) : 0 },
-              { stage: 'Frequent Visitor', count: conversionData.frequentVisitors, percentage: conversionData.totalVisitors > 0 ? Math.round((conversionData.frequentVisitors / conversionData.totalVisitors) * 100) : 0 },
-              { stage: 'New Member', count: conversionData.newMembers, percentage: conversionData.conversionRate }
+              { stage: 'Followed up/Contacted', count: conversionData.returnVisitors, percentage: conversionData.totalVisitors > 0 ? Math.round((conversionData.returnVisitors / conversionData.totalVisitors) * 100) : 0 },
+              { stage: 'Pending', count: conversionData.totalVisitors - conversionData.returnVisitors - conversionData.newMembers, percentage: conversionData.totalVisitors > 0 ? Math.round(((conversionData.totalVisitors - conversionData.returnVisitors - conversionData.newMembers) / conversionData.totalVisitors) * 100) : 0 },
+              { stage: 'Converted to Member', count: conversionData.newMembers, percentage: conversionData.conversionRate }
             ];
 
             return (
@@ -2563,8 +2563,8 @@ export default function HistoryTab() {
                         <div key={status} className="border rounded-lg p-4">
                           <div className="flex items-center justify-between mb-3">
                             <span className="font-medium capitalize text-slate-700">
-                              {status === 'pending' ? 'First Visit (Pending Follow-up)' :
-                               status === 'contacted' ? 'Return Visit (Contacted)' :
+                              {status === 'pending' ? 'Pending Follow-up' :
+                               status === 'contacted' ? 'Followed up/Contacted' :
                                status === 'member' ? 'Converted to Member' : status}
                             </span>
                             <Badge variant="outline" className={
