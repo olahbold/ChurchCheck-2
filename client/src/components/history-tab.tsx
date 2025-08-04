@@ -2245,65 +2245,91 @@ export default function HistoryTab() {
             );
           })()}
 
-          {/* NEW: Follow-up Effectiveness Dashboard */}
+          {/* Follow-up Effectiveness Dashboard */}
           {analyticsView === "follow-up" && (() => {
-            // Calculate follow-up metrics
-            const followUpData = (() => {
-              const memberAttendanceMap = attendanceHistory.reduce((acc, record) => {
-                if (record.member) {
-                  if (!acc[record.member.id]) {
-                    acc[record.member.id] = {
-                      member: record.member,
-                      attendances: []
-                    };
-                  }
-                  acc[record.member.id].attendances.push(new Date(record.attendanceDate));
-                }
-                return acc;
-              }, {} as Record<string, { member: any; attendances: Date[] }>);
+            // Fetch real follow-up records from API
+            const { data: followUpRecords = [] } = useQuery<any[]>({
+              queryKey: ['/api/follow-up/records'],
+              queryFn: () => fetch('/api/follow-up/records', {
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+                },
+              }).then(res => res.json()).catch(() => []),
+              staleTime: 5 * 60 * 1000,
+            });
 
+            // Calculate authentic follow-up metrics using real data
+            const followUpData = (() => {
               const now = new Date();
               const thirtyDaysAgo = subDays(now, 30);
               const sixtyDaysAgo = subDays(now, 60);
               const ninetyDaysAgo = subDays(now, 90);
 
-              let totalMembers = 0;
-              let membersNeedingFollowUp = 0;
-              let successfulReengagements = 0;
-              let averageDaysSinceLastAttendance = 0;
+              // Get members who need follow-up (haven't attended in 30+ days)
+              const memberAttendanceMap = attendanceHistory.reduce((acc, record) => {
+                if (record.member) {
+                  if (!acc[record.member.id]) {
+                    acc[record.member.id] = {
+                      member: record.member,
+                      lastAttendance: null,
+                      totalAttendances: 0
+                    };
+                  }
+                  const attendanceDate = new Date(record.attendanceDate);
+                  if (!acc[record.member.id].lastAttendance || attendanceDate > acc[record.member.id].lastAttendance!) {
+                    acc[record.member.id].lastAttendance = attendanceDate;
+                  }
+                  acc[record.member.id].totalAttendances++;
+                }
+                return acc;
+              }, {} as Record<string, { member: any; lastAttendance: Date | null; totalAttendances: number }>);
 
-              Object.values(memberAttendanceMap).forEach(({ member, attendances }) => {
-                totalMembers++;
-                const sortedAttendances = attendances.sort((a, b) => b.getTime() - a.getTime());
-                const lastAttendance = sortedAttendances[0];
+              // Count members needing follow-up (30+ days absent)
+              const membersNeedingFollowUp = Object.values(memberAttendanceMap).filter(({ lastAttendance }) => {
+                if (!lastAttendance) return true;
+                return differenceInDays(now, lastAttendance) > 30;
+              }).length;
+
+              // Count actual follow-up attempts from real data
+              const followUpAttempts = followUpRecords.filter(record => {
+                const contactDate = record.lastContactDate ? new Date(record.lastContactDate) : null;
+                return contactDate && contactDate >= thirtyDaysAgo;
+              }).length;
+
+              // Calculate success rate: members who returned after follow-up
+              let successfulReengagements = 0;
+              followUpRecords.forEach(followUpRecord => {
+                if (!followUpRecord.lastContactDate) return;
                 
-                if (lastAttendance) {
-                  const daysSinceLastAttendance = differenceInDays(now, lastAttendance);
-                  averageDaysSinceLastAttendance += daysSinceLastAttendance;
-                  
-                  if (daysSinceLastAttendance > 30) {
-                    membersNeedingFollowUp++;
-                  }
-                  
-                  // Check for successful reengagement (returned within 30 days after missing 30+ days)
-                  const gaps = [];
-                  for (let i = 0; i < sortedAttendances.length - 1; i++) {
-                    const gap = differenceInDays(sortedAttendances[i], sortedAttendances[i + 1]);
-                    if (gap > 30) gaps.push(gap);
-                  }
-                  
-                  if (gaps.length > 0 && daysSinceLastAttendance <= 30) {
-                    successfulReengagements++;
-                  }
+                const contactDate = new Date(followUpRecord.lastContactDate);
+                if (contactDate < thirtyDaysAgo) return; // Only recent follow-ups
+                
+                // Check if member attended after follow-up contact
+                const memberAttendances = attendanceHistory.filter(record => 
+                  record.member?.id === followUpRecord.memberId &&
+                  new Date(record.attendanceDate) > contactDate &&
+                  new Date(record.attendanceDate) <= addDays(contactDate, 30) // Within 30 days of contact
+                );
+                
+                if (memberAttendances.length > 0) {
+                  successfulReengagements++;
                 }
               });
 
-              averageDaysSinceLastAttendance = totalMembers > 0 ? Math.round(averageDaysSinceLastAttendance / totalMembers) : 0;
-              const followUpSuccessRate = membersNeedingFollowUp > 0 ? Math.round((successfulReengagements / membersNeedingFollowUp) * 100) : 0;
+              const followUpSuccessRate = followUpAttempts > 0 ? Math.round((successfulReengagements / followUpAttempts) * 100) : 0;
+
+              // Calculate average days since last attendance
+              const totalMembers = Object.keys(memberAttendanceMap).length;
+              const totalDaysAway = Object.values(memberAttendanceMap).reduce((sum, { lastAttendance }) => {
+                if (!lastAttendance) return sum + 90; // Assume 90 days if no attendance
+                return sum + Math.min(differenceInDays(now, lastAttendance), 90);
+              }, 0);
+              const averageDaysSinceLastAttendance = totalMembers > 0 ? Math.round(totalDaysAway / totalMembers) : 0;
 
               return {
                 totalMembers,
                 membersNeedingFollowUp,
+                followUpAttempts,
                 successfulReengagements,
                 followUpSuccessRate,
                 averageDaysSinceLastAttendance
@@ -2377,32 +2403,87 @@ export default function HistoryTab() {
                     <CardDescription>Track follow-up effectiveness over time</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-80">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={[
-                          { month: 'Jan', successRate: 65, attempts: 12 },
-                          { month: 'Feb', successRate: 72, attempts: 15 },
-                          { month: 'Mar', successRate: 68, attempts: 18 },
-                          { month: 'Apr', successRate: 75, attempts: 14 },
-                          { month: 'May', successRate: 80, attempts: 16 },
-                          { month: 'Jun', successRate: followUpData.followUpSuccessRate, attempts: followUpData.membersNeedingFollowUp }
-                        ]}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="month" />
-                          <YAxis yAxisId="left" label={{ value: 'Success Rate (%)', angle: -90, position: 'insideLeft' }} />
-                          <YAxis yAxisId="right" orientation="right" label={{ value: 'Attempts', angle: 90, position: 'insideRight' }} />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'white',
-                              border: '1px solid #e2e8f0',
-                              borderRadius: '8px'
-                            }}
-                          />
-                          <Line yAxisId="left" type="monotone" dataKey="successRate" stroke="#f97316" strokeWidth={3} />
-                          <Line yAxisId="right" type="monotone" dataKey="attempts" stroke="#6366f1" strokeWidth={2} strokeDasharray="5 5" />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </div>
+                    {(() => {
+                      // Generate authentic trend data from follow-up records
+                      const trendData = (() => {
+                        const monthlyData: Record<string, { attempts: number; successes: number }> = {};
+                        
+                        // Group follow-up records by month
+                        followUpRecords.forEach(record => {
+                          if (!record.lastContactDate) return;
+                          
+                          const contactDate = new Date(record.lastContactDate);
+                          const monthKey = contactDate.toLocaleDateString('en-US', { month: 'short' });
+                          
+                          if (!monthlyData[monthKey]) {
+                            monthlyData[monthKey] = { attempts: 0, successes: 0 };
+                          }
+                          monthlyData[monthKey].attempts++;
+                          
+                          // Check if this follow-up was successful (member returned within 30 days)
+                          const memberAttendances = attendanceHistory.filter(attendance => 
+                            attendance.member?.id === record.memberId &&
+                            new Date(attendance.attendanceDate) > contactDate &&
+                            new Date(attendance.attendanceDate) <= addDays(contactDate, 30)
+                          );
+                          
+                          if (memberAttendances.length > 0) {
+                            monthlyData[monthKey].successes++;
+                          }
+                        });
+                        
+                        // Convert to chart format with success rates
+                        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                        return months.map(month => ({
+                          month,
+                          attempts: monthlyData[month]?.attempts || 0,
+                          successes: monthlyData[month]?.successes || 0,
+                          successRate: monthlyData[month] ? 
+                            Math.round((monthlyData[month].successes / monthlyData[month].attempts) * 100) : 0
+                        })).filter(data => data.attempts > 0 || data.month === format(new Date(), 'MMM')); // Show current month even if no data
+                      })();
+
+                      // If no real data, show helpful message
+                      if (trendData.length === 0) {
+                        return (
+                          <div className="h-80 flex items-center justify-center">
+                            <div className="text-center text-slate-500">
+                              <Target className="h-12 w-12 mx-auto mb-4 text-slate-300" />
+                              <h3 className="font-medium mb-2">No Follow-up Data Available</h3>
+                              <p className="text-sm">Start tracking follow-up activities to see trends here.</p>
+                              <p className="text-xs mt-2">Use the Dashboard → Follow-up section to send follow-ups to members.</p>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="h-80">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={trendData}>
+                              <CartesianGrid strokeDasharray="3 3" />
+                              <XAxis dataKey="month" />
+                              <YAxis yAxisId="left" label={{ value: 'Success Rate (%)', angle: -90, position: 'insideLeft' }} />
+                              <YAxis yAxisId="right" orientation="right" label={{ value: 'Attempts', angle: 90, position: 'insideRight' }} />
+                              <Tooltip 
+                                contentStyle={{ 
+                                  backgroundColor: 'white',
+                                  border: '1px solid #e2e8f0',
+                                  borderRadius: '8px'
+                                }}
+                                formatter={(value, name) => [
+                                  value,
+                                  name === 'successRate' ? 'Success Rate (%)' : 
+                                  name === 'attempts' ? 'Follow-up Attempts' : 'Successful Returns'
+                                ]}
+                              />
+                              <Line yAxisId="left" type="monotone" dataKey="successRate" stroke="#f97316" strokeWidth={3} />
+                              <Line yAxisId="right" type="monotone" dataKey="attempts" stroke="#6366f1" strokeWidth={2} strokeDasharray="5 5" />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                      );
+                    })()}
                   </CardContent>
                 </Card>
               </div>

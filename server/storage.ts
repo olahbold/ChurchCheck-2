@@ -61,6 +61,7 @@ export interface IStorage {
   // Follow-up methods
   updateFollowUpRecord(record: InsertFollowUpRecord): Promise<FollowUpRecord>;
   getMembersNeedingFollowUp(): Promise<(Member & { followUpRecord: FollowUpRecord })[]>;
+  getFollowUpRecords(churchId?: string): Promise<FollowUpRecord[]>;
 
   // Event methods
   createEvent(event: InsertEvent): Promise<Event>;
@@ -609,6 +610,21 @@ export class DatabaseStorage implements IStorage {
       ...row.members,
       followUpRecord: row.follow_up_records,
     }));
+  }
+
+  async getFollowUpRecords(churchId?: string): Promise<FollowUpRecord[]> {
+    if (churchId) {
+      return await db
+        .select()
+        .from(followUpRecords)
+        .where(eq(followUpRecords.churchId, churchId))
+        .orderBy(desc(followUpRecords.lastContactDate));
+    }
+    
+    return await db
+      .select()
+      .from(followUpRecords)
+      .orderBy(desc(followUpRecords.lastContactDate));
   }
 
   async updateConsecutiveAbsences(): Promise<void> {

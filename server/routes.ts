@@ -673,6 +673,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get all follow-up records for analytics
+  app.get("/api/follow-up/records", authenticateToken, async (req: AuthenticatedRequest, res) => {
+    try {
+      const storage = getStorage(req);
+      const records = await storage.getFollowUpRecords(req.churchId);
+      res.json(records);
+    } catch (error) {
+      console.error('Follow-up records fetch error:', error);
+      res.status(500).json({ error: "Failed to fetch follow-up records" });
+    }
+  });
+
   // Specific route must come before parameterized route
   app.post("/api/follow-up/update-absences", authenticateToken, async (req: AuthenticatedRequest, res) => {
     try {
