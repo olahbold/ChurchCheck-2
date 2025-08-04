@@ -196,6 +196,18 @@ export default function HistoryTab() {
     queryKey: ['/api/visitors'],
   });
 
+  // Get follow-up records for analytics (only when needed)
+  const { data: followUpRecords = [] } = useQuery<any[]>({
+    queryKey: ['/api/follow-up/records'],
+    queryFn: () => fetch('/api/follow-up/records', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+      },
+    }).then(res => res.json()).catch(() => []),
+    staleTime: 5 * 60 * 1000,
+    enabled: analyticsView === "follow-up", // Only fetch when viewing follow-up analytics
+  });
+
   // Get statistics for the selected date range
   const { data: rangeStats } = useQuery<AttendanceStats>({
     queryKey: ['/api/attendance/stats-range', startDateStr, endDateStr],
@@ -2247,16 +2259,6 @@ export default function HistoryTab() {
 
           {/* Follow-up Effectiveness Dashboard */}
           {analyticsView === "follow-up" && (() => {
-            // Fetch real follow-up records from API
-            const { data: followUpRecords = [] } = useQuery<any[]>({
-              queryKey: ['/api/follow-up/records'],
-              queryFn: () => fetch('/api/follow-up/records', {
-                headers: {
-                  'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
-                },
-              }).then(res => res.json()).catch(() => []),
-              staleTime: 5 * 60 * 1000,
-            });
 
             // Calculate authentic follow-up metrics using real data
             const followUpData = (() => {
