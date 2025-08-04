@@ -192,7 +192,7 @@ export default function RegisterTab() {
       weddingAnniversary: member.weddingAnniversary || "",
       isCurrentMember: member.isCurrentMember,
       fingerprintId: member.fingerprintId || "",
-      parentId: member.parentId || undefined,
+      parentId: member.parentId || "",
       familyGroupId: member.familyGroupId || "",
       relationshipToHead: (member.relationshipToHead as "head" | "spouse" | "child" | "parent" | "sibling" | "other") || undefined,
       isFamilyHead: member.isFamilyHead || false,
@@ -653,7 +653,7 @@ export default function RegisterTab() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Gender</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="church-form-input">
                             <SelectValue placeholder="Select gender" />
@@ -674,7 +674,7 @@ export default function RegisterTab() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Age Group</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger className="church-form-input">
                             <SelectValue placeholder="Select age group" />
