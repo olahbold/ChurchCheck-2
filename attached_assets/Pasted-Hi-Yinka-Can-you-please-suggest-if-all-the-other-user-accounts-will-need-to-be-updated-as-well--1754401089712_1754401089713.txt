@@ -1,0 +1,42 @@
+Hi Yinka,
+Can you please suggest if all the other user accounts will need to be updated as well?
+
+Also, for the users that did not receive the MCP task initiation email, do you know if we need to re-trigger the notification? (I can see only welcome emails sent in the email log).
+
+Kind Regards, 
+Hemalatha Kannan 
+Digital and Business Compliance, DigitalX
+2375 Waterview Drive, Northbrook, IL 60062-6111
+TEL: +1 224-808-2735
+EMAIL: hemalatha.kannan@astellas.com
+
+From: Kannan, Hemalatha 
+Sent: Monday, August 4, 2025 11:37 AM
+To: Oginni, Olayinka <olayinka.oginni@astellas.com>; Whittaker, Kevin <kevin.whittaker@astellas.com>
+Cc: Vorhies, Michelle <michelle.vorhies@astellas.com>; Aslam, Safi <safi.aslam@astellas.com>; Handzel, Jennifer <jennifer.handzel@astellas.com>; Gao, Lorena <lorena.gao@astellas.com>; Kudo, Kosei(工藤 恒星) <kosei.kudo@astellas.com>; Gupta, Deepti[Non-Employee] <deepti.gupta.contractor@astellas.com>
+Subject: RE: AB PROD MCP Kick-off
+
+Hi Yinka,
+
+Many thanks for the quick action! Do we need to verify other user accounts too before another bunch of MCPs (for quarterly reviews) are kicked-off?
+
+Kind Regards, 
+Hemalatha Kannan 
+Digital and Business Compliance, DigitalX
+2375 Waterview Drive, Northbrook, IL 60062-6111
+TEL: +1 224-808-2735
+EMAIL: hemalatha.kannan@astellas.com
+
+From: Oginni, Olayinka <olayinka.oginni@astellas.com> 
+Sent: Monday, August 4, 2025 5:38 AM
+To: Kannan, Hemalatha <Hemalatha.Kannan@astellas.com>; Whittaker, Kevin <kevin.whittaker@astellas.com>
+Cc: Vorhies, Michelle <michelle.vorhies@astellas.com>; Aslam, Safi <safi.aslam@astellas.com>; Handzel, Jennifer <jennifer.handzel@astellas.com>; Gao, Lorena <lorena.gao@astellas.com>; Kudo, Kosei(工藤 恒星) <kosei.kudo@astellas.com>; Gupta, Deepti[Non-Employee] <deepti.gupta.contractor@astellas.com>
+Subject: RE: AB PROD MCP Kick-off
+
+Hi Hema,
+
+Thanks for flagging this.
+
+I’ve now updated the concerned users’ login settings to enable SAML authentication and confirmed that their accounts are active in the PROD environment. A welcome email has also been sent to support a smooth login experience.
+
+Please let me know if you encounter any further issues.
