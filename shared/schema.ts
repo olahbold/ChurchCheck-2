@@ -53,6 +53,42 @@ export const superAdmins = pgTable("super_admins", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Communication Providers for flexible SMS/Email configuration
+export const communicationProviders = pgTable("communication_providers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  churchId: varchar("church_id").notNull().references(() => churches.id, { onDelete: "cascade" }),
+  providerType: varchar("provider_type", { length: 10 }).notNull(), // 'sms' or 'email'
+  providerName: varchar("provider_name", { length: 30 }).notNull(), // 'twilio', 'sendgrid', 'aws_sns', 'mailgun', etc.
+  displayName: text("display_name").notNull(), // User-friendly name
+  credentials: text("credentials").notNull(), // Encrypted JSON with provider-specific credentials
+  isActive: boolean("is_active").default(true),
+  isPrimary: boolean("is_primary").default(false), // Primary provider for this type
+  testStatus: varchar("test_status", { length: 20 }).default("untested"), // 'connected', 'failed', 'untested'
+  testMessage: text("test_message"), // Error message from last test
+  lastTestedAt: timestamp("last_tested_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Message delivery tracking
+export const messageDeliveries = pgTable("message_deliveries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  churchId: varchar("church_id").notNull().references(() => churches.id, { onDelete: "cascade" }),
+  providerId: varchar("provider_id").notNull().references(() => communicationProviders.id),
+  messageType: varchar("message_type", { length: 20 }).notNull(), // 'birthday', 'followup', 'event', 'bulk'
+  recipientType: varchar("recipient_type", { length: 10 }).notNull(), // 'member' or 'visitor'
+  recipientId: varchar("recipient_id"), // member or visitor ID
+  recipientContact: text("recipient_contact").notNull(), // email or phone number
+  subject: text("subject"), // For emails
+  messageContent: text("message_content").notNull(),
+  deliveryStatus: varchar("delivery_status", { length: 20 }).default("pending"), // 'sent', 'delivered', 'failed', 'pending'
+  providerMessageId: text("provider_message_id"), // External provider's message ID
+  errorMessage: text("error_message"),
+  sentAt: timestamp("sent_at"),
+  deliveredAt: timestamp("delivered_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Subscription tracking
 export const subscriptions = pgTable("subscriptions", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -220,6 +256,25 @@ export const followUpRecordsRelations = relations(followUpRecords, ({ one }) => 
   member: one(members, {
     fields: [followUpRecords.memberId],
     references: [members.id],
+  }),
+}));
+
+export const communicationProvidersRelations = relations(communicationProviders, ({ one, many }) => ({
+  church: one(churches, {
+    fields: [communicationProviders.churchId],
+    references: [churches.id],
+  }),
+  messageDeliveries: many(messageDeliveries),
+}));
+
+export const messageDeliveriesRelations = relations(messageDeliveries, ({ one }) => ({
+  church: one(churches, {
+    fields: [messageDeliveries.churchId],
+    references: [churches.id],
+  }),
+  provider: one(communicationProviders, {
+    fields: [messageDeliveries.providerId],
+    references: [communicationProviders.id],
   }),
 }));
 
@@ -435,6 +490,45 @@ export const externalCheckInAttemptSchema = z.object({
   memberId: z.string().uuid("Invalid member ID"),
 });
 
+// Communication Providers Schemas
+export const insertCommunicationProviderSchema = createInsertSchema(communicationProviders, {
+  providerType: z.enum(["sms", "email"]),
+  providerName: z.string().min(1, "Provider name is required"),
+  displayName: z.string().min(1, "Display name is required"),
+  credentials: z.string().min(1, "Credentials are required"),
+  isActive: z.boolean().default(true),
+  isPrimary: z.boolean().default(false),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const updateCommunicationProviderSchema = z.object({
+  displayName: z.string().min(1).optional(),
+  credentials: z.string().min(1).optional(),
+  isActive: z.boolean().optional(),
+  isPrimary: z.boolean().optional(),
+  testStatus: z.enum(["connected", "failed", "untested"]).optional(),
+  testMessage: z.string().optional(),
+});
+
+export const testCommunicationProviderSchema = z.object({
+  providerId: z.string().uuid(),
+  testRecipient: z.string().min(1, "Test recipient is required"),
+});
+
+export const insertMessageDeliverySchema = createInsertSchema(messageDeliveries, {
+  messageType: z.enum(["birthday", "followup", "event", "bulk"]),
+  recipientType: z.enum(["member", "visitor"]),
+  recipientContact: z.string().min(1, "Recipient contact is required"),
+  messageContent: z.string().min(1, "Message content is required"),
+  deliveryStatus: z.enum(["sent", "delivered", "failed", "pending"]).default("pending"),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Types
 export type Member = typeof members.$inferSelect;
 export type InsertMember = z.infer<typeof insertMemberSchema>;
@@ -447,6 +541,12 @@ export type FollowUpRecord = typeof followUpRecords.$inferSelect;
 export type InsertFollowUpRecord = z.infer<typeof insertFollowUpRecordSchema>;
 export type Visitor = typeof visitors.$inferSelect;
 export type InsertVisitor = z.infer<typeof insertVisitorSchema>;
+export type CommunicationProvider = typeof communicationProviders.$inferSelect;
+export type InsertCommunicationProvider = z.infer<typeof insertCommunicationProviderSchema>;
+export type UpdateCommunicationProvider = z.infer<typeof updateCommunicationProviderSchema>;
+export type TestCommunicationProvider = z.infer<typeof testCommunicationProviderSchema>;
+export type MessageDelivery = typeof messageDeliveries.$inferSelect;
+export type InsertMessageDelivery = z.infer<typeof insertMessageDeliverySchema>;
 
 // External check-in types
 export type ExternalCheckIn = z.infer<typeof externalCheckInSchema>;

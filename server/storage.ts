@@ -8,6 +8,8 @@ import {
   reportRuns,
   visitors,
   users,
+  communicationProviders,
+  messageDeliveries,
   type Member, 
   type InsertMember,
   type Event,
@@ -25,7 +27,12 @@ import {
   type Visitor,
   type InsertVisitor,
   type User, 
-  type InsertUser 
+  type InsertUser,
+  type CommunicationProvider,
+  type InsertCommunicationProvider,
+  type UpdateCommunicationProvider,
+  type MessageDelivery,
+  type InsertMessageDelivery
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, sql, gte, lte, count, isNotNull } from "drizzle-orm";
@@ -103,6 +110,19 @@ export interface IStorage {
   getFamilyCheckInSummary(date: string): Promise<any>;
   getFollowUpActionTracker(): Promise<any>;
   getAttendanceInRange(startDate: string, endDate: string, churchId: string): Promise<any[]>;
+
+  // Communication Provider methods
+  createCommunicationProvider(provider: InsertCommunicationProvider): Promise<CommunicationProvider>;
+  getCommunicationProvider(id: string, churchId?: string): Promise<CommunicationProvider | undefined>;
+  getCommunicationProviders(providerType?: 'sms' | 'email', churchId?: string): Promise<CommunicationProvider[]>;
+  updateCommunicationProvider(id: string, provider: UpdateCommunicationProvider): Promise<CommunicationProvider>;
+  deleteCommunicationProvider(id: string): Promise<void>;
+  setPrimaryProvider(id: string, providerType: 'sms' | 'email', churchId: string): Promise<void>;
+  
+  // Message Delivery methods
+  createMessageDelivery(delivery: InsertMessageDelivery): Promise<MessageDelivery>;
+  getMessageDeliveries(churchId?: string, providerId?: string): Promise<MessageDelivery[]>;
+  updateMessageDeliveryStatus(id: string, status: string, providerMessageId?: string, errorMessage?: string): Promise<MessageDelivery>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1472,5 +1492,135 @@ export class DatabaseStorage implements IStorage {
         )
       )
       .orderBy(desc(attendanceRecords.attendanceDate), desc(attendanceRecords.checkInTime));
+  }
+
+  // Communication Provider methods implementation
+  async createCommunicationProvider(provider: InsertCommunicationProvider): Promise<CommunicationProvider> {
+    const [newProvider] = await db
+      .insert(communicationProviders)
+      .values({
+        ...provider,
+        churchId: this.churchId,
+      })
+      .returning();
+    return newProvider;
+  }
+
+  async getCommunicationProvider(id: string, churchId?: string): Promise<CommunicationProvider | undefined> {
+    const conditions = [eq(communicationProviders.id, id)];
+    if (this.churchId) {
+      conditions.push(eq(communicationProviders.churchId, this.churchId));
+    }
+    
+    const [provider] = await db
+      .select()
+      .from(communicationProviders)
+      .where(and(...conditions));
+    return provider;
+  }
+
+  async getCommunicationProviders(providerType?: 'sms' | 'email', churchId?: string): Promise<CommunicationProvider[]> {
+    const conditions = [];
+    if (this.churchId) {
+      conditions.push(eq(communicationProviders.churchId, this.churchId));
+    }
+    if (providerType) {
+      conditions.push(eq(communicationProviders.providerType, providerType));
+    }
+    
+    return await db
+      .select()
+      .from(communicationProviders)
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(communicationProviders.isPrimary, communicationProviders.displayName);
+  }
+
+  async updateCommunicationProvider(id: string, provider: UpdateCommunicationProvider): Promise<CommunicationProvider> {
+    const [updatedProvider] = await db
+      .update(communicationProviders)
+      .set({
+        ...provider,
+        updatedAt: new Date(),
+      })
+      .where(eq(communicationProviders.id, id))
+      .returning();
+    return updatedProvider;
+  }
+
+  async deleteCommunicationProvider(id: string): Promise<void> {
+    await db.delete(communicationProviders).where(eq(communicationProviders.id, id));
+  }
+
+  async setPrimaryProvider(id: string, providerType: 'sms' | 'email', churchId: string): Promise<void> {
+    // First, set all providers of this type to non-primary
+    await db
+      .update(communicationProviders)
+      .set({ isPrimary: false })
+      .where(
+        and(
+          eq(communicationProviders.churchId, churchId),
+          eq(communicationProviders.providerType, providerType)
+        )
+      );
+
+    // Then set the specified provider as primary
+    await db
+      .update(communicationProviders)
+      .set({ isPrimary: true })
+      .where(eq(communicationProviders.id, id));
+  }
+
+  // Message Delivery methods implementation
+  async createMessageDelivery(delivery: InsertMessageDelivery): Promise<MessageDelivery> {
+    const [newDelivery] = await db
+      .insert(messageDeliveries)
+      .values({
+        ...delivery,
+        churchId: this.churchId,
+      })
+      .returning();
+    return newDelivery;
+  }
+
+  async getMessageDeliveries(churchId?: string, providerId?: string): Promise<MessageDelivery[]> {
+    const conditions = [];
+    if (this.churchId) {
+      conditions.push(eq(messageDeliveries.churchId, this.churchId));
+    }
+    if (providerId) {
+      conditions.push(eq(messageDeliveries.providerId, providerId));
+    }
+    
+    return await db
+      .select()
+      .from(messageDeliveries)
+      .where(conditions.length ? and(...conditions) : undefined)
+      .orderBy(desc(messageDeliveries.createdAt));
+  }
+
+  async updateMessageDeliveryStatus(id: string, status: string, providerMessageId?: string, errorMessage?: string): Promise<MessageDelivery> {
+    const updates: any = {
+      deliveryStatus: status,
+    };
+    
+    if (providerMessageId) {
+      updates.providerMessageId = providerMessageId;
+    }
+    if (errorMessage) {
+      updates.errorMessage = errorMessage;
+    }
+    if (status === 'sent') {
+      updates.sentAt = new Date();
+    }
+    if (status === 'delivered') {
+      updates.deliveredAt = new Date();
+    }
+
+    const [updatedDelivery] = await db
+      .update(messageDeliveries)
+      .set(updates)
+      .where(eq(messageDeliveries.id, id))
+      .returning();
+    return updatedDelivery;
   }
 }

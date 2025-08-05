@@ -665,6 +665,16 @@ export default function SettingsTab() {
                     <div className="space-y-3">
                       <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                         <Button 
+                          onClick={() => window.open('/communication-settings', '_blank')}
+                          variant="outline" 
+                          className="w-full justify-start hover:bg-slate-50 dark:hover:bg-slate-800"
+                        >
+                          <Settings className="mr-3 h-4 w-4" />
+                          Communication Settings
+                        </Button>
+                      </motion.div>
+                      <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                        <Button 
                           onClick={() => handleSystemAction("Manage Admin Users")}
                           variant="outline" 
                           className="w-full justify-start hover:bg-slate-50 dark:hover:bg-slate-800"

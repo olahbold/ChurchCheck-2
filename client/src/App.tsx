@@ -12,6 +12,7 @@ import Home from '@/pages/home';
 import UserManagementDemo from '@/pages/user-management-demo';
 import { SuperAdminPage } from '@/pages/super-admin';
 import ExternalCheckInPage from '@/components/external-checkin-page';
+import CommunicationSettingsPage from '@/pages/communication-settings';
 
 function App() {
   return (
@@ -41,6 +42,7 @@ function App() {
             <Route path="/followup" component={Home} />
             <Route path="/settings" component={Home} />
             <Route path="/admin" component={Home} />
+            <Route path="/communication-settings" component={CommunicationSettingsPage} />
             
             {/* Fallback */}
             <Route>
