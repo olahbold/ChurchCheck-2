@@ -1,0 +1,789 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChurchConnect: Biometric Attendance System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    primary: '#6366F1',
+                    secondary: '#8B5CF6',
+                    success: '#10B981',
+                    warning: '#F59E0B',
+                    error: '#EF4444'
+                },
+                fontFamily: {
+                    'inter': ['Inter', 'sans-serif']
+                }
+            }
+        }
+    };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-slate-50 font-inter">
+    <!-- @COMPONENT: App Container -->
+    <div class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+        
+        <!-- Header -->
+        <!-- @COMPONENT: Header [logo, title, admin status] -->
+        <header class="bg-white shadow-sm border-b border-slate-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+                            <i class="fas fa-church text-white text-lg"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-semibold text-slate-900">ChurchConnect</h1>
+                            <p class="text-sm text-slate-500">Biometric Attendance System</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="text-right">
+                            <p class="text-sm font-medium text-slate-900" data-bind="currentUser.name">Admin User</p>
+                            <p class="text-xs text-slate-500" data-bind="currentDate">Sunday, March 10, 2024</p>
+                        </div>
+                        <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                            <i class="fas fa-user text-white text-sm"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <!-- @COMPONENT: TabNavigation [activeTab, onTabChange] -->
+        <nav class="bg-white border-b border-slate-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex space-x-8">
+                    <button class="tab-button active" data-tab="register">
+                        <i class="fas fa-user-plus mr-2"></i>Register
+                    </button>
+                    <button class="tab-button" data-tab="checkin">
+                        <i class="fas fa-fingerprint mr-2"></i>Check-In
+                    </button>
+                    <button class="tab-button" data-tab="dashboard">
+                        <i class="fas fa-chart-bar mr-2"></i>Dashboard
+                    </button>
+                    <button class="tab-button" data-tab="settings">
+                        <i class="fas fa-cog mr-2"></i>Settings
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            
+            <!-- Register Tab -->
+            <!-- @COMPONENT: RegisterTab [onSubmit, validationRules] -->
+            <div id="register-tab" class="tab-content active">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    
+                    <!-- Registration Form -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <h2 class="text-2xl font-semibold text-slate-900 mb-6">Member Registration</h2>
+                        
+                        <form class="space-y-6" data-implementation="Form validation and submission handler needed">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-2">First Name</label>
+                                    <input type="text" required class="form-input" placeholder="Enter first name" data-mock="true">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-2">Surname</label>
+                                    <input type="text" required class="form-input" placeholder="Enter surname" data-mock="true">
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Group</label>
+                                <select class="form-input" required data-mock="true">
+                                    <option value="">Select group</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                    <option value="child">Child</option>
+                                    <option value="adolescent">Adolescent</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Phone Number</label>
+                                <input type="tel" required class="form-input" placeholder="+1 (555) 123-4567" data-mock="true">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Date of Birth</label>
+                                <input type="date" required class="form-input" data-mock="true">
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-2">Current Member</label>
+                                <div class="flex space-x-4">
+                                    <label class="flex items-center">
+                                        <input type="radio" name="current_member" value="yes" class="mr-2 text-primary" data-mock="true">
+                                        <span class="text-sm">Yes</span>
+                                    </label>
+                                    <label class="flex items-center">
+                                        <input type="radio" name="current_member" value="no" class="mr-2 text-primary" data-mock="true">
+                                        <span class="text-sm">No</span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Fingerprint Enrollment -->
+                            <div class="border-t border-slate-200 pt-6">
+                                <h3 class="text-lg font-medium text-slate-900 mb-4">Fingerprint Enrollment</h3>
+                                <div class="bg-slate-50 rounded-lg p-6 text-center">
+                                    <div class="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                                        <i class="fas fa-fingerprint text-primary text-3xl"></i>
+                                    </div>
+                                    <p class="text-slate-600 mb-4">Place finger on scanner to enroll</p>
+                                    <button type="button" class="btn-primary" data-event="click:startFingerprintEnrollment">
+                                        Start Enrollment
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="flex space-x-4">
+                                <button type="submit" class="btn-primary flex-1" data-event="click:submitRegistration">
+                                    <i class="fas fa-save mr-2"></i>Register Member
+                                </button>
+                                <button type="button" class="btn-secondary" data-event="click:clearForm">
+                                    <i class="fas fa-times mr-2"></i>Clear
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Family Linking Panel -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <h3 class="text-lg font-semibold text-slate-900 mb-4">Family Linking</h3>
+                        <p class="text-slate-600 mb-6">Link children to parent accounts for quick family check-ins.</p>
+                        
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between p-4 bg-slate-50 rounded-lg">
+                                <div>
+                                    <p class="font-medium text-slate-900" data-mock="true">John Smith</p>
+                                    <p class="text-sm text-slate-500">Parent</p>
+                                </div>
+                                <span class="px-3 py-1 bg-success/10 text-success text-sm rounded-full">Active</span>
+                            </div>
+
+                            <div class="ml-6 space-y-2">
+                                <!-- @MAP: children.map(child => ( -->
+                                <div class="flex items-center justify-between p-3 bg-blue-50 border-l-4 border-primary rounded-r-lg">
+                                    <div>
+                                        <p class="font-medium text-slate-900" data-mock="true">Sarah Smith</p>
+                                        <p class="text-sm text-slate-500">Child - Age 8</p>
+                                    </div>
+                                    <button class="text-error hover:text-error/80">
+                                        <i class="fas fa-unlink"></i>
+                                    </button>
+                                </div>
+                                <div class="flex items-center justify-between p-3 bg-blue-50 border-l-4 border-primary rounded-r-lg">
+                                    <div>
+                                        <p class="font-medium text-slate-900" data-mock="true">David Smith</p>
+                                        <p class="text-sm text-slate-500">Child - Age 12</p>
+                                    </div>
+                                    <button class="text-error hover:text-error/80">
+                                        <i class="fas fa-unlink"></i>
+                                    </button>
+                                </div>
+                                <!-- @END_MAP )) -->
+                            </div>
+                        </div>
+
+                        <button class="btn-outline mt-6 w-full" data-event="click:linkFamily">
+                            <i class="fas fa-link mr-2"></i>Link New Family Member
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Check-In Tab -->
+            <!-- @COMPONENT: CheckInTab [fingerprintReader, onCheckIn] -->
+            <div id="checkin-tab" class="tab-content" style="display: none;">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    
+                    <!-- Fingerprint Scanner -->
+                    <div class="lg:col-span-2">
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
+                            <h2 class="text-2xl font-semibold text-slate-900 mb-6 text-center">Sunday Check-In</h2>
+                            
+                            <div class="bg-gradient-to-br from-primary/5 to-secondary/5 rounded-2xl p-8 text-center">
+                                <div class="w-32 h-32 bg-white rounded-full shadow-lg flex items-center justify-center mx-auto mb-6">
+                                    <i class="fas fa-fingerprint text-primary text-5xl"></i>
+                                </div>
+                                
+                                <h3 class="text-xl font-semibold text-slate-900 mb-2">Place Finger on Scanner</h3>
+                                <p class="text-slate-600 mb-6">System will automatically identify and check you in</p>
+                                
+                                <div class="inline-flex items-center space-x-2 text-slate-500">
+                                    <div class="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                                    <span>Waiting for fingerprint...</span>
+                                </div>
+                            </div>
+
+                            <!-- Manual Override -->
+                            <div class="mt-8 pt-6 border-t border-slate-200">
+                                <h4 class="text-lg font-medium text-slate-900 mb-4">Manual Check-In</h4>
+                                <div class="flex space-x-4">
+                                    <input type="text" placeholder="Search member name..." class="form-input flex-1" data-mock="true">
+                                    <button class="btn-outline" data-event="click:searchMember">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                    <button class="btn-secondary" data-event="click:guestCheckIn">
+                                        Guest Check-In
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Today's Attendance -->
+                    <div class="space-y-6">
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <h3 class="text-lg font-semibold text-slate-900 mb-4">Today's Attendance</h3>
+                            
+                            <div class="space-y-4">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-slate-600">Total Present</span>
+                                    <span class="text-2xl font-bold text-success" data-bind="attendance.total">127</span>
+                                </div>
+                                
+                                <div class="grid grid-cols-2 gap-4 text-sm">
+                                    <div class="text-center p-3 bg-blue-50 rounded-lg">
+                                        <div class="text-lg font-semibold text-slate-900" data-bind="attendance.male">45</div>
+                                        <div class="text-slate-600">Male</div>
+                                    </div>
+                                    <div class="text-center p-3 bg-pink-50 rounded-lg">
+                                        <div class="text-lg font-semibold text-slate-900" data-bind="attendance.female">52</div>
+                                        <div class="text-slate-600">Female</div>
+                                    </div>
+                                    <div class="text-center p-3 bg-yellow-50 rounded-lg">
+                                        <div class="text-lg font-semibold text-slate-900" data-bind="attendance.children">21</div>
+                                        <div class="text-slate-600">Children</div>
+                                    </div>
+                                    <div class="text-center p-3 bg-purple-50 rounded-lg">
+                                        <div class="text-lg font-semibold text-slate-900" data-bind="attendance.adolescent">9</div>
+                                        <div class="text-slate-600">Adolescent</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recent Check-ins -->
+                        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                            <h3 class="text-lg font-semibold text-slate-900 mb-4">Recent Check-ins</h3>
+                            
+                            <div class="space-y-3">
+                                <!-- @MAP: recentCheckIns.map(checkIn => ( -->
+                                <div class="flex items-center space-x-3 p-3 bg-success/5 rounded-lg border border-success/20">
+                                    <div class="w-8 h-8 bg-success rounded-full flex items-center justify-center">
+                                        <i class="fas fa-check text-white text-sm"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="font-medium text-slate-900" data-mock="true">Sarah Johnson</p>
+                                        <p class="text-sm text-slate-500">9:45 AM</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3 p-3 bg-success/5 rounded-lg border border-success/20">
+                                    <div class="w-8 h-8 bg-success rounded-full flex items-center justify-center">
+                                        <i class="fas fa-check text-white text-sm"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="font-medium text-slate-900" data-mock="true">Michael Brown</p>
+                                        <p class="text-sm text-slate-500">9:42 AM</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-3 p-3 bg-primary/5 rounded-lg border border-primary/20">
+                                    <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+                                        <i class="fas fa-users text-white text-sm"></i>
+                                    </div>
+                                    <div class="flex-1">
+                                        <p class="font-medium text-slate-900" data-mock="true">Smith Family (4)</p>
+                                        <p class="text-sm text-slate-500">9:40 AM</p>
+                                    </div>
+                                </div>
+                                <!-- @END_MAP )) -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dashboard Tab -->
+            <!-- @COMPONENT: DashboardTab [analytics, memberData, attendanceHistory] -->
+            <div id="dashboard-tab" class="tab-content" style="display: none;">
+                
+                <!-- Stats Overview -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-slate-600">Total Members</p>
+                                <p class="text-3xl font-bold text-slate-900" data-bind="stats.totalMembers">342</p>
+                            </div>
+                            <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-users text-primary text-xl"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-success mt-2">
+                            <i class="fas fa-arrow-up mr-1"></i>+12 this month
+                        </p>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-slate-600">Today's Attendance</p>
+                                <p class="text-3xl font-bold text-slate-900" data-bind="stats.todayAttendance">127</p>
+                            </div>
+                            <div class="w-12 h-12 bg-success/10 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-calendar-check text-success text-xl"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-slate-600 mt-2">37% attendance rate</p>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-slate-600">Follow-up Needed</p>
+                                <p class="text-3xl font-bold text-slate-900" data-bind="stats.followUpNeeded">23</p>
+                            </div>
+                            <div class="w-12 h-12 bg-warning/10 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-exclamation-triangle text-warning text-xl"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-warning mt-2">3+ services missed</p>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <p class="text-sm font-medium text-slate-600">Average Weekly</p>
+                                <p class="text-3xl font-bold text-slate-900" data-bind="stats.averageWeekly">134</p>
+                            </div>
+                            <div class="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-chart-line text-secondary text-xl"></i>
+                            </div>
+                        </div>
+                        <p class="text-sm text-success mt-2">
+                            <i class="fas fa-arrow-up mr-1"></i>+5% vs last month
+                        </p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    
+                    <!-- Member Search & Filter -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold text-slate-900">Member Directory</h3>
+                            <button class="btn-outline" data-event="click:exportMembers">
+                                <i class="fas fa-download mr-2"></i>Export CSV
+                            </button>
+                        </div>
+
+                        <div class="space-y-4 mb-6">
+                            <div class="flex space-x-4">
+                                <input type="text" placeholder="Search members..." class="form-input flex-1" data-mock="true">
+                                <button class="btn-primary">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="flex space-x-4">
+                                <select class="form-input" data-mock="true">
+                                    <option>All Groups</option>
+                                    <option>Male</option>
+                                    <option>Female</option>
+                                    <option>Children</option>
+                                    <option>Adolescent</option>
+                                </select>
+                                <select class="form-input" data-mock="true">
+                                    <option>All Status</option>
+                                    <option>Current Members</option>
+                                    <option>New Members</option>
+                                    <option>Inactive</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3 max-h-96 overflow-y-auto">
+                            <!-- @MAP: filteredMembers.map(member => ( -->
+                            <div class="flex items-center justify-between p-4 border border-slate-200 rounded-lg hover:bg-slate-50">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
+                                        <span class="text-white font-medium" data-mock="true">SJ</span>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-slate-900" data-mock="true">Sarah Johnson</p>
+                                        <p class="text-sm text-slate-500">Female • Current Member</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm text-success">Present Today</p>
+                                    <p class="text-xs text-slate-500">Last: 3/10/2024</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between p-4 border border-slate-200 rounded-lg hover:bg-slate-50">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-10 h-10 bg-secondary rounded-full flex items-center justify-center">
+                                        <span class="text-white font-medium" data-mock="true">MB</span>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-slate-900" data-mock="true">Michael Brown</p>
+                                        <p class="text-sm text-slate-500">Male • Current Member</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm text-warning">Absent (2 weeks)</p>
+                                    <p class="text-xs text-slate-500">Last: 2/25/2024</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between p-4 border border-slate-200 rounded-lg hover:bg-slate-50">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-10 h-10 bg-success rounded-full flex items-center justify-center">
+                                        <span class="text-white font-medium" data-mock="true">EW</span>
+                                    </div>
+                                    <div>
+                                        <p class="font-medium text-slate-900" data-mock="true">Emily Wilson</p>
+                                        <p class="text-sm text-slate-500">Female • New Member</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="text-sm text-success">Present Today</p>
+                                    <p class="text-xs text-slate-500">Last: 3/10/2024</p>
+                                </div>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+                    </div>
+
+                    <!-- Follow-up Notifications -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold text-slate-900">Follow-up Queue</h3>
+                            <button class="btn-primary" data-event="click:sendBulkFollowUp">
+                                <i class="fas fa-paper-plane mr-2"></i>Send All
+                            </button>
+                        </div>
+
+                        <div class="space-y-4">
+                            <!-- @MAP: followUpQueue.map(member => ( -->
+                            <div class="p-4 bg-warning/5 border border-warning/20 rounded-lg">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div>
+                                        <p class="font-medium text-slate-900" data-mock="true">Robert Davis</p>
+                                        <p class="text-sm text-slate-500">Male • +1 (555) 123-4567</p>
+                                    </div>
+                                    <span class="px-2 py-1 bg-error/10 text-error text-sm rounded-full">4 weeks absent</span>
+                                </div>
+                                <p class="text-sm text-slate-600 mb-3" data-mock="true">Last attended: February 11, 2024</p>
+                                <div class="flex space-x-2">
+                                    <button class="btn-sm btn-outline" data-event="click:sendSMS">
+                                        <i class="fas fa-sms mr-1"></i>SMS
+                                    </button>
+                                    <button class="btn-sm btn-outline" data-event="click:sendEmail">
+                                        <i class="fas fa-envelope mr-1"></i>Email
+                                    </button>
+                                    <button class="btn-sm btn-secondary" data-event="click:markContacted">
+                                        <i class="fas fa-check mr-1"></i>Mark Contacted
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="p-4 bg-warning/5 border border-warning/20 rounded-lg">
+                                <div class="flex items-center justify-between mb-3">
+                                    <div>
+                                        <p class="font-medium text-slate-900" data-mock="true">Lisa Anderson</p>
+                                        <p class="text-sm text-slate-500">Female • +1 (555) 987-6543</p>
+                                    </div>
+                                    <span class="px-2 py-1 bg-warning/10 text-warning text-sm rounded-full">3 weeks absent</span>
+                                </div>
+                                <p class="text-sm text-slate-600 mb-3" data-mock="true">Last attended: February 18, 2024</p>
+                                <div class="flex space-x-2">
+                                    <button class="btn-sm btn-outline" data-event="click:sendSMS">
+                                        <i class="fas fa-sms mr-1"></i>SMS
+                                    </button>
+                                    <button class="btn-sm btn-outline" data-event="click:sendEmail">
+                                        <i class="fas fa-envelope mr-1"></i>Email
+                                    </button>
+                                    <button class="btn-sm btn-secondary" data-event="click:markContacted">
+                                        <i class="fas fa-check mr-1"></i>Mark Contacted
+                                    </button>
+                                </div>
+                            </div>
+                            <!-- @END_MAP )) -->
+                        </div>
+
+                        <!-- Follow-up Template -->
+                        <div class="mt-6 pt-6 border-t border-slate-200">
+                            <h4 class="font-medium text-slate-900 mb-3">Message Template</h4>
+                            <textarea class="form-input" rows="3" data-mock="true" placeholder="Hi [Name], we missed you at church today. Hope to see you next Sunday! - Grace Community Church"></textarea>
+                            <button class="btn-outline mt-3" data-event="click:updateTemplate">
+                                <i class="fas fa-save mr-2"></i>Update Template
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <!-- @COMPONENT: SettingsTab [adminAccess, dataManagement, backupOptions] -->
+            <div id="settings-tab" class="tab-content" style="display: none;">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    
+                    <!-- Data Management -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <h3 class="text-lg font-semibold text-slate-900 mb-6">Data Management</h3>
+                        
+                        <div class="space-y-6">
+                            <div>
+                                <h4 class="font-medium text-slate-900 mb-3">Export Options</h4>
+                                <div class="space-y-3">
+                                    <button class="w-full btn-outline text-left" data-event="click:exportAllMembers">
+                                        <i class="fas fa-users mr-3"></i>Export All Members (CSV)
+                                    </button>
+                                    <button class="w-full btn-outline text-left" data-event="click:exportAttendance">
+                                        <i class="fas fa-calendar-alt mr-3"></i>Export Attendance History (CSV)
+                                    </button>
+                                    <button class="w-full btn-outline text-left" data-event="click:exportReports">
+                                        <i class="fas fa-chart-bar mr-3"></i>Export Monthly Report (PDF)
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="border-t border-slate-200 pt-6">
+                                <h4 class="font-medium text-slate-900 mb-3">Backup & Sync</h4>
+                                <div class="space-y-3">
+                                    <div class="flex items-center justify-between p-3 bg-success/5 border border-success/20 rounded-lg">
+                                        <div class="flex items-center space-x-3">
+                                            <i class="fas fa-cloud text-success"></i>
+                                            <span class="text-sm">Google Sheets Sync</span>
+                                        </div>
+                                        <span class="text-xs text-success">Connected</span>
+                                    </div>
+                                    <button class="w-full btn-outline text-left" data-event="click:backupToCloud">
+                                        <i class="fas fa-cloud-upload-alt mr-3"></i>Manual Backup to Cloud
+                                    </button>
+                                    <button class="w-full btn-outline text-left" data-event="click:restoreFromBackup">
+                                        <i class="fas fa-cloud-download-alt mr-3"></i>Restore from Backup
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- System Settings -->
+                    <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                        <h3 class="text-lg font-semibold text-slate-900 mb-6">System Settings</h3>
+                        
+                        <div class="space-y-6">
+                            <div>
+                                <h4 class="font-medium text-slate-900 mb-3">Fingerprint Settings</h4>
+                                <div class="space-y-3">
+                                    <button class="w-full btn-outline text-left" data-event="click:resetFingerprint">
+                                        <i class="fas fa-fingerprint mr-3"></i>Reset Member Fingerprint
+                                    </button>
+                                    <button class="w-full btn-outline text-left" data-event="click:calibrateScanner">
+                                        <i class="fas fa-cog mr-3"></i>Calibrate Scanner
+                                    </button>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-slate-700">Auto Check-in Sensitivity</span>
+                                        <select class="form-input w-32" data-mock="true">
+                                            <option>High</option>
+                                            <option selected>Medium</option>
+                                            <option>Low</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="border-t border-slate-200 pt-6">
+                                <h4 class="font-medium text-slate-900 mb-3">Follow-up Settings</h4>
+                                <div class="space-y-4">
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-slate-700">Auto Follow-up After</span>
+                                        <select class="form-input w-32" data-mock="true">
+                                            <option>2 weeks</option>
+                                            <option selected>3 weeks</option>
+                                            <option>4 weeks</option>
+                                        </select>
+                                    </div>
+                                    <div class="flex items-center justify-between">
+                                        <span class="text-sm text-slate-700">Send Follow-ups</span>
+                                        <label class="relative inline-flex items-center cursor-pointer">
+                                            <input type="checkbox" class="sr-only peer" checked data-mock="true">
+                                            <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="border-t border-slate-200 pt-6">
+                                <h4 class="font-medium text-slate-900 mb-3">Admin Access</h4>
+                                <div class="space-y-3">
+                                    <button class="w-full btn-outline text-left" data-event="click:manageUsers">
+                                        <i class="fas fa-user-cog mr-3"></i>Manage Admin Users
+                                    </button>
+                                    <button class="w-full btn-outline text-left" data-event="click:viewAuditLog">
+                                        <i class="fas fa-history mr-3"></i>View Activity Log
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Danger Zone -->
+                <div class="mt-8 bg-error/5 border border-error/20 rounded-xl p-6">
+                    <h3 class="text-lg font-semibold text-error mb-4">Danger Zone</h3>
+                    <p class="text-sm text-slate-600 mb-4">These actions cannot be undone. Please be careful.</p>
+                    <div class="flex space-x-4">
+                        <button class="btn-error" data-event="click:clearAllData">
+                            <i class="fas fa-trash mr-2"></i>Clear All Data
+                        </button>
+                        <button class="btn-error" data-event="click:resetSystem">
+                            <i class="fas fa-redo mr-2"></i>Factory Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+    <!-- @END_COMPONENT: App Container -->
+
+    <style>
+        .form-input {
+            @apply w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent transition-colors;
+        }
+        
+        .btn-primary {
+            @apply bg-primary hover:bg-primary/90 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center;
+        }
+        
+        .btn-secondary {
+            @apply bg-slate-600 hover:bg-slate-700 text-white font-medium py-3 px-6 rounded-lg transition-colors flex items-center justify-center;
+        }
+        
+        .btn-outline {
+            @apply border-2 border-primary text-primary hover:bg-primary hover:text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center;
+        }
+        
+        .btn-error {
+            @apply bg-error hover:bg-error/90 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center;
+        }
+        
+        .btn-sm {
+            @apply py-1 px-3 text-sm rounded;
+        }
+        
+        .tab-button {
+            @apply flex items-center py-4 px-6 text-slate-600 hover:text-slate-900 border-b-2 border-transparent font-medium transition-colors;
+        }
+        
+        .tab-button.active {
+            @apply text-primary border-primary;
+        }
+        
+        .tab-content {
+            @apply block;
+        }
+    </style>
+
+    <script>
+    (function() {
+        // Tab switching functionality
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tabName = button.dataset.tab;
+                
+                // Remove active class from all buttons and contents
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(content => content.style.display = 'none');
+                
+                // Add active class to clicked button and show corresponding content
+                button.classList.add('active');
+                document.getElementById(tabName + '-tab').style.display = 'block';
+            });
+        });
+
+        // Mock fingerprint scanning animation
+        let fingerprintScanning = false;
+        
+        function startFingerprintScan() {
+            if (fingerprintScanning) return;
+            fingerprintScanning = true;
+            
+            // TODO: Implement actual fingerprint scanning logic
+            // This would interface with the tablet's fingerprint reader
+            
+            // Mock scan animation
+            setTimeout(() => {
+                // Simulate successful scan
+                alert('✅ Check-in successful!\nWelcome, Sarah Johnson');
+                fingerprintScanning = false;
+            }, 2000);
+        }
+
+        // Mock form submissions and interactions
+        document.addEventListener('click', (e) => {
+            const target = e.target.closest('button');
+            if (!target) return;
+            
+            // TODO: Replace these mock interactions with actual functionality
+            if (target.textContent.includes('Register Member')) {
+                e.preventDefault();
+                alert('✅ Member registered successfully!');
+            } else if (target.textContent.includes('Start Enrollment')) {
+                alert('📱 Place finger on scanner...');
+                startFingerprintScan();
+            } else if (target.textContent.includes('Export')) {
+                alert('📊 Export started - file will download shortly');
+            } else if (target.textContent.includes('Send')) {
+                alert('📧 Follow-up message sent!');
+            }
+        });
+
+        // Mock data binding for real-time updates
+        // TODO: Replace with actual state management and API calls
+        function updateAttendanceCounters() {
+            // This would connect to real attendance data
+            const counters = {
+                total: Math.floor(Math.random() * 50) + 100,
+                male: Math.floor(Math.random() * 30) + 40,
+                female: Math.floor(Math.random() * 30) + 45,
+                children: Math.floor(Math.random() * 15) + 15,
+                adolescent: Math.floor(Math.random() * 10) + 5
+            };
+            
+            // Update UI elements with data-bind attributes
+            document.querySelectorAll('[data-bind]').forEach(element => {
+                const binding = element.dataset.bind;
+                if (binding.startsWith('attendance.')) {
+                    const key = binding.split('.')[1];
+                    if (counters[key]) {
+                        element.textContent = counters[key];
+                    }
+                }
+            });
+        }
+
+        // Update counters every 30 seconds (in real app, this would be event-driven)
+        setInterval(updateAttendanceCounters, 30000);
+    })();
+    </script>
+</body>
+</html>
