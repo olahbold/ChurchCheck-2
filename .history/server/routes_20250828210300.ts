@@ -44,7 +44,6 @@ import jwt from 'jsonwebtoken';
 import { and, eq } from "drizzle-orm";
 import 'dotenv/config'
 import bcrypt from 'bcryptjs';
-import e from "express";
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
@@ -2069,21 +2068,8 @@ app.post('/api/super-admin/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Generate the token
-    const JWT_SECRET = process.env.JWT_SECRET || 'fallback-super-secret-key';
-    const token = jwt.sign(
-      { 
-        id: superAdmin.id, 
-        email: superAdmin.email,
-        role: 'super_admin',
-        type: 'super_admin' 
-      },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
     // Continue with token generation or other login success logic
-    res.status(200).json({success :true, message: 'Login successful', token, admin:{ id: superAdmin.id,email: superAdmin.email,firstName: superAdmin.firstName,lastName: superAdmin.lastName,role: superAdmin.role }});
+    res.status(200).json({ message: 'Login successful' });
   } catch (error) {
     console.error('Super admin login error:', error);
     res.status(500).json({ error: 'Login failed' });

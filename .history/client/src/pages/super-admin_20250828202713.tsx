@@ -66,14 +66,10 @@ export function SuperAdminPage() {
   };
 
   const handleLogin = (token: string, adminData: any) => {
-    
-
     if (!token || !adminData) {
       console.error("Login failed: Missing token or admin data");
       return;
     }
-    localStorage.setItem("super_admin_token", token);
-  localStorage.setItem("super_admin_data", JSON.stringify(adminData));
     setIsAuthenticated(true);
     setAdmin(adminData);
     setCurrentView("dashboard");

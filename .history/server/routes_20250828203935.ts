@@ -44,7 +44,6 @@ import jwt from 'jsonwebtoken';
 import { and, eq } from "drizzle-orm";
 import 'dotenv/config'
 import bcrypt from 'bcryptjs';
-import e from "express";
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
@@ -2032,11 +2031,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 // Defaults pulled entirely from ENV
-if (!process.env.JWT_SECRET) {
-  console.error("JWT_SECRET is not set in environment variables");
-  process.exit(1); // Exit the application if the secret is missing
-}
-
 const DEFAULT_SUPER_ADMIN_EMAIL = (process.env.DEFAULT_SUPER_ADMIN_EMAIL || "admin@churchconnect.com").toLowerCase();
 const DEFAULT_SUPER_ADMIN_PASSWORD = process.env.DEFAULT_SUPER_ADMIN_PASSWORD || "ChangeMe123!"; // must exist in .env
 const DEFAULT_SUPER_ADMIN_FIRST = process.env.DEFAULT_SUPER_ADMIN_FIRST || "Super";
@@ -2069,21 +2063,8 @@ app.post('/api/super-admin/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Generate the token
-    const JWT_SECRET = process.env.JWT_SECRET || 'fallback-super-secret-key';
-    const token = jwt.sign(
-      { 
-        id: superAdmin.id, 
-        email: superAdmin.email,
-        role: 'super_admin',
-        type: 'super_admin' 
-      },
-      JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
     // Continue with token generation or other login success logic
-    res.status(200).json({success :true, message: 'Login successful', token, admin:{ id: superAdmin.id,email: superAdmin.email,firstName: superAdmin.firstName,lastName: superAdmin.lastName,role: superAdmin.role }});
+    res.status(200).json({ message: 'Login successful' });
   } catch (error) {
     console.error('Super admin login error:', error);
     res.status(500).json({ error: 'Login failed' });
@@ -2100,19 +2081,13 @@ app.post('/api/super-admin/login', async (req, res) => {
 });
 
 
-  
-
-
   // Super admin middleware
   const authenticateSuperAdmin = async (req: any, res: any, next: any) => {
-      try {
-        if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer ')) {
-          return res.status(401).json({ error: "Invalid authorization header format" });
-        }
-        const token = req.headers.authorization?.replace('Bearer ', '');
-        if (!token) {
-          return res.status(401).json({ error: "No token provided" });
-        }
+    try {
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (!token) {
+        return res.status(401).json({ error: "No token provided" });
+      }
 
       const JWT_SECRET = process.env.JWT_SECRET || 'fallback-super-secret-key';
       const decoded = jwt.verify(token, JWT_SECRET) as any;
@@ -2122,24 +2097,18 @@ app.post('/api/super-admin/login', async (req, res) => {
       }
 
       const superAdmin = await churchStorage.getSuperAdminById(decoded.id);
-      if (!superAdmin) {
-        return res.status(401).json({ error: "Super admin not found" });
-      }
-      if (!superAdmin.isActive) {
-        return res.status(401).json({ error: "Super admin is inactive" });
+      if (!superAdmin || !superAdmin.isActive) {
+        return res.status(401).json({ error: "Invalid or inactive admin" });
       }
 
       req.superAdmin = superAdmin;
       next();
     } catch (error) {
-          console.error("Authentication error:", error);
-          res.status(401).json({ error: "Invalid token" });
-        }
+      res.status(401).json({ error: "Invalid token" });
+    }
   };
 
   // Platform overview dashboard
-  
-  
   app.get("/api/super-admin/dashboard", authenticateSuperAdmin, async (req, res) => {
     try {
       const stats = await churchStorage.getPlatformStats();

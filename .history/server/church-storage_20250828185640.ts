@@ -20,11 +20,6 @@ import {
 } from '../shared/schema.js';
 import bcrypt from 'bcryptjs';
 
-
-async function hashPassword(password: string): Promise<string> {
-  return await bcrypt.hash(password, 10);
-}
-
 export class ChurchStorage {
   deleteChurchById(id: string) {
     throw new Error('Method not implemented.');
@@ -115,13 +110,13 @@ export class ChurchStorage {
 //   return admin;
 // }
 async createSuperAdmin(adminData: InsertSuperAdmin): Promise<SuperAdmin> {
-  
+  const bcrypt = require('bcrypt');
 
   // Check if the password is already hashed (optional, for safety)
-  const isAlreadyHashed = adminData.passwordHash.startsWith('$2b$');
+  const isAlreadyHashed = adminData.password.startsWith('$2b$');
   const hashedPassword = isAlreadyHashed
-    ? adminData.passwordHash
-    : await bcrypt.hash(adminData.passwordHash, 10);
+    ? adminData.password
+    : await bcrypt.hash(adminData.password, 10);
 
   const [admin] = await db
     .insert(superAdmins)

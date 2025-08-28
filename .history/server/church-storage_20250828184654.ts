@@ -18,12 +18,6 @@ import {
   type Subscription,
   type InsertSubscription
 } from '../shared/schema.js';
-import bcrypt from 'bcryptjs';
-
-
-async function hashPassword(password: string): Promise<string> {
-  return await bcrypt.hash(password, 10);
-}
 
 export class ChurchStorage {
   deleteChurchById(id: string) {
@@ -98,40 +92,27 @@ export class ChurchStorage {
   // }
 
 
-// async function createSuperAdmin(adminData: InsertSuperAdmin): Promise<SuperAdmin> {
-//   // Hash the password before storing it
-//   const hashedPassword = await bcrypt.hash(adminData.password, 10);
+async function createSuperAdmin(adminData: InsertSuperAdmin): Promise<SuperAdmin> {
+  // Hash the password before storing it
+  const hashedPassword = await bcrypt.hash(adminData.password, 10);
 
-//   // Insert the super admin into the database with the hashed password
-//   const [admin] = await db
-//     .insert(superAdmins)
-//     .values({
-//       ...adminData,
-//       passwordHash: hashedPassword, // Store the hashed password
-//       email: adminData.email.toLowerCase().trim(), // Normalize email
-//     })
-//     .returning();
-
-//   return admin;
-// }
-async createSuperAdmin(adminData: InsertSuperAdmin): Promise<SuperAdmin> {
-  
-
-  // Check if the password is already hashed (optional, for safety)
-  const isAlreadyHashed = adminData.passwordHash.startsWith('$2b$');
-  const hashedPassword = isAlreadyHashed
-    ? adminData.passwordHash
-    : await bcrypt.hash(adminData.passwordHash, 10);
-
+  // Insert the super admin into the database with the hashed password
   const [admin] = await db
     .insert(superAdmins)
     .values({
       ...adminData,
-      passwordHash: hashedPassword,
-      email: adminData.email.toLowerCase().trim(),
+      passwordHash: hashedPassword, // Store the hashed password
+      email: adminData.email.toLowerCase().trim(), // Normalize email
     })
     .returning();
 
+  return admin;
+}
+  async createSuperAdmin(adminData: InsertSuperAdmin): Promise<SuperAdmin> {
+  const [admin] = await db
+    .insert(superAdmins)
+    .values({ ...adminData, email: adminData.email.toLowerCase().trim() })
+    .returning();
   return admin;
 }
 

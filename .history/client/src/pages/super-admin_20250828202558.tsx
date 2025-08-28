@@ -36,26 +36,21 @@ export function SuperAdminPage() {
         },
       });
 
-      if (!response.ok) {
-        const data = await response.json();
-        toast({
-          title: "Login Failed",
-          description: data.error || "Invalid credentials",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setIsAuthenticated(true);
-      // Set a default admin object if we don't have one
-      if (!admin) {
-        setAdmin({
-          id: 'verified',
-          email: 'admin@churchconnect.com',
-          firstName: 'Super',
-          lastName: 'Admin',
-          role: 'platform_admin'
-        });
+      if (response.ok) {
+        setIsAuthenticated(true);
+        // Set a default admin object if we don't have one
+        if (!admin) {
+          setAdmin({
+            id: 'verified',
+            email: 'admin@churchconnect.com',
+            firstName: 'Super',
+            lastName: 'Admin',
+            role: 'platform_admin'
+          });
+        }
+      } else {
+        // Token is invalid, remove it
+        localStorage.removeItem('super_admin_token');
       }
     } catch (error) {
       console.error('Token verification failed:', error);
@@ -66,14 +61,10 @@ export function SuperAdminPage() {
   };
 
   const handleLogin = (token: string, adminData: any) => {
-    
-
     if (!token || !adminData) {
       console.error("Login failed: Missing token or admin data");
       return;
     }
-    localStorage.setItem("super_admin_token", token);
-  localStorage.setItem("super_admin_data", JSON.stringify(adminData));
     setIsAuthenticated(true);
     setAdmin(adminData);
     setCurrentView("dashboard");
@@ -125,8 +116,4 @@ export function SuperAdminPage() {
       onNavigateToPlatformOps={() => setCurrentView('platform-ops')}
     />
   );
-}
-
-function toast(arg0: { title: string; description: any; variant: string; }) {
-  throw new Error("Function not implemented.");
 }

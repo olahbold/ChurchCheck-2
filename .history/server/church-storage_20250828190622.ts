@@ -118,10 +118,10 @@ async createSuperAdmin(adminData: InsertSuperAdmin): Promise<SuperAdmin> {
   
 
   // Check if the password is already hashed (optional, for safety)
-  const isAlreadyHashed = adminData.passwordHash.startsWith('$2b$');
+  const isAlreadyHashed = adminData.password.startsWith('$2b$');
   const hashedPassword = isAlreadyHashed
-    ? adminData.passwordHash
-    : await bcrypt.hash(adminData.passwordHash, 10);
+    ? adminData.password
+    : await bcrypt.hash(adminData.password, 10);
 
   const [admin] = await db
     .insert(superAdmins)

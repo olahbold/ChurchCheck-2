@@ -66,7 +66,8 @@ export function SuperAdminPage() {
   };
 
   const handleLogin = (token: string, adminData: any) => {
-    
+    console.log("Token:", token); // Debugging
+  console.log("Admin Data:", adminData); // Debugging
 
     if (!token || !adminData) {
       console.error("Login failed: Missing token or admin data");

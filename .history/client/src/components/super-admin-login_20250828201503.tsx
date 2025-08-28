@@ -14,97 +14,40 @@ export function SuperAdminLogin({ onLogin }: SuperAdminLoginProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [admin, setAdmin] = useState(null);
   const { toast } = useToast();
-
-  const verifyToken = async (token: string) => {
-    try {
-      const response = await fetch('/api/super-admin/dashboard', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        toast({
-          title: "Login Failed",
-          description: data.error || "Invalid credentials",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setIsAuthenticated(true);
-      setAdmin(data.admin);
-    } catch (error) {
-      console.error("Token verification failed:", error);
-      toast({
-        title: "Error",
-        description: "Failed to verify token",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-      // const response = await fetch("/api/super-admin/login", {
-      //   method: "POST",
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //   },
-      //   body: JSON.stringify({ email, password }),
-      // });
-
-      // const data = await response.json();
-
-      // if (response.ok && data.success) {
-      //   localStorage.setItem("super_admin_token", data.token);
-      //   onLogin(data.token, data.admin);
-      //   verifyToken(data.token);
-      // } else {
-      //   toast({
-      //     title: "Login Failed",
-      //     description: data.error || "Invalid credentials",
-      //     variant: "destructive",
-      //   });
-      // }
-       const response = await fetch("/api/super-admin/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await response.json();
-
-    if (response.ok) {
-      // Handle successful login
-      toast({
-        title: "Login Successful",
-        description: "Welcome back!",
+      const response = await fetch("/api/super-admin/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
       });
-      onLogin(data.token, data.admin); // Ensure this matches the backend response
-    } else {
-      // Handle login failure
-      toast({
-        title: "Login Failed",
-        description: data.error || "Invalid credentials",
-        variant: "destructive",
-      });
-    }
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        localStorage.setItem('super_admin_token', data.token);
+        onLogin(data.token, data.admin);
+        toast({
+          title: "Login Successful",
+          description: `Welcome back, ${data.admin.firstName}!`,
+        });
+        
+      } else {
+        toast({
+          title: "Login Failed",
+          description: data.error || "Invalid credentials",
+          variant: "destructive",
+        });
+      }
     } catch (error) {
-      console.error("Login error:", error);
+      console.error('Super admin login error:', error);
       toast({
         title: "Error",
         description: "Failed to connect to server",
