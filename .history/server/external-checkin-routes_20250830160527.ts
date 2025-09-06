@@ -1,0 +1,522 @@
+import express from 'express';
+import { nanoid } from 'nanoid';
+import { eq, and } from 'drizzle-orm';
+import { DatabaseStorage } from './storage.js';
+import { events, attendanceRecords, members, churches } from '@shared/schema';
+// Remove schema imports for now - we'll handle validation manually
+import { authenticateToken, AuthenticatedRequest, ensureChurchContext, requireRole } from './auth.js';
+import { sql as dsql } from 'drizzle-orm'; 
+// Import db directly from neon connection
+import { neon } from '@neondatabase/serverless';
+import { drizzle } from 'drizzle-orm/neon-http';
+
+const sql = neon(process.env.DATABASE_URL!);
+const db = drizzle(sql);
+
+const router = express.Router();// top of file (utility)
+const isUuid = (s: string) =>
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(s);
+
+// in the toggle route, before the SELECT:
+
+
+
+// Generate a unique URL and PIN for external check-in
+function generateExternalCheckInData() {
+  const uniqueUrl = nanoid(16); // 16-character unique identifier
+  const pin = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit PIN
+  return { uniqueUrl, pin };
+}
+
+// PUBLIC API ROUTES (no authentication required)
+// Get event data for external check-in page
+router.get('/event/:eventUrl', async (req, res) => {
+  try {
+    const { eventUrl } = req.params;
+
+    // Find event by external URL
+    const event = await db.select().from(events).where(
+      and(
+        eq(events.externalCheckInUrl, eventUrl),
+        eq(events.externalCheckInEnabled, true),
+        eq(events.isActive, true)
+      )
+    ).limit(1);
+
+    if (event.length === 0) {
+      return res.status(404).json({ error: 'External check-in not found or disabled' });
+    }
+
+    const eventData = event[0];
+
+    // Get church information
+    const church = await db.select().from(churches).where(eq(churches.id, eventData.churchId)).limit(1);
+
+    if (church.length === 0) {
+      return res.status(404).json({ error: 'Church not found' });
+    }
+
+    res.json({
+      eventId: eventData.id,
+      eventName: eventData.name,
+      eventType: eventData.eventType,
+      location: eventData.location,
+      churchName: church[0].name,
+      churchBrandColor: church[0].brandColor,
+      requiresPin: true
+    });
+  } catch (error) {
+    console.error('External check-in page error:', error);
+    res.status(500).json({ error: 'Failed to load external check-in page' });
+  }
+});
+
+// Public external check-in submission (PIN + member ID required)
+router.post('/check-in/:eventUrl', async (req, res) => {
+  try {
+    const { eventUrl } = req.params;
+    const { pin, memberId } = req.body;
+
+    // Validate inputs
+    if (!pin || !memberId) {
+      return res.status(400).json({ error: 'PIN and member ID are required' });
+    }
+
+    if (pin.length !== 6) {
+      return res.status(400).json({ error: 'PIN must be exactly 6 digits' });
+    }
+
+    // Find event by external URL and PIN
+    const event = await db.select().from(events).where(
+      and(
+        eq(events.externalCheckInUrl, eventUrl),
+        eq(events.externalCheckInPin, pin),
+        eq(events.externalCheckInEnabled, true),
+        eq(events.isActive, true)
+      )
+    ).limit(1);
+
+    if (event.length === 0) {
+      return res.status(401).json({ error: 'Invalid PIN or check-in not available' });
+    }
+
+    const eventData = event[0];
+
+    // Verify member exists and belongs to the same church
+    const member = await db.select().from(members).where(
+      and(
+        eq(members.id, memberId),
+        eq(members.churchId, eventData.churchId)
+      )
+    ).limit(1);
+
+    if (member.length === 0) {
+      return res.status(404).json({ error: 'Member not found' });
+    }
+
+    const memberData = member[0];
+
+    // Check for existing attendance today for this event
+    const today = new Date().toISOString().split('T')[0];
+    const existingAttendance = await db.select().from(attendanceRecords).where(
+      and(
+        eq(attendanceRecords.memberId, memberId),
+        eq(attendanceRecords.eventId, eventData.id),
+        eq(attendanceRecords.attendanceDate, today)
+      )
+    ).limit(1);
+
+    if (existingAttendance.length > 0) {
+      return res.status(409).json({ 
+        error: 'You have already checked in to this event today',
+        isDuplicate: true 
+      });
+    }
+
+    // Create attendance record
+    const attendanceRecord = {
+      churchId: eventData.churchId,
+      memberId: memberId,
+      eventId: eventData.id,
+      attendanceDate: today,
+      checkInMethod: 'external' as const,
+      isGuest: false,
+    };
+
+    await db.insert(attendanceRecords).values(attendanceRecord);
+
+    res.json({
+      success: true,
+      message: `Check-in successful for ${memberData.firstName} ${memberData.surname}`,
+      member: {
+        name: `${memberData.firstName} ${memberData.surname}`,
+        checkInTime: new Date().toISOString()
+      }
+    });
+
+  } catch (error) {
+    console.error('External check-in submission error:', error);
+    
+    if (error instanceof Error && error.message.includes('duplicate key')) {
+      return res.status(409).json({ 
+        error: 'You have already checked in to this event today',
+        isDuplicate: true 
+      });
+    }
+    
+    res.status(500).json({ error: 'Failed to process check-in' });
+  }
+});
+
+// AUTHENTICATED ROUTES
+// Enable/disable external check-in for an event (Admin only)
+router.post('/events/:eventId/external-checkin/toggle', authenticateToken, ensureChurchContext, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
+  try {
+    const { eventId } = req.params;
+    const { enabled } = req.body;
+    
+if (!eventId || typeof eventId !== 'string' || !isUuid(eventId)) {
+  return res.status(400).json({ error: 'Invalid eventId format; expected UUID' });
+}
+    console.log('Toggle endpoint hit with data:', req.body);
+    console.log('Toggle endpoint hit with data:', { eventId, enabled });
+
+    
+    // Validate enabled parameter
+    if (typeof enabled !== 'boolean') {
+      console.error('Validation failed: enabled must be a boolean');
+      return res.status(400).json({ error: 'enabled must be a boolean' });
+    }
+    if (!req.churchId) {
+      console.error('Validation failed: Church context missing');
+      return res.status(401).json({ error: "Church context missing" });
+    }
+    console.log('Authenticated churchId:', req.churchId);
+
+    console.log('Fetching external check-in details for eventId:', req.params.eventId);
+    let eventRow;
+    try {
+      const [row] = await db
+        .select()
+        .from(events)
+        .where(eq(events.id, eventId))
+        .limit(1);
+      eventRow = row;
+    } catch (error) {
+      console.error('Database query error:', error);
+      return res.status(500).json({ error: 'Database query failed' });
+    }
+    if (!eventRow) {
+      console.log('Event query result:', eventRow);
+      console.error('Event not found for eventId:', eventId)
+      console.error('Event not found for eventId:', req.params.eventId);
+      return res.status(404).json({ error: "Event not found" });
+    }
+    if (eventRow.churchId !== req.churchId) {
+      console.error('Validation failed: Event does not belong to your church');
+      return res.status(403).json({ error: "Event does not belong to your church" });
+    }
+
+    console.log('Event validation passed. Proceeding to toggle external check-in...');
+
+    // Verify event belongs to this church
+    // const event = await db.select().from(events).where(
+    //   and(eq(events.id, eventId), eq(events.churchId, req.churchId!))
+    // ).limit(1);
+
+    // if (event.length === 0) {
+    //   return res.status(404).json({ error: 'Event not found' });
+    // }
+
+    // let updateData: any = { externalCheckInEnabled: enabled };
+
+    console.log('Event found:', eventRow);
+    const updateData: any = { externalCheckInEnabled: enabled };
+
+
+    if (enabled) {
+      // Generate new URL and PIN when enabling
+      const { uniqueUrl, pin } = generateExternalCheckInData();
+      updateData.externalCheckInUrl = uniqueUrl;
+      updateData.externalCheckInPin = pin;
+    } else {
+      // Clear URL and PIN when disabling
+      updateData.externalCheckInUrl = null;
+      updateData.externalCheckInPin = null;
+    }
+    try {
+      await db.update(events)
+        .set(updateData)
+        .where(eq(events.id, eventId));
+      console.log('Event updated with data:', updateData);
+    } catch (error) {
+      console.error('Failed to update event:', error)
+      return res.status(500).json({ error: 'Failed to update event' });
+    }
+
+    // const updatedEvent = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
+
+    let updatedEvent;
+    try {
+      const [row] = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
+      updatedEvent = row;
+    } catch (error) {
+      console.error('Failed to fetch updated event:', error);
+      return res.status(500).json({ error: 'Failed to fetch updated event' });
+    }
+    console.log('Updated event:', updatedEvent);
+    const [updated] = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
+
+    console.log('Updated event:', updated);
+    if (!updated) {
+  console.error('Event not found for ID:', eventId);
+  return res.status(404).json({ error: 'Event not found' });
+}
+    const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
+    const host = req.get('host');
+    console.log('Protocol:', protocol);
+    console.log('Host:', host);
+    const fullUrl = updated.externalCheckInUrl
+        ? `${protocol}://${host}/external-checkin/${updated.externalCheckInUrl}`
+        : null;
+
+    console.log('External Check-In URL:', updated.externalCheckInUrl);
+
+    if (!updated.externalCheckInUrl) {
+  console.warn('External Check-In URL is missing for event:', eventId);
+}
+    res.json({
+      success: true,
+      event: updatedEvent,
+      externalUrl: fullUrl,
+      fullUrl
+    });
+  } catch (error) {
+    console.error('Toggle external check-in error:', error);
+   return  res.status(500).json({ error: 'Failed to toggle external check-in' });
+  }
+});
+
+// Get external check-in details for admin
+// router.get('/events/:eventId/external-checkin', authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
+//   try {
+//     const { eventId } = req.params;
+
+//     // Verify event belongs to this church
+//     // const event = await db.select().from(events).where(
+//     //   and(eq(events.id, eventId), eq(events.churchId, req.churchId!))
+//     // ).limit(1);
+
+//     // if (event.length === 0) {
+//     //   return res.status(404).json({ error: 'Event not found' });
+//     // }
+
+//     // const eventData = event[0];
+//     if (!req.churchId) {
+//   console.log('Authenticated churchId:', req.churchId);
+//         return res.status(401).json({ error: "Church context missing" });
+//       }
+
+//       const [eventRow] = await db.select().from(events).where(eq(events.id, eventId)).limit(1);
+//     if (!eventRow) {
+//       console.log('Event query result:', eventRow);
+//       console.error('Event not found for eventId:', eventId);
+//         return res.status(404).json({ error: "Event not found" });
+//       }
+//       if (eventRow.churchId !== req.churchId) {
+//         return res.status(403).json({ error: "Event does not belong to your church" });
+//       }
+
+//     // const protocol = req.get('x-forwarded-proto') || (req.secure ? 'https' : 'http');
+//     // const host = req.get('host');
+//     const protocol = req.get("x-forwarded-proto") || (req.secure ? "https" : "http");
+//       const host = req.get("host");
+//       const fullUrl = eventRow.externalCheckInUrl
+//         ? `${protocol}://${host}/external-checkin/${eventRow.externalCheckInUrl}`
+//         : null;
+
+    
+//     res.json({
+//       enabled: !!eventRow.externalCheckInEnabled,
+//         url: eventRow.externalCheckInUrl || null,
+//         pin: eventRow.externalCheckInPin || null,
+//         fullUrl,
+
+//     });
+//   } catch (error) {
+//     console.error('Get external check-in error:', error);
+//     res.status(500).json({ error: 'Failed to get external check-in details' });
+//   }
+// });
+
+
+
+// GET /events/:eventId/external-checkin
+// at top: you already have isUuid()
+
+router.get('/events/:eventId/external-checkin',
+  authenticateToken, ensureChurchContext,
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { eventId } = req.params;
+      if (!isUuid(eventId)) {
+        return res.status(400).json({ error: 'Invalid eventId format; expected UUID' });
+      }
+      if (!req.churchId) {
+        return res.status(401).json({ error: 'Church context missing' });
+      }
+      // (rest unchanged)
+      const { rows } = await db.execute(dsql`
+        SELECT id,
+               church_id,
+               external_check_in_enabled,
+               external_check_in_url,
+               external_check_in_pin
+        FROM events
+        WHERE id = ${eventId}
+        LIMIT 1
+      `);
+        const eventRow = rows[0] as any;
+
+      
+      if (!eventRow) return res.status(404).json({ error: "Event not found" });
+      if (eventRow.churchId !== req.churchId) return res.status(403).json({ error: "Event does not belong to your church" });
+
+      const protocol = req.get("x-forwarded-proto") || (req.secure ? "https" : "http");
+      const host = req.get("host");
+      const fullUrl = eventRow.externalCheckInUrl
+        ? `${protocol}://${host}/external-checkin/${eventRow.externalCheckInUrl}`
+        : null;
+
+      return res.json({
+        enabled: !!eventRow.externalCheckInEnabled,
+        url: eventRow.externalCheckInUrl || null,
+        pin: eventRow.externalCheckInPin || null,
+        fullUrl,
+      });
+    } catch (err: any) {
+  console.error('Get external check-in error:', err);
+  return res
+    .status(500)
+    .json({ error: 'Failed to get external check-in details', detail: err?.message });
+}
+
+  }
+);
+
+// Get members for external check-in (public endpoint with eventUrl verification)
+router.post('/members', async (req, res) => {
+  try {
+    const { eventUrl } = req.body;
+
+    if (!eventUrl) {
+      return res.status(400).json({ error: 'Event URL is required' });
+    } 
+
+    // Find event by external URL to get church ID
+    const event = await db.select().from(events).where(
+      and(
+        eq(events.externalCheckInUrl, eventUrl),
+        eq(events.externalCheckInEnabled, true),
+        eq(events.isActive, true)
+      )
+    ).limit(1);
+
+    if (event.length === 0) {
+      return res.status(404).json({ error: 'External check-in not found or disabled' });
+    }
+
+    const eventData = event[0];
+
+    // Get all members for this church
+    const churchMembers = await db.select({
+      id: members.id,
+      firstName: members.firstName,
+      surname: members.surname,
+    }).from(members).where(eq(members.churchId, eventData.churchId));
+
+    res.json(churchMembers);
+  } catch (error) {
+    console.error('Get external check-in members error:', error);
+    res.status(500).json({ error: 'Failed to load members' });
+  }
+});
+
+// Search members for external check-in with family data
+router.post('/search', async (req, res) => {
+  try {
+    const { eventUrl, search } = req.body;
+
+    if (!eventUrl) {
+      return res.status(400).json({ error: 'Event URL is required' });
+    }
+
+    if (!search || search.trim().length === 0) {
+      return res.json([]);
+    }
+
+    // Find event by external URL to get church ID
+    const event = await db.select().from(events).where(
+      and(
+        eq(events.externalCheckInUrl, eventUrl),
+        eq(events.externalCheckInEnabled, true),
+        eq(events.isActive, true)
+      )
+    ).limit(1);
+
+    if (event.length === 0) {
+      return res.status(404).json({ error: 'External check-in not found or disabled' });
+    }
+
+    const eventData = event[0];
+    const searchTerm = search.toLowerCase().trim();
+
+    // Get all members for this church with search filtering
+    const allMembers = await db.select().from(members).where(
+      and(
+        eq(members.churchId, eventData.churchId),
+        eq(members.isCurrentMember, true)
+      )
+    );
+
+    // Filter members by search term (name, phone, email)
+    const filteredMembers = allMembers.filter(member => 
+      member.firstName.toLowerCase().includes(searchTerm) ||
+      member.surname.toLowerCase().includes(searchTerm) ||
+      (member.phone && member.phone.includes(searchTerm)) ||
+      (member.email && member.email.toLowerCase().includes(searchTerm))
+    );
+
+    // Build response with children for family check-ins
+    const membersWithChildren = filteredMembers.map(member => {
+      // Find children (members with this member as parent)
+      const children = allMembers.filter(child => child.parentId === member.id);
+      
+      return {
+        id: member.id,
+        firstName: member.firstName,
+        surname: member.surname,
+        gender: member.gender,
+        ageGroup: member.ageGroup,
+        phone: member.phone,
+        email: member.email,
+        parentId: member.parentId,
+        children: children.map(child => ({
+          id: child.id,
+          firstName: child.firstName,
+          surname: child.surname,
+          gender: child.gender,
+          ageGroup: child.ageGroup,
+          parentId: child.parentId
+        }))
+      };
+    });
+
+    res.json(membersWithChildren);
+  } catch (error) {
+    console.error('External check-in search error:', error);
+    res.status(500).json({ error: 'Failed to search members' });
+  }
+});
+
+export default router;
