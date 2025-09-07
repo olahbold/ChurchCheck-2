@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://YOUR-BACKEND-HOST/$1" },
+    { "source": "/(.*)", "destination": "/" }
+  ]
+}
