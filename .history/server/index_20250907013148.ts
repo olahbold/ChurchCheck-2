@@ -8,7 +8,7 @@ import 'dotenv/config';
 const app = express();
 
 app.use(cors({
-  origin: ['https://your-project.vercel.app','https://churchconnect.netlify.app/'],
+  origin: [https://your-project.vercel.app',]
   credentials: true,
   exposedHeaders: ['X-Extended-Token'],
 }));
