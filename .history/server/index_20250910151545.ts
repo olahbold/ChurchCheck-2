@@ -4,14 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import cors from "cors"
 import { db } from "./db";
 import 'dotenv/config';
-import dangerRoutes from './routes.danger';
-import { ensureDefaultSuperAdmin } from "./bootstrap.superadmin";
-
-
-
-console.log("[env] NODE_ENV =", process.env.NODE_ENV);
-console.log("[env] loaded DB url =", process.env.DATABASE_URL?.slice(0, 30) + "..."); 
-console.log("[env] DEFAULT_SUPER_ADMIN_EMAIL =", process.env.DEFAULT_SUPER_ADMIN_EMAIL);
+import dangerRoutes from './routes.danger.js';
 
 
 const app = express();
@@ -32,7 +25,7 @@ app.use((req, res, next) => {
   let capturedJsonResponse: Record<string, any> | undefined = undefined;
 
   
-
+app.use(dangerRoutes);
 
 
   const originalResJson = res.json;
@@ -74,8 +67,6 @@ export function log(message: string, source = "express") {
 
 
 (async () => {
-  await ensureDefaultSuperAdmin();
-
   const server = await registerRoutes(app);
 
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -87,7 +78,7 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   }
 });
 
-app.use(dangerRoutes);
+
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes

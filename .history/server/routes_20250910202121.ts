@@ -1943,28 +1943,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.put("/api/churches/branding", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
-  try {
-    const brandingData = updateChurchBrandingSchema.parse(req.body);
-    const updated = await churchStorage.updateChurchBranding(req.churchId!, brandingData);
-    if (!updated) return res.status(404).json({ error: 'Church not found' });
-    res.json({
-      success: true,
-      branding: {
-        logoUrl: updated.logoUrl ?? null,
-        bannerUrl: updated.bannerUrl ?? null,
-        brandColor: updated.brandColor ?? '#6366f1',
-      },
-      message: 'Church branding updated successfully'
-    });
-  } catch (error) {
-    console.error('Update branding error:', error);
-    if ((error as any)?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Validation error' });
+    try {
+      const brandingData = updateChurchBrandingSchema.parse(req.body);
+      await churchStorage.updateChurchBranding(req.churchId!, brandingData);
+      
+      res.json({ 
+        success: true, 
+        message: 'Church branding updated successfully'
+      });
+    } catch (error) {
+      console.error('Update branding error:', error);
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid branding data' });
     }
-    res.status(500).json({ error: 'Failed to update church branding' });
-  }
-});
-
+  });
 
   app.get("/api/churches/branding", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {

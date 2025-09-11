@@ -13,7 +13,7 @@
     "db:push:dev": "dotenv -e .env.development -- drizzle-kit push",
     "db:push:prod": "dotenv -e .env.production -- drizzle-kit push",
     "db:studio:prod": "dotenv -e .env.production -- drizzle-kit studio",  
-    "db:generate:dev":  "NODE_ENV=development drizzle-kit generate",
+      "db:generate:dev":  "NODE_ENV=development drizzle-kit generate",
     "db:migrate:dev":   "NODE_ENV=development drizzle-kit migrate",
     "db:generate:prod": "NODE_ENV=production  drizzle-kit generate",
     "db:migrate:prod":  "NODE_ENV=production  drizzle-kit migrate"

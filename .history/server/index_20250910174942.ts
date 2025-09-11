@@ -5,13 +5,8 @@ import cors from "cors"
 import { db } from "./db";
 import 'dotenv/config';
 import dangerRoutes from './routes.danger';
-import { ensureDefaultSuperAdmin } from "./bootstrap.superadmin";
+import { ensureDefaultSuperAdmin } from "./bootstrap.superadmin.ts";
 
-
-
-console.log("[env] NODE_ENV =", process.env.NODE_ENV);
-console.log("[env] loaded DB url =", process.env.DATABASE_URL?.slice(0, 30) + "..."); 
-console.log("[env] DEFAULT_SUPER_ADMIN_EMAIL =", process.env.DEFAULT_SUPER_ADMIN_EMAIL);
 
 
 const app = express();
@@ -74,8 +69,6 @@ export function log(message: string, source = "express") {
 
 
 (async () => {
-  await ensureDefaultSuperAdmin();
-
   const server = await registerRoutes(app);
 
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

@@ -20,24 +20,6 @@ import {
 } from '../shared/schema.js';
 import bcrypt from 'bcryptjs';
 
-/**
- * Runs the provided function inside a transaction when the driver supports it.
- * Falls back to sequential (non-atomic) execution on Neon HTTP (no transactions).
- */
-async function withTxFallback<T>(fn: (tx: typeof db) => Promise<T>): Promise<T> {
-  try {
-    // @ts-ignore drizzle type differs per driver
-    return await db.transaction(async (tx) => fn(tx));
-  } catch (err: any) {
-    const msg = String(err?.message || err);
-    if (msg.includes('No transactions support in neon-http driver')) {
-      // Fallback for Neon HTTP driver: run operations without a transaction
-      return await fn(db as any);
-    }
-    throw err;
-  }
-}
-
 export class ChurchStorage {
   // --------- Church management ---------
 
@@ -49,11 +31,6 @@ export class ChurchStorage {
   async getChurchById(id: string): Promise<Church | null> {
     const [church] = await db.select().from(churches).where(eq(churches.id, id));
     return church || null;
-  }
-
-  /** Alias used by some routes (e.g., branding GET) */
-  async getChurch(id: string): Promise<Church | null> {
-    return this.getChurchById(id);
   }
 
   async getChurchBySubdomain(subdomain: string): Promise<Church | null> {
@@ -453,16 +430,17 @@ export class ChurchStorage {
 
   // Public: Clear tenant data ONLY (preserves church + churchUsers + superAdmins)
   async clearTenantData(churchId: string): Promise<void> {
-    await withTxFallback(async (tx) => {
+    await db.transaction(async (tx) => {
       await this._clearTenantData(tx, churchId);
     });
   }
 
   // Public: Factory reset (removes church, church admins, subscription, etc. — NEVER superAdmins)
   async factoryResetTenant(churchId: string): Promise<void> {
-    await withTxFallback(async (tx) => {
-      // Clear data first
+    await db.transaction(async (tx) => {
+      // Clear data first (same transaction)
       await this._clearTenantData(tx, churchId);
+
       // Then remove church-scoped admins, subscription, and church itself
       await tx.delete(churchUsers).where(eq(churchUsers.churchId, churchId));
       await tx.delete(subscriptions).where(eq(subscriptions.churchId, churchId));
@@ -471,7 +449,10 @@ export class ChurchStorage {
   }
 
   // Internal helper used by both clearTenantData and factoryResetTenant (keeps admins)
-  private async _clearTenantData(tx: typeof db, churchId: string): Promise<void> {
+  private async _clearTenantData(
+    tx: typeof db,
+    churchId: string,
+  ): Promise<void> {
     // Delete in FK-safe order; add any other tenant-scoped tables here
     await tx.delete(attendanceRecords).where(eq(attendanceRecords.churchId, churchId));
     await tx.delete(followUpRecords).where(eq(followUpRecords.churchId, churchId));

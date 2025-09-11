@@ -1,28 +1,38 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { churchStorage } from './church-storage.js';
-import {
-  generateToken,
-  hashPassword,
-  verifyPassword,
+import { 
+  generateToken, 
+  hashPassword, 
+  verifyPassword, 
   generateSubdomain,
   authenticateToken,
   requireRole,
   ensureChurchContext,
-  type AuthenticatedRequest,
-  generateKioskToken,
-  type ChurchUserPayload,
+  type AuthenticatedRequest 
 } from './auth.js';
-import { eq } from 'drizzle-orm';
-import { db } from './db.js';
-import { kioskSettingsSchema, events } from '../shared/schema.js';
+import { eq } from "drizzle-orm";
+import { db } from "./db.js";
+import { insertChurchSchema, insertChurchUserSchema, kioskSettingsSchema, events } from '../shared/schema.js';
+import { generateKioskToken, type ChurchUserPayload } from './auth.js';
 
 const router = Router();
 
-/* ────────────────────────────────────────────────────────────────────────── */
-/* Helpers                                                                   */
-/* ────────────────────────────────────────────────────────────────────────── */
+// Church registration schema
+const churchRegistrationSchema = z.object({
+  churchName: z.string().min(1, "Church name is required"),
+  adminFirstName: z.string().min(1, "First name is required"),
+  adminLastName: z.string().min(1, "Last name is required"),
+  adminEmail: z.string().email("Invalid email format"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  subdomain: z.string().min(3, "Subdomain must be at least 3 characters").regex(/^[a-z0-9-]+$/, "Subdomain can only contain lowercase letters, numbers, and hyphens").optional(),
+});
 
+// Church login schema
+const churchLoginSchema = z.object({
+  email: z.string().email("Invalid email format"),
+  password: z.string().min(1, "Password is required"),
+});
 const normalizeSubdomain = (raw: string) =>
   raw
     .toLowerCase()
@@ -31,53 +41,26 @@ const normalizeSubdomain = (raw: string) =>
     .replace(/^-|-$/g, '')
     .slice(0, 50);
 
-const TRIAL_DAYS = Number(process.env.TRIAL_DAYS ?? 14);
-const calcTrialEndDate = () => new Date(Date.now() + TRIAL_DAYS * 24 * 60 * 60 * 1000);
 
-/* ────────────────────────────────────────────────────────────────────────── */
-/* Validation                                                                */
-/* ────────────────────────────────────────────────────────────────────────── */
 
-const churchRegistrationSchema = z.object({
-  churchName: z.string().min(1, 'Church name is required'),
-  adminFirstName: z.string().min(1, 'First name is required'),
-  adminLastName: z.string().min(1, 'Last name is required'),
-  adminEmail: z.string().email('Invalid email format'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  subdomain: z
-    .string()
-    .min(3, 'Subdomain must be at least 3 characters')
-    .regex(/^[a-z0-9-]+$/, 'Subdomain can only contain lowercase letters, numbers, and hyphens')
-    .optional(),
-});
-
-const churchLoginSchema = z.object({
-  email: z.string().email('Invalid email format'),
-  password: z.string().min(1, 'Password is required'),
-});
-
-/* ────────────────────────────────────────────────────────────────────────── */
-/* Routes                                                                    */
-/* ────────────────────────────────────────────────────────────────────────── */
-
-// POST /api/churches/register
+// POST /api/churches/register - Register new church with admin user
 router.post('/register', async (req, res) => {
   const errorId = Math.random().toString(36).slice(2, 10);
+
   try {
     const registrationData = churchRegistrationSchema.parse(req.body);
 
-    const existingUser = await churchStorage.getChurchUserByEmail(
-      registrationData.adminEmail.toLowerCase(),
-    );
+    // email duplicate (nice UX)
+    const existingUser = await churchStorage.getChurchUserByEmail(registrationData.adminEmail.toLowerCase());
     if (existingUser) {
       return res.status(409).json({ error: 'Email already registered', code: 'EMAIL_TAKEN' });
     }
-
-    const wanted = registrationData.subdomain
-      ? normalizeSubdomain(registrationData.subdomain)
-      : normalizeSubdomain(generateSubdomain(registrationData.churchName));
+const wanted = registrationData.subdomain
+  ? normalizeSubdomain(registrationData.subdomain)
+  : normalizeSubdomain(generateSubdomain(registrationData.churchName));
 
     const base = wanted || `org-${Date.now()}`;
+
     let subdomain = base;
     let i = 1;
     while (!(await churchStorage.isSubdomainAvailable(subdomain))) {
@@ -85,16 +68,35 @@ router.post('/register', async (req, res) => {
       if (i > 50) throw new Error('Could not find available subdomain');
     }
 
+
+    // Generate subdomain if not provided
+    // let subdomain = registrationData.subdomain || generateSubdomain(registrationData.churchName);
+    
+    // Ensure subdomain is unique
+    // let counter = 1;
+    // let originalSubdomain = subdomain;
+    // while (!(await churchStorage.isSubdomainAvailable(subdomain))) {
+    //   subdomain = `${originalSubdomain}-${counter}`;
+    //   counter++;
+    // }
+
+
+
+    
+
+
+
+    // Create church
     const church = await churchStorage.createChurch({
       name: registrationData.churchName,
       subdomain,
       subscriptionTier: 'trial',
-      trialEndDate: calcTrialEndDate(),
-      maxMembers: 999999,
+      maxMembers: 999999, // Unlimited during trial
       kioskModeEnabled: false,
       kioskSessionTimeout: 60,
     });
 
+    // Hash password and create admin user
     const passwordHash = await hashPassword(registrationData.password);
     let adminUser;
     try {
@@ -108,12 +110,10 @@ router.post('/register', async (req, res) => {
         isActive: true,
       });
     } catch (e: any) {
-      try {
-        await churchStorage.deleteChurchById?.(church.id);
-      } catch {}
+      try { await churchStorage.deleteChurchById?.(church.id); } catch {}
+      // translate PG unique violation if bubbled up
       if (e?.code === '23505') {
-        const isEmail =
-          /email/i.test(e?.detail || '') || /email/i.test(e?.constraint || '');
+        const isEmail = /email/i.test(e?.detail || '') || /email/i.test(e?.constraint || '');
         return res.status(409).json({
           error: isEmail ? 'Email already registered' : 'Duplicate value',
           code: isEmail ? 'EMAIL_TAKEN' : 'UNIQUE_VIOLATION',
@@ -122,6 +122,8 @@ router.post('/register', async (req, res) => {
       throw e;
     }
 
+
+    // Generate JWT token
     const token = generateToken({
       id: adminUser.id,
       churchId: church.id,
@@ -131,7 +133,7 @@ router.post('/register', async (req, res) => {
       lastName: adminUser.lastName,
     });
 
-    return res.status(201).json({
+   return  res.status(201).json({
       success: true,
       church: {
         id: church.id,
@@ -139,8 +141,6 @@ router.post('/register', async (req, res) => {
         subdomain: church.subdomain,
         subscriptionTier: church.subscriptionTier,
         trialEndDate: church.trialEndDate,
-        isTrialActive: await churchStorage.isTrialActive(church.id),
-        trialDaysRemaining: await churchStorage.getTrialDaysRemaining(church.id),
       },
       user: {
         id: adminUser.id,
@@ -151,13 +151,13 @@ router.post('/register', async (req, res) => {
       },
       token,
     });
-  } catch (error: any) {
+  } 
+    catch (error: any) {
     if (error?.name === 'ZodError') {
       return res.status(400).json({ error: 'Validation error', details: error.errors });
     }
     if (error?.code === '23505') {
-      const isSub =
-        /subdomain/i.test(error?.detail || '') || /subdomain/i.test(error?.constraint || '');
+      const isSub = /subdomain/i.test(error?.detail || '') || /subdomain/i.test(error?.constraint || '');
       return res.status(409).json({
         error: isSub ? 'Subdomain already in use' : 'Duplicate value',
         code: isSub ? 'SUBDOMAIN_TAKEN' : 'UNIQUE_VIOLATION',
@@ -168,40 +168,47 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// POST /api/churches/login
+// POST /api/churches/login - Church user login
 router.post('/login', async (req, res) => {
   try {
     const loginData = churchLoginSchema.parse(req.body);
 
+    // Find user by email
     const user = await churchStorage.getChurchUserByEmail(loginData.email);
     if (!user) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    // Verify password
     const isValidPassword = await verifyPassword(loginData.password, user.passwordHash);
     if (!isValidPassword) {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
+    // Check if user is active
     if (!user.isActive) {
       return res.status(401).json({ error: 'Account is deactivated' });
     }
 
+    // Get church details
     const church = await churchStorage.getChurchById(user.churchId);
     if (!church) {
       return res.status(500).json({ error: 'Church not found' });
     }
 
+    // Check if church is suspended (handle both camelCase and snake_case)
     const subscriptionTier = church.subscriptionTier || (church as any).subscription_tier;
     if (subscriptionTier === 'suspended') {
-      return res.status(403).json({
+      return res.status(403).json({ 
         error: 'Church account is suspended. Please contact support for assistance.',
-        suspended: true,
+        suspended: true 
       });
     }
 
+    // Update last login
     await churchStorage.updateLastLogin(user.id);
 
+    // Generate JWT token
     const token = generateToken({
       id: user.id,
       churchId: user.churchId,
@@ -211,6 +218,7 @@ router.post('/login', async (req, res) => {
       lastName: user.lastName,
     });
 
+    // Check trial status
     const trialDaysRemaining = await churchStorage.getTrialDaysRemaining(church.id);
     const isTrialActive = await churchStorage.isTrialActive(church.id);
 
@@ -238,18 +246,25 @@ router.post('/login', async (req, res) => {
     });
   } catch (error) {
     console.error('Login error:', error);
+    
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Validation error', details: error.errors });
+      return res.status(400).json({ 
+        error: 'Validation error', 
+        details: error.errors 
+      });
     }
+
     res.status(500).json({ error: 'Login failed' });
   }
 });
 
-// GET /api/churches/me
+// GET /api/churches/me - Get current church and user info
 router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const church = await churchStorage.getChurchById(req.churchId!);
-    if (!church) return res.status(404).json({ error: 'Church not found' });
+    if (!church) {
+      return res.status(404).json({ error: 'Church not found' });
+    }
 
     const trialDaysRemaining = await churchStorage.getTrialDaysRemaining(church.id);
     const isTrialActive = await churchStorage.isTrialActive(church.id);
@@ -277,118 +292,72 @@ router.get('/me', authenticateToken, async (req: AuthenticatedRequest, res) => {
   }
 });
 
-// GET /api/churches/current  (added to stop 404s in UI)
-router.get('/current', authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
-  try {
-    const church = await churchStorage.getChurchById(req.churchId!);
-    if (!church) return res.status(404).json({ error: 'Church not found' });
-
-    res.json({
-      id: church.id,
-      name: church.name,
-      subdomain: church.subdomain,
-      subscriptionTier: church.subscriptionTier,
-      trialEndDate: church.trialEndDate,
-      logoUrl: church.logoUrl,
-      brandColor: church.brandColor,
-    });
-  } catch (err) {
-    console.error('Get current church error:', err);
-    res.status(500).json({ error: 'Failed to get current church' });
-  }
-});
-
-// PUT /api/churches/settings
+// PUT /api/churches/settings - Update church settings
 router.put('/settings', authenticateToken, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
   try {
     const updateSchema = z.object({
-      name: z.string().min(1, 'Church name is required').optional(),
-      logoUrl: z.string().url('Invalid logo URL').optional(),
-      brandColor: z.string().regex(/^#[0-9A-F]{6}$/i, 'Brand color must be a valid hex color').optional(),
+      name: z.string().min(1, "Church name is required").optional(),
+      logoUrl: z.string().url("Invalid logo URL").optional(),
+      brandColor: z.string().regex(/^#[0-9A-F]{6}$/i, "Brand color must be a valid hex color").optional(),
     });
 
     const updates = updateSchema.parse(req.body);
     const church = await churchStorage.updateChurch(req.churchId!, updates);
-    if (!church) return res.status(404).json({ error: 'Church not found' });
+
+    if (!church) {
+      return res.status(404).json({ error: 'Church not found' });
+    }
 
     res.json({ success: true, church });
   } catch (error) {
     console.error('Update church settings error:', error);
+    
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Validation error', details: error.errors });
+      return res.status(400).json({ 
+        error: 'Validation error', 
+        details: error.errors 
+      });
     }
+
     res.status(500).json({ error: 'Failed to update church settings' });
   }
 });
 
-/* ── Branding (fixed: use getChurchById, not getChurch) ───────────────────── */
-
-// GET /api/churches/branding
-router.get('/branding', authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
-  try {
-    const church = await churchStorage.getChurchById(req.churchId!);
-    if (!church) return res.status(404).json({ error: 'Church not found' });
-
-    res.json({
-      logoUrl: church.logoUrl,
-      bannerUrl: church.bannerUrl,
-      brandColor: church.brandColor,
-    });
-  } catch (error) {
-    console.error('Get branding error:', error);
-    res.status(500).json({ error: 'Failed to get church branding' });
-  }
-});
-
-// PUT /api/churches/branding
-router.put('/branding', authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
-  try {
-    const brandingSchema = z.object({
-      logoUrl: z.string().url().nullable().optional(),
-      bannerUrl: z.string().url().nullable().optional(),
-      brandColor: z.string().regex(/^#[0-9A-F]{6}$/i).nullable().optional(),
-    });
-
-    const brandingData = brandingSchema.parse(req.body);
-    await churchStorage.updateChurchBranding(req.churchId!, brandingData);
-
-    res.json({ success: true, message: 'Church branding updated successfully' });
-  } catch (error) {
-    console.error('Update branding error:', error);
-    if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Validation error', details: error.errors });
-    }
-    res.status(500).json({ error: 'Failed to update church branding' });
-  }
-});
-
-/* ── Kiosk settings/session ───────────────────────────────────────────────── */
-
+// GET /api/churches/kiosk-settings - Get current kiosk settings
 router.get('/kiosk-settings', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const church = await churchStorage.getChurchById(req.churchId!);
-    if (!church) return res.status(404).json({ error: 'Church not found' });
+    
+    if (!church) {
+      return res.status(404).json({ error: 'Church not found' });
+    }
 
-    let timeRemaining: number | null = null;
+    // Calculate remaining time if session is active
+    let timeRemaining = null;
     let isSessionActive = false;
-
+    
     if (church.kioskSessionStartTime) {
       const sessionStart = new Date(church.kioskSessionStartTime);
       const sessionTimeout = church.kioskSessionTimeout || 60;
       const sessionEnd = new Date(sessionStart.getTime() + sessionTimeout * 60 * 1000);
       const now = new Date();
+      
       if (now < sessionEnd) {
         timeRemaining = Math.max(0, Math.floor((sessionEnd.getTime() - now.getTime()) / 1000));
         isSessionActive = true;
       }
     }
 
-    let availableEvents: Array<{ id: string; name: string; eventType: string | null; location: string | null }> = [];
+    // Get all active events available for kiosk mode
+    let availableEvents = [];
     try {
       const allEvents = await db.select().from(events).where(eq(events.churchId, req.churchId!));
-      availableEvents = allEvents
-        .filter((e) => e.isActive)
-        .map((e) => ({ id: e.id, name: e.name, eventType: e.eventType, location: e.location }));
+      availableEvents = allEvents.filter(event => event.isActive).map(event => ({
+        id: event.id,
+        name: event.name,
+        eventType: event.eventType,
+        location: event.location
+      }));
     } catch (e) {
       console.error('Error fetching active events:', e);
     }
@@ -396,9 +365,11 @@ router.get('/kiosk-settings', authenticateToken, async (req: AuthenticatedReques
     res.json({
       kioskModeEnabled: church.kioskModeEnabled || false,
       kioskSessionTimeout: church.kioskSessionTimeout || 60,
-      activeSession: isSessionActive
-        ? { timeRemaining, isActive: true, availableEvents }
-        : null,
+      activeSession: isSessionActive ? {
+        timeRemaining: timeRemaining,
+        isActive: true,
+        availableEvents: availableEvents
+      } : null
     });
   } catch (error) {
     console.error('Get kiosk settings error:', error);
@@ -406,19 +377,28 @@ router.get('/kiosk-settings', authenticateToken, async (req: AuthenticatedReques
   }
 });
 
+// POST /api/churches/kiosk-session/start - Start a kiosk session for all active events
 router.post('/kiosk-session/start', authenticateToken, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
   try {
-    const church = await churchStorage.updateChurch(req.churchId!, { kioskSessionStartTime: new Date() });
-    if (!church) return res.status(404).json({ error: 'Church not found' });
+    // No validation needed - kiosk mode applies to all active events
+    const church = await churchStorage.updateChurch(req.churchId!, {
+      kioskSessionStartTime: new Date(),
+    });
 
-    let availableEvents: any[] = [];
+    if (!church) {
+      return res.status(404).json({ error: 'Church not found' });
+    }
+
+    // Get all active events for display
+    let availableEvents = [];
     try {
       const allEvents = await db.select().from(events).where(eq(events.churchId, req.churchId!));
-      availableEvents = allEvents.filter((e) => e.isActive);
+      availableEvents = allEvents.filter(event => event.isActive);
     } catch (e) {
       console.error('Error fetching active events:', e);
     }
 
+    // Generate extended token for kiosk session persistence
     const userPayload: ChurchUserPayload = {
       id: req.user!.id,
       churchId: req.user!.churchId,
@@ -429,15 +409,15 @@ router.post('/kiosk-session/start', authenticateToken, requireRole(['admin']), a
     };
     const extendedToken = generateKioskToken(userPayload, church.kioskSessionTimeout || 60);
 
-    res.json({
-      success: true,
+    res.json({ 
+      success: true, 
       message: 'Kiosk session started successfully for all active events',
       session: {
         startTime: church.kioskSessionStartTime,
         timeoutMinutes: church.kioskSessionTimeout,
-        availableEvents: availableEvents.length,
+        availableEvents: availableEvents.length
       },
-      extendedToken,
+      extendedToken // Send back extended token for session persistence
     });
   } catch (error) {
     console.error('Start kiosk session error:', error);
@@ -445,11 +425,19 @@ router.post('/kiosk-session/start', authenticateToken, requireRole(['admin']), a
   }
 });
 
+// POST /api/churches/kiosk-session/extend - Extend current kiosk session
 router.post('/kiosk-session/extend', authenticateToken, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
   try {
-    const church = await churchStorage.updateChurch(req.churchId!, { kioskSessionStartTime: new Date() });
-    if (!church) return res.status(404).json({ error: 'Church not found' });
+    // Reset session start time to extend the session
+    const church = await churchStorage.updateChurch(req.churchId!, {
+      kioskSessionStartTime: new Date(),
+    });
 
+    if (!church) {
+      return res.status(404).json({ error: 'Church not found' });
+    }
+
+    // Generate new extended token for session extension
     const userPayload: ChurchUserPayload = {
       id: req.user!.id,
       churchId: req.user!.churchId,
@@ -460,11 +448,11 @@ router.post('/kiosk-session/extend', authenticateToken, requireRole(['admin']), 
     };
     const extendedToken = generateKioskToken(userPayload, church.kioskSessionTimeout || 60);
 
-    res.json({
-      success: true,
+    res.json({ 
+      success: true, 
       message: 'Kiosk session extended successfully',
       newStartTime: church.kioskSessionStartTime,
-      extendedToken,
+      extendedToken // Send back new extended token
     });
   } catch (error) {
     console.error('Extend kiosk session error:', error);
@@ -472,23 +460,68 @@ router.post('/kiosk-session/extend', authenticateToken, requireRole(['admin']), 
   }
 });
 
+// POST /api/churches/kiosk-session/end - End current kiosk session
 router.post('/kiosk-session/end', authenticateToken, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
   try {
-    const church = await churchStorage.updateChurch(req.churchId!, { kioskSessionStartTime: null });
-    if (!church) return res.status(404).json({ error: 'Church not found' });
+    const church = await churchStorage.updateChurch(req.churchId!, {
+      kioskSessionStartTime: null,
+    });
 
-    res.json({ success: true, message: 'Kiosk session ended successfully' });
+    if (!church) {
+      return res.status(404).json({ error: 'Church not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Kiosk session ended successfully'
+    });
   } catch (error) {
     console.error('End kiosk session error:', error);
     res.status(500).json({ error: 'Failed to end kiosk session' });
   }
 });
 
-/* ── Features & usage ────────────────────────────────────────────────────── */
+// PATCH /api/churches/kiosk-settings - Update kiosk mode settings
+router.patch('/kiosk-settings', authenticateToken, requireRole(['admin']), async (req: AuthenticatedRequest, res) => {
+  try {
+    const settings = kioskSettingsSchema.parse(req.body);
+    
+    const church = await churchStorage.updateChurch(req.churchId!, {
+      kioskModeEnabled: settings.kioskModeEnabled,
+      kioskSessionTimeout: settings.kioskSessionTimeout,
+    });
 
+    if (!church) {
+      return res.status(404).json({ error: 'Church not found' });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Kiosk settings updated successfully',
+      settings: {
+        kioskModeEnabled: church.kioskModeEnabled,
+        kioskSessionTimeout: church.kioskSessionTimeout,
+      }
+    });
+  } catch (error) {
+    console.error('Update kiosk settings error:', error);
+    
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        error: 'Validation error', 
+        details: error.errors 
+      });
+    }
+
+    res.status(500).json({ error: 'Failed to update kiosk settings' });
+  }
+});
+
+// GET /api/churches/features - Get available features for current subscription
 router.get('/features', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const churchId = req.churchId!;
+    
     const features = {
       biometric_checkin: await churchStorage.hasFeatureAccess(churchId, 'biometric_checkin'),
       family_checkin: await churchStorage.hasFeatureAccess(churchId, 'family_checkin'),
@@ -505,6 +538,7 @@ router.get('/features', authenticateToken, async (req: AuthenticatedRequest, res
       api_access: await churchStorage.hasFeatureAccess(churchId, 'api_access'),
       custom_branding: await churchStorage.hasFeatureAccess(churchId, 'custom_branding'),
     };
+
     res.json({ features });
   } catch (error) {
     console.error('Get features error:', error);
@@ -512,19 +546,27 @@ router.get('/features', authenticateToken, async (req: AuthenticatedRequest, res
   }
 });
 
+// GET /api/churches/usage - Get current usage statistics
 router.get('/usage', authenticateToken, async (req: AuthenticatedRequest, res) => {
   try {
     const churchId = req.churchId!;
     const church = await churchStorage.getChurchById(churchId);
-    if (!church) return res.status(404).json({ error: 'Church not found' });
+    
+    if (!church) {
+      return res.status(404).json({ error: 'Church not found' });
+    }
 
     const memberCount = await churchStorage.getChurchMemberCount(churchId);
-    const memberLimit = church.maxMembers ?? 0;
-    const memberUsagePercent = memberLimit > 0 ? Math.round((memberCount / memberLimit) * 100) : 0;
+    const memberLimit = church.maxMembers;
+    const memberUsagePercent = Math.round((memberCount / memberLimit) * 100);
 
     res.json({
       usage: {
-        members: { current: memberCount, limit: memberLimit, percentage: memberUsagePercent },
+        members: {
+          current: memberCount,
+          limit: memberLimit,
+          percentage: memberUsagePercent,
+        },
         subscriptionTier: church.subscriptionTier,
         trialDaysRemaining: await churchStorage.getTrialDaysRemaining(churchId),
       },
@@ -535,25 +577,27 @@ router.get('/usage', authenticateToken, async (req: AuthenticatedRequest, res) =
   }
 });
 
-/* ── Subdomain availability ──────────────────────────────────────────────── */
-
+// POST /api/churches/check-subdomain - Check if subdomain is available
 router.post('/check-subdomain', async (req, res) => {
   try {
-    const { subdomain } = z
-      .object({
-        subdomain: z
-          .string()
-          .min(3, 'Subdomain must be at least 3 characters')
-          .regex(/^[a-z0-9-]+$/, 'Subdomain can only contain lowercase letters, numbers, and hyphens'),
-      })
-      .parse(req.body);
+    const { subdomain } = z.object({
+      subdomain: z.string().min(3, "Subdomain must be at least 3 characters").regex(/^[a-z0-9-]+$/, "Subdomain can only contain lowercase letters, numbers, and hyphens"),
+    }).parse(req.body);
 
     const isAvailable = await churchStorage.isSubdomainAvailable(subdomain);
-    res.json({ available: isAvailable, subdomain });
+    
+    res.json({ 
+      available: isAvailable,
+      subdomain,
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid subdomain format', details: error.errors });
+      return res.status(400).json({ 
+        error: 'Invalid subdomain format', 
+        details: error.errors 
+      });
     }
+
     res.status(500).json({ error: 'Failed to check subdomain' });
   }
 });

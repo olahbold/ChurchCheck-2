@@ -18,7 +18,6 @@ import {
   hashPassword,
   type AuthenticatedRequest
 } from "./auth.js";
-import rateLimit from "express-rate-limit";
 import { 
   insertMemberSchema, 
   updateMemberSchema,
@@ -80,10 +79,6 @@ const upload = multer({
     }
   }
 });
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-super-secret-key';
-if (!process.env.JWT_SECRET) {
-  console.warn('[auth] JWT_SECRET not set; using fallback key for dev ONLY');
-}
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1943,32 +1938,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.put("/api/churches/branding", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
-  try {
-    const brandingData = updateChurchBrandingSchema.parse(req.body);
-    const updated = await churchStorage.updateChurchBranding(req.churchId!, brandingData);
-    if (!updated) return res.status(404).json({ error: 'Church not found' });
-    res.json({
-      success: true,
-      branding: {
-        logoUrl: updated.logoUrl ?? null,
-        bannerUrl: updated.bannerUrl ?? null,
-        brandColor: updated.brandColor ?? '#6366f1',
-      },
-      message: 'Church branding updated successfully'
-    });
-  } catch (error) {
-    console.error('Update branding error:', error);
-    if ((error as any)?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Validation error' });
+    try {
+      const brandingData = updateChurchBrandingSchema.parse(req.body);
+      await churchStorage.updateChurchBranding(req.churchId!, brandingData);
+      
+      res.json({ 
+        success: true, 
+        message: 'Church branding updated successfully'
+      });
+    } catch (error) {
+      console.error('Update branding error:', error);
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid branding data' });
     }
-    res.status(500).json({ error: 'Failed to update church branding' });
-  }
-});
-
+  });
 
   app.get("/api/churches/branding", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
-      const church = await churchStorage.getChurchById(req.churchId!);
+      const church = await churchStorage.getChurch(req.churchId!);
       if (!church) {
         return res.status(404).json({ error: 'Church not found' });
       }
@@ -2056,124 +2042,100 @@ const DEFAULT_SUPER_ADMIN_PASSWORD = process.env.DEFAULT_SUPER_ADMIN_PASSWORD ||
 const DEFAULT_SUPER_ADMIN_FIRST = process.env.DEFAULT_SUPER_ADMIN_FIRST || "Super";
 const DEFAULT_SUPER_ADMIN_LAST = process.env.DEFAULT_SUPER_ADMIN_LAST || "Admin";
 
-const superAdminLoginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 30, // 30 attempts / 15 mins from same IP
-  standardHeaders: true,
-  legacyHeaders: false,
-});
 
 
-const isNonEmptyString = (v: any) => typeof v === 'string' && v.trim().length > 0;
-
-app.post('/api/super-admin/login', superAdminLoginLimiter, async (req, res) => {
+app.post('/api/super-admin/login', async (req, res) => {
   try {
-    const emailRaw = req.body?.email;
-    const password = req.body?.password;
+    const { email, password } = req.body;
+    console.log('Login attempt:', { email, password });
 
-    if (!isNonEmptyString(emailRaw) || !isNonEmptyString(password)) {
-      return res.status(400).json({ error: 'Email and password are required' });
-    }
-
-    const email = String(emailRaw).toLowerCase();
-
-    // Look up super admin by email (storage should already query by lowercase)
     const superAdmin = await churchStorage.getSuperAdminByEmail(email);
 
-    // Use same response for not found or bad password
     if (!superAdmin) {
-      // DO NOT log password or detailed reason
+      console.error('Super admin not found for email:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    // Compare provided password vs stored hash
-    const ok = await bcrypt.compare(password, superAdmin.passwordHash);
-    if (!ok) {
+    console.log('Super admin found:', superAdmin);
+
+    // Hashing a password for testing purposes (not needed in login flow)
+    
+    
+
+    // Compare the provided password with the stored hashed password
+    const isValidPassword = await bcrypt.compare(password, superAdmin.passwordHash);
+    if (!isValidPassword) {
+      console.error('Invalid password for super admin:', email);
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    if (superAdmin.isActive === false) {
-      return res.status(403).json({ error: 'Account is inactive' });
-    }
-
-    // Issue JWT (shorter expiry recommended)
+    // Generate the token
+    const JWT_SECRET = process.env.JWT_SECRET || 'fallback-super-secret-key';
     const token = jwt.sign(
-      {
-        sub: superAdmin.id,
+      { 
+        id: superAdmin.id, 
         email: superAdmin.email,
         role: 'super_admin',
-        type: 'super_admin',
-        // optional hardening:
-        // iss: 'churchconnect',
-        // aud: 'churchconnect-superadmin',
+        type: 'super_admin' 
       },
-      JWT_SECRET!,
-      { expiresIn: '12h' } // consider 1–12h; shorter is safer
+      JWT_SECRET,
+      { expiresIn: '24h' }
     );
 
-    // Return minimal profile
-    res.status(200).json({
-      success: true,
-      message: 'Login successful',
-      token,
-      admin: {
-        id: superAdmin.id,
-        email: superAdmin.email,
-        firstName: superAdmin.firstName,
-        lastName: superAdmin.lastName,
-        role: 'super_admin',
-      },
-    });
+    // Continue with token generation or other login success logic
+    res.status(200).json({success :true, message: 'Login successful', token, admin:{ id: superAdmin.id,email: superAdmin.email,firstName: superAdmin.firstName,lastName: superAdmin.lastName,role: superAdmin.role }});
   } catch (error) {
     console.error('Super admin login error:', error);
     res.status(500).json({ error: 'Login failed' });
   }
 });
-
   
   app.get('/api/super-admin/check', async (_req, res) => {
   try {
     const exists = await churchStorage.anySuperAdminExists();
     return res.json({ exists });
-  } catch {
-    return res.json({ exists: true }); // conservative
+  } catch (e) {
+    return res.json({ exists: true });
   }
 });
 
-/** AUTH MIDDLEWARE (Super Admin only) */
-const authenticateSuperAdmin = async (req: any, res: any, next: any) => {
-  try {
-    const auth = req.headers.authorization;
-    if (!auth || !auth.startsWith('Bearer ')) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const token = auth.slice('Bearer '.length).trim();
-    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
-    const decoded = jwt.verify(token, JWT_SECRET!) as any;
+  
 
-    // Optional: verify issuer/audience if you set them in the sign step
-    // if (decoded.iss !== 'churchconnect' || decoded.aud !== 'churchconnect-superadmin') {
-    //   return res.status(401).json({ error: "Invalid token audience/issuer" });
-    // }
 
-    if (decoded.type !== 'super_admin' || decoded.role !== 'super_admin') {
-      return res.status(403).json({ error: "Super admin access required" });
-    }
+  // Super admin middleware
+  const authenticateSuperAdmin = async (req: any, res: any, next: any) => {
+      try {
+        if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer ')) {
+          return res.status(401).json({ error: "Invalid authorization header format" });
+        }
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) {
+          return res.status(401).json({ error: "No token provided" });
+        }
 
-    const superAdmin = await churchStorage.getSuperAdminById(decoded.sub || decoded.id);
-    if (!superAdmin) return res.status(401).json({ error: "Super admin not found" });
-    if (superAdmin.isActive === false) {
-      return res.status(403).json({ error: "Super admin is inactive" });
-    }
+      const JWT_SECRET = process.env.JWT_SECRET || 'fallback-super-secret-key';
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      
+      if (decoded.type !== 'super_admin') {
+        return res.status(403).json({ error: "Super admin access required" });
+      }
 
-    req.superAdmin = superAdmin;
-    next();
-  } catch (error) {
-    console.error("Authentication error:", error);
-    res.status(401).json({ error: "Invalid token" });
-  }
-};
+      const superAdmin = await churchStorage.getSuperAdminById(decoded.id);
+      if (!superAdmin) {
+        return res.status(401).json({ error: "Super admin not found" });
+      }
+      if (!superAdmin.isActive) {
+        return res.status(401).json({ error: "Super admin is inactive" });
+      }
+
+      req.superAdmin = superAdmin;
+      next();
+    } catch (error) {
+          console.error("Authentication error:", error);
+          res.status(401).json({ error: "Invalid token" });
+        }
+  };
 
   // Platform overview dashboard
   

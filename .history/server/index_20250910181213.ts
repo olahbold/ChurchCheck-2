@@ -9,11 +9,6 @@ import { ensureDefaultSuperAdmin } from "./bootstrap.superadmin";
 
 
 
-console.log("[env] NODE_ENV =", process.env.NODE_ENV);
-console.log("[env] loaded DB url =", process.env.DATABASE_URL?.slice(0, 30) + "..."); 
-console.log("[env] DEFAULT_SUPER_ADMIN_EMAIL =", process.env.DEFAULT_SUPER_ADMIN_EMAIL);
-
-
 const app = express();
 
 app.use(cors({

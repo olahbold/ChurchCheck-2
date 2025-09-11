@@ -80,10 +80,6 @@ const upload = multer({
     }
   }
 });
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-super-secret-key';
-if (!process.env.JWT_SECRET) {
-  console.warn('[auth] JWT_SECRET not set; using fallback key for dev ONLY');
-}
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1943,32 +1939,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.put("/api/churches/branding", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
-  try {
-    const brandingData = updateChurchBrandingSchema.parse(req.body);
-    const updated = await churchStorage.updateChurchBranding(req.churchId!, brandingData);
-    if (!updated) return res.status(404).json({ error: 'Church not found' });
-    res.json({
-      success: true,
-      branding: {
-        logoUrl: updated.logoUrl ?? null,
-        bannerUrl: updated.bannerUrl ?? null,
-        brandColor: updated.brandColor ?? '#6366f1',
-      },
-      message: 'Church branding updated successfully'
-    });
-  } catch (error) {
-    console.error('Update branding error:', error);
-    if ((error as any)?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Validation error' });
+    try {
+      const brandingData = updateChurchBrandingSchema.parse(req.body);
+      await churchStorage.updateChurchBranding(req.churchId!, brandingData);
+      
+      res.json({ 
+        success: true, 
+        message: 'Church branding updated successfully'
+      });
+    } catch (error) {
+      console.error('Update branding error:', error);
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid branding data' });
     }
-    res.status(500).json({ error: 'Failed to update church branding' });
-  }
-});
-
+  });
 
   app.get("/api/churches/branding", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
-      const church = await churchStorage.getChurchById(req.churchId!);
+      const church = await churchStorage.getChurch(req.churchId!);
       if (!church) {
         return res.status(404).json({ error: 'Church not found' });
       }
@@ -2135,45 +2122,48 @@ app.post('/api/super-admin/login', superAdminLoginLimiter, async (req, res) => {
   try {
     const exists = await churchStorage.anySuperAdminExists();
     return res.json({ exists });
-  } catch {
-    return res.json({ exists: true }); // conservative
+  } catch (e) {
+    return res.json({ exists: true });
   }
 });
 
-/** AUTH MIDDLEWARE (Super Admin only) */
-const authenticateSuperAdmin = async (req: any, res: any, next: any) => {
-  try {
-    const auth = req.headers.authorization;
-    if (!auth || !auth.startsWith('Bearer ')) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
-    const token = auth.slice('Bearer '.length).trim();
-    if (!token) return res.status(401).json({ error: "Unauthorized" });
 
-    const decoded = jwt.verify(token, JWT_SECRET!) as any;
+  
 
-    // Optional: verify issuer/audience if you set them in the sign step
-    // if (decoded.iss !== 'churchconnect' || decoded.aud !== 'churchconnect-superadmin') {
-    //   return res.status(401).json({ error: "Invalid token audience/issuer" });
-    // }
 
-    if (decoded.type !== 'super_admin' || decoded.role !== 'super_admin') {
-      return res.status(403).json({ error: "Super admin access required" });
-    }
+  // Super admin middleware
+  const authenticateSuperAdmin = async (req: any, res: any, next: any) => {
+      try {
+        if (!req.headers.authorization || !req.headers.authorization.startsWith('Bearer ')) {
+          return res.status(401).json({ error: "Invalid authorization header format" });
+        }
+        const token = req.headers.authorization?.replace('Bearer ', '');
+        if (!token) {
+          return res.status(401).json({ error: "No token provided" });
+        }
 
-    const superAdmin = await churchStorage.getSuperAdminById(decoded.sub || decoded.id);
-    if (!superAdmin) return res.status(401).json({ error: "Super admin not found" });
-    if (superAdmin.isActive === false) {
-      return res.status(403).json({ error: "Super admin is inactive" });
-    }
+      const JWT_SECRET = process.env.JWT_SECRET || 'fallback-super-secret-key';
+      const decoded = jwt.verify(token, JWT_SECRET) as any;
+      
+      if (decoded.type !== 'super_admin') {
+        return res.status(403).json({ error: "Super admin access required" });
+      }
 
-    req.superAdmin = superAdmin;
-    next();
-  } catch (error) {
-    console.error("Authentication error:", error);
-    res.status(401).json({ error: "Invalid token" });
-  }
-};
+      const superAdmin = await churchStorage.getSuperAdminById(decoded.id);
+      if (!superAdmin) {
+        return res.status(401).json({ error: "Super admin not found" });
+      }
+      if (!superAdmin.isActive) {
+        return res.status(401).json({ error: "Super admin is inactive" });
+      }
+
+      req.superAdmin = superAdmin;
+      next();
+    } catch (error) {
+          console.error("Authentication error:", error);
+          res.status(401).json({ error: "Invalid token" });
+        }
+  };
 
   // Platform overview dashboard
   

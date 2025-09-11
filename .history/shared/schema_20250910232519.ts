@@ -368,7 +368,14 @@ import { sql, relations } from "drizzle-orm";
 
     
     // Phone format validation if provided
-   
+    if (data.phone && data.phone.trim() !== "" && !/^\+?[\d\s\-\(\)]+$/.test(data.phone)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Invalid phone number format",
+        path: ["phone"]
+      });
+    }
+  });
 
   // Update schema with more lenient validation for partial updates
   export const updateMemberSchema = z.object({

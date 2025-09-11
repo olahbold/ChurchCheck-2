@@ -80,10 +80,6 @@ const upload = multer({
     }
   }
 });
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-super-secret-key';
-if (!process.env.JWT_SECRET) {
-  console.warn('[auth] JWT_SECRET not set; using fallback key for dev ONLY');
-}
 
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -1943,32 +1939,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.put("/api/churches/branding", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
-  try {
-    const brandingData = updateChurchBrandingSchema.parse(req.body);
-    const updated = await churchStorage.updateChurchBranding(req.churchId!, brandingData);
-    if (!updated) return res.status(404).json({ error: 'Church not found' });
-    res.json({
-      success: true,
-      branding: {
-        logoUrl: updated.logoUrl ?? null,
-        bannerUrl: updated.bannerUrl ?? null,
-        brandColor: updated.brandColor ?? '#6366f1',
-      },
-      message: 'Church branding updated successfully'
-    });
-  } catch (error) {
-    console.error('Update branding error:', error);
-    if ((error as any)?.name === 'ZodError') {
-      return res.status(400).json({ error: 'Validation error' });
+    try {
+      const brandingData = updateChurchBrandingSchema.parse(req.body);
+      await churchStorage.updateChurchBranding(req.churchId!, brandingData);
+      
+      res.json({ 
+        success: true, 
+        message: 'Church branding updated successfully'
+      });
+    } catch (error) {
+      console.error('Update branding error:', error);
+      res.status(400).json({ error: error instanceof Error ? error.message : 'Invalid branding data' });
     }
-    res.status(500).json({ error: 'Failed to update church branding' });
-  }
-});
-
+  });
 
   app.get("/api/churches/branding", authenticateToken, ensureChurchContext, async (req: AuthenticatedRequest, res) => {
     try {
-      const church = await churchStorage.getChurchById(req.churchId!);
+      const church = await churchStorage.getChurch(req.churchId!);
       if (!church) {
         return res.status(404).json({ error: 'Church not found' });
       }
